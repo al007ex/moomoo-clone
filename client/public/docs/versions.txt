@@ -1,0 +1,842 @@
+Moo Moo IO - Game Version History
+
+MOOMOO 2 is still in the works sorry for the delays
+
+1.6.9 (24/11/2018):
+> Several Hack Fixes (Temporary)
+> Replaced Pizza with Cheese Wheel (thanks to Jhonxay)
+> Reduced Food Cost of Cheese Wheel from 30 to 25
+> Added Gold, Ruby and Diamond Variants for Musket & Mc Grabby
+> 3 New Hats with new abilities
+> Added new Skin Colors
+> Increased Turret hat movement speed
+> Increased Firerate for Rapid Crossbow
+> Updated Wolf Sprites
+> Added Emerald Weapons (Heals on hit) (Thanks to MonsterBot!!!!)
+> Changed Teleporter limit to 2
+> Updated Certs
+
+1.6.8 (27/10/2018):
+> Hack Fixes
+> Added Secret Weapon
+> Updated Ads
+
+1.6.7 (22/10/2018):
+> You can no longer build inside blocker
+> Added Musket Back
+> Minor Bug Fixes
+
+1.6.6 (12/09/2018):
+> Fixed some server crashes
+> Fixed Teleporter 1/1 glitch
+> Added new Weapon: Mc Grabby
+> Increased Blocker Build Limit
+> You can now build inside your own blocker zone
+> Fixed some more hacks
+
+1.6.5 (6/09/2018):
+> Fixed some hacks
+
+1.6.4 (31/08/2018) Birthday Update:
+> Ruby Weapons are now easily unlockable like the rest. No one found the secret
+> Ruby Weapons Deal Bleed Damage over time
+> Removed Some Settings
+> Updated Cert
+> Removed Igor
+> Added Cheese Wheel
+> Added Teleporter (Teleports you to a random point on the map)
+> Nerfed Monkey Tail Speed a bit
+
+1.6.3 (2/07/2018):
+> Added ping display, enable it at the bottom of the settings panel
+> Added automatic error reporting so we can catch errors faster
+
+1.6.2 (29/06/2018):
+> Added back sandbox servers
+> Fixed bug that would make screen bright and stop working
+> Reduced frequency of players joining full servers
+
+1.6.1 (26/06/2018):
+> Experimental servers are temporarily disabled, they will be back tomorrow!
+> HTTPS support
+> Faster load times by caching images
+> Server list now updates on death
+> New party key format
+> Invalid party keys are handled smoother
+> Bug fixes
+
+1.6 (19/06/2018):
+> Reduced Blocker Range
+> Fixed Blocker Render Issue
+> Added Thief Gear (Steals half a players gold when you kill them)
+> Added Ruby Weapons (Must be earned)
+> Added Stick (Good for farming but does almost no damage)
+
+1.5 (18/06/2018):
+> Increased Blocker Limit to 2
+> Buffed Wood Wall HP to 380
+> Sid & Vince only appear on special occasions now
+> Chest now gives less gold
+
+1.4 (18/06/2018):
+> Reverted spike changes (dont say I didnt try)
+> Added Blocker (Blocks any building in a certain area)
+> Added Krunker.io Banner
+
+1.3 (18/06/2018):
+> Spikes now cant hurt you if you arent moving (Fixes trap spike meta)
+> Turret Hat slows you down more
+> Vince & Sid now roam around the map
+
+1.2 (8/06/2018):
+> Turret Hat now Slows you down a lot
+
+1.1 (16/05/2018):
+> Add Treasure Chest to Boss arena (Drops 20000 Gold)
+> Fixed Repeater Crossbow upgrade path
+> Moostafa now Drops 10000 Gold
+> Buffed Moostafa HP
+> Reduced Moostafa Speed
+> Added Turret Hat
+> Increased Dagger Damage to 20
+> Improved Boss AI
+> Moostafa can now break walls
+> Added Spawn Delays to Bosses
+> Added Wolf Companion to Arena
+> Pizza now Heals 30 health instantly and another 50 over 5 seconds (Also cures poison)
+> Boost pads now have less health so they are easier to break again
+
+1.0 (15/05/2018):
+> Reduced Monkey Tail DMG even more
+> Fixed Bat Hotbar position
+> Slightly Reduced Bat Range
+> Apple Basket now Regens Health
+> Added 2 new Cosmetic Hats
+> Buffed Healing pad to heal 15 per second
+> Added Diamond Bat
+> Added Sapling (Allows you to farm wood)
+> Removed Fish
+> Quack is now immune to traps
+> Increased Tribe Name Max Length
+> Removed Menu Sounds
+> Added Pizza
+> Performance Optimizations
+> Added Daggers Weapon
+> Added new Boss to Desert
+
+0.9 (12/05/2018):
+> Buffed Repeater Crossbow DMG
+> Added Stone Shield Upgrade Path
+> Ass is no longer a swear word
+> Monkey tail now has an effect (super speed lower damage)
+> Added Bat weapon (Good for crowd control)
+> Added Power Mill upgrade (Even faster windmill)
+> Added Back dev.moomoo.io server
+> Added new Cow Names
+> Changed Max Age to 100
+> Gold and Diamond Variants are now earned faster
+> Snow slows you down more now
+
+0.897 (18/12/2017):
+> Replaced Musket with Repeater Crossbow
+> Made Wolves more Common
+> Updated Discord Link
+> Updated Diamond Weapon Sprites (thanks to eXistenZ)
+
+0.896 (03/12/2017):
+> Reduced Spear Attack Speed
+> Reduced Spear Move Speed
+> Added Knockback to Spear
+> Fixed placing turret on water bug
+> Fixed Discord Link
+> Reduced Spinning Spike Damage to 45
+> Changed Pit trap HP to 500
+> Reduced Damage Hammer does to Players and Animals
+> Added Diamond Spear Sprite
+> Buffed Soldier Helmet
+
+0.895 (02/12/2017):
+> Reduced Angel Wings to 3 Health Perk Tick
+> Increased Bull Helmet Bleed Effect
+> Reduced Diamond Weapon Damage from x1.2 to x1.18
+> Bull Helmet now slows movement a bit
+> Reduced Spear Attack speed a bit
+> Reduced Pit Trap HP from 700 to 400
+
+0.894 (01/12/2017):
+> Added Menu Music
+> Updated Discord Link
+> Added Spinning Spike Upgrade to Age 9
+> Added Spear Weapon to Age 2 (Big Range slow attack and movement)
+> Increased Number of Wolves
+> Reduced Wolf Damage
+> Increased Bully Size
+> Added Duck (Very Rare animal that drops 2000 gold when killed. Its really fast)
+
+0.893 (03/11/2017):
+> Fixed Starting with Stone Walls Issue
+
+0.892 (01/11/2017):
+> Adjusted Item System (It will be easier to add new Items now)
+> Actually Added Diamond Weapons now (+20% dmg)
+
+0.891 (19/10/2017):
+> Increased Wall Limit to 30
+> Added Wolf (Spawns in Snow)
+> Reduced Wood Wall Cost to 10 Wood
+> Increased Tree Size a bit
+> Reduced Boost Pad Cost to 20 Stone and 5 Wood
+> Gold Weapons are now Easier to get
+> Added new Promo Banner
+> Added Red Skin color back
+
+0.89 (13/09/2017):
+> Moved Spawn Pad down one age
+> Fixed Discord Link
+> Fixed Bull helmet damage bug
+> Buffed Angel Wings
+> Adjusted Menu Display
+> Follow to Start with more resources
+
+0.88 (11/09/2017):
+> Buffed Musket move Speed and Damage (I'm trying my best Reddit)
+> Increased Max Walls to 25
+> Added New Hat
+> Added New Wings
+> Optimized Client Side Rendering a lot
+> Adjused Anti Hack Hat
+> Added effects to Accessories
+> Fixed Discord Link
+> Added respawn Pad (Spawn where you placed it)
+
+0.87 (16/08/2017):
+> Added Accessories to the Store (Adding Effects soon)
+> Added New Hats
+> Added Food Spam Prevention to the Server (May not work properly)
+> Increased Musket damage but reduce Firerate and move speed a lot
+> Fixed hide chat function when you open store
+> Updated Several Sprites (Hats and Animals)
+> Reduced Tank Gear Cost
+> Fixed Hat Previews for Animated Hats
+
+0.86 (14/08/2017):
+> Changed Demolisher armor effect and name
+> Added new Hat: Tank Gear
+> Buffed spike Gear
+> Added new Skin Color
+> Changed Spike Gear Design
+> Added Windmill Hat
+> Buffed Booster Hat
+> Buffed Plague Mask
+> Fixed Platform bug where they cant be placed in water
+> Nerfed Musket move Speed
+> Reduced Musket Damage to 45 (Reddit forced me to do it)
+> Changed Scavenger Hat Design
+> Moved Musket to Age 9 (Will change this again later)
+
+0.85 (5/08/2017):
+> Added several new Hats
+> Added Musket Weapon to Bow path
+> Added Poison Spike Upgrade
+> Adjusted Fish hat sprite
+> Buffed Healing Pad
+> Fixed some issues with Video Ads
+> Reduced Bandwidth
+
+0.84 (29/07/2017):
+> Fixed Issues with Video Ads
+> Added Healing Platform to Age 8
+> Gold Weapons do more Damage again
+> Optimized Server Side Code
+
+0.83 (13/07/2017):
+> Gold Weapons do More Damage now
+> Reduced Server Size to Reduce Lag
+> Optimized Server Side
+> Added Video Ads
+
+0.82 (23/06/2017):
+> Added Gold Weapon Variants (Earned by Using weapon or Tool a lot)
+> Optimized Server Performance
+> Fixed Collision issue with Boost Pads
+
+0.81 (20/06/2017):
+> Reverted Healing Changes
+
+0.80 (20/06/2017) (Delayed Gold Weapons):
+> Fixed Weapon Rotation
+> Optimized Some Server Code
+> Added new Cow Names
+> Added new Skin Color
+> Added Flipper Hat
+> Buffed Castle Walls
+> Eating Food now Regenerates Health over time (To counter auto heal spammers)
+> Pressing C adds a marker to the minimap
+
+0.79 (11/06/2017):
+> Added River to middle of map
+> Walking in Water slows you down (unless you stand on a platform)
+> Platform Can be Built in Water
+> Increased Platform Limit
+> Reduced Platform Health and Cost
+> Map Border now Renders on top of everything else
+> Reduced Number of Bulls a bit
+> Made Map Larger
+> Adjusted AI behavior
+
+0.78 (6/06/2017):
+> Fixed Discord Link
+> Optimized Server Side
+> Reduced Packet Size
+> Reduced Bandwidth
+> Bulls are More Common now
+> Increased View Radius of Bulls a bit
+> Renamed Black Bull to Bully
+> Turrets now Target Hostile AI (Bulls & Bandits (coming soon))
+> Poison now works on AI
+
+0.77 (4/06/2017):
+> Made Black Bull larger and Stronger
+> Added Platform (Stand on it to shoot over certain obstacles)
+> Optimized Server Side
+> Reduced Client Side input Lag
+> Added Skin Color Selector to Menu
+> Made Animal Hats Free (Until they get passive ability)
+
+0.76 (31/05/2017):
+> Added Rare Black Bull
+> Increased Knockback from Bulls
+> Adjusted Bull AI again
+> Fixed Bug with Bull AI
+> Added Leave Confirmation when closing Tab
+> Updated All Hat Sprites
+> Added Animal Cosmetic Hats
+
+0.75 (25/05/2017):
+> Adjusted Bull AI
+> Nerfed Samurai Helmet a bit
+> Added Sandbox Servers
+
+0.74 (23/05/2017):
+> Added Bulls (They will attack you)
+> Added Desert Biome (No Trees but more Stone)
+> Added Cactus Plant to Desert (Works like a spike and Gives Food)
+> Adjusted Animal Collision Boxes
+> Updated Menu Guide
+> Fixed Bug with AI turn Behavior
+> Optimized Server Send Loop
+
+0.73 (21/05/2017):
+> Fixed Several Server Issues
+> Optimized Server Loop
+> Added Kill counter
+> Released Android and IOS version
+> Reduced Food Gained from animals
+
+0.72 (15/05/2017):
+> Added Pigs (Slower but more HP)
+> Reduced EMP Helmet Speed
+> Defaults to native resolution only on mobile devices
+> Fixed issue with ads displaying in middle of game
+> Fixed issue with not being able to control on older mobile browsers
+> Fixed Loading issue
+
+0.71 (14/05/2017):
+> Cows run away a bit faster
+> Optimized server
+> Improved Mobile Support
+> Fixed issues with Android Mobile Support
+> Added More Cow Names
+> Cow Names are now the same for all players
+
+0.70 (13/05/2017):
+> Added AI cows (More animals and monsters coming soon)
+> Optimized Server Loop
+> Updated Resource Icons
+> Added EMP Helmet Back (You now move slower while wearing it)
+> Buffed Turret Firerate
+> Fixed Chat test case issue
+> You can now keep moving while selecting hats
+> Increased Turret Cost a bit
+> Fixed Minor Bugs on Server
+
+0.69 (10/05/2017):
+> You can now have 2 turrets
+> Removed Emp Helmet for now
+> Reduced Turret Damage
+> Increased Mill Limit
+> Increased Wall Limit
+> Increased Bundle Timeout
+> Fixed Screen Offset Issue
+> Optimized Server Collisions
+
+0.68 (10/05/2017) (Sorry for delays. I'm on vacation):
+> Added New Hats
+> Added New Weapons to Age 7
+> Added Castle Walls Back
+> Arrows Can now Damage/Destroy Wood Walls
+> Added Chat Button
+> Added UI Icons
+> Fixed Random Disconnects
+> Fixed clan invite bug where they don't show after you get kicked
+> Added Mobile Support
+> Buffed Arrow Damage
+> Increased Arrow Cost a bit
+> Reduced Hammer move Speed
+> Reworked party UI
+> Added reload button on disconnected screen
+> Now uses native resolution by default
+
+0.67 (3/05/2017):
+> Optimized Collision Logic on server
+> Optimized Server CPU again
+> Buffed Plague Mask again
+
+0.66 (3/05/2017):
+> Optimized Server Loop
+> Reduced Bandwidth
+> Added Server Buffer to Limit to there is room for party members
+> Fixed Loading... Issue
+
+0.65 (2/05/2017):
+> Minimap Updates more Smoothly now
+> Player with Most Kills has a Skull icon next to their name (More icon achievements soon)
+> Tribe Members can now Ping the Map to alert other tribe members (R key)
+> Added Healing Numbers
+> Added Share Button
+> Increased Turret HP
+> Fixed Order of Requirements on Turret
+> Bull Hat Drains more health now
+> Raised Max Age to 60
+> Minor Optimizations on Server
+
+0.64 (1/05/2017):
+> Increased Map Size
+> Optimized Server Side Game Loop
+> Buffed Bull Helmet Damage
+> Increased Bull Helmet Health Drain
+
+0.63 (30/04/2017):
+> Reduced Damage Effect on Bull Helmet
+> Fixed Crown Display
+> Reduced Damage of Plague Hat
+
+0.62 (30/04/2017):
+> Fixed Turret Randomly shooting
+> Clan Leader has Crown Icon above name
+> Increased Turret Projectile Speed
+> Changed Hammer to Secondary
+> Reduced Hammer move speed
+> Adjusted Apple Hat Sprite
+> Added new Hats
+> Added delta limit on server
+> Added more effects to some hats
+> Upgraded Loadbalancer Server
+> Adjusted Mine Helmet Effect
+
+0.61 (29/04/2017):
+> Increased Map Size a bit
+> Reset Turret Limit to 1
+> Increased Turret Dmg to 1
+
+0.60 (29/04/2017):
+> You can now Place 2 Turrets
+> Added effects to some hats
+> Increased Plague Mask Price
+> Fixed Game Freeze Issue
+> Fixed Projectiles going through walls
+> Improved Master Server performance
+> Decreased Turret Bullet Speed a bit
+> You now earn more gold from gold mines
+
+0.59 (28/04/2017) (Fixing the projectile issue in next update):
+> Added Turret to Age 7 (Work in Progress)
+> Buffed Booster Hat Speed: From 1.15 to 1.16
+> You can now lock rotation with the X key
+> Added poison logic (Will be used for some plants in the future) (Can shoot over walls but not windmills)
+> Fixed Projectile Distance Bug
+> Added Death Fadeout Delay
+> Added new Hats
+> Added Keypress Checks
+
+0.58 (28/04/2017):
+> Fixed rotation lerp issue
+> Added more Anti Hack Stuff
+> Reduced Load time a bit
+
+0.57 (27/04/2017):
+> Fixed Bug with Damage Numbers
+> Fixed Mobile issue with touch screen devices
+
+0.56 (27/04/2017):
+> Optimized Stuff on Server Side
+> Added Basic Mobile Support
+> Added Damage Numbers
+> Added some more Anti-Hack Stuff (Sorry Modders)
+> Adjusted File Obfuscation
+> Added Basic Settings Menu
+> Moved some of the UI elements around
+> Adjusted UI Padding/Spacing
+> Fixed render order for chat messages
+> Added animtext lib
+
+0.55 (26/04/2017):
+> Removed weapon switch delay
+
+0.54 (25/04/2017):
+> Fixed Food Spam while Switching Items Issue
+> Nerfed Marksman Hat a bit
+> You can now quick select the food item with the Q key
+
+0.53 (24/04/2017):
+> Fixed Shield Projectile Bug
+> Optimized some minor things on the server side
+> Fixed Bug Where Arrows go through players
+> Added Weapon Swap Animation and slight delay
+> Fixed Health Bar Display Issue
+> Buffed Great Hammer Damage to Buildings
+> Arrows now Cost 2 wood
+> Reduced Bow Damage
+> Added Shield Item
+> Optimized Arrow Collisions
+> Increased Bow Firerate
+> Fixed Items outside of map issue
+> Nerfed Spike Gear Dmg
+> Spike Gear Now Only Works on melee attacks
+> Increased Marksman Hat Arrow Speed and Range
+> Optimized Collisions
+> Adjusted Weapon & Tool Info UI
+> Changed Great Hammer Sprite
+> Added new Featured Youtubers
+
+0.52 (22/04/2017):
+> Increased Wall Limit
+> Increased Spike Limit
+> Fixed arrow Bug where they randomly disappear
+> Fixed bug where some bushes gave more food than they should
+
+0.51 (21/04/2017):
+> Reduced Speed a bit
+> Optimized Collisions on Server Side (Should reduce Lag)
+> Optimized Server Loop
+> You can now push other players when walking into them
+
+0.50 (20/04/2017): (New content coming soon)
+> Fixed All Server Player Count
+> Reduced Movement Speed
+> Bow now Consumes 5 wood instead of 10
+> Adjusted Wall Collisions
+> Killing now awards you points based on the age of the player you killed
+
+0.49 (20/04/2017):
+> Updated Great Hammer Sprites
+> Adjusted Movement Physics
+> Fixed deceleration issue
+> Optimized Physics loop
+> Adjusted Boost Pads and knockback physics
+> Fixed Server Selector and Party System
+> Added youtube button
+
+0.48 (19/04/2017):
+> Added More Servers (Server should be able to hold more players soon)
+> Made Map a bit Larger
+> Fixed Server Issues
+> Reduced Bush Hat Cost
+> Increased Booster Helmet Speed
+> Increased Honeycrisp Health Regen
+> Fixed server full issue on auto join
+> Increased Bow Firerate a bit
+> Added Region Based player Count
+
+0.47 (18/04/2017):
+> Fixed Max Server Player Count to 50
+> Optimized Score Loop on server (Reduces CPU usage on Server)
+> Removed Goldfish
+> Fixed issue with rotation interpolation
+
+0.46 (18/04/2017):
+> Added stat to Marksman Cap
+> Added Server Selector to Main Menu
+> Increased Arrow Cost to 10 Wood
+> Increased Arrow Damage
+> Fixed some Issues with Swing Animation
+> Fixed server crash exploit
+> Added Max Server Count to Server List
+
+0.45 (17/04/2017):
+> Bow now consumes 5 wood per shot
+> Added new Servers in More Regions
+
+0.44 (15/04/2017):
+> Adjusted Server Size
+> Adjusted Bow Move Speed
+
+0.43 (14/04/2017):
+> Moved to new Server Provider
+> Optimized Send Loop on Server
+
+0.42 (13/04/2017):
+> Increased Bow Damage
+> Reduced Arrow Speed
+> Arrows now shoot over: Pit traps and Boost pads
+> Fixed Bow knockback direction
+
+0.41 (13/04/2017):
+> Added bow weapon (Work in Progress)
+> Added Great Hammer (Good for destroying structures)
+> Added Dialog when you leave
+> Added projectile logic
+> Fixed Weapon Animation issues
+> Updated all Weapon and Tool Graphics
+> Buffed Samurai Helmet attack speed
+> Increased Short Sword Range a bit
+> Killing a Player Gives you 10% of their Gold
+> Reduced Packet Size (Server --> Client)
+> Increased Death Marker Size
+
+0.40 (11/04/2017) (Bow+Arrow in next update):
+> Added Toggle Back (selecting the same item switches back to weapon)
+> Buffed Stone Walls Again
+> Fixed file access issues
+> Added some more script preventions
+> Fixed some server issues
+
+0.39 (11/04/2017):
+> Fixed hover information for weapons
+> Auto Gather now stays when switching items
+> Changed Item Placement back
+
+0.38 (10/04/2017):
+> Fixed pit trap collision box
+> Increased Trap Limit to 6
+> Added minimap to game display
+> Removed Map Button
+> Added weapons to action bar
+> Items now stay in your hand when building them
+> Moved Mine to Age 5 unlock
+> Reduced Boost Pad Cost
+> Buffed Stone Wall HP
+> Changed Snow Biome Look
+> Reduced Winter Hat Cost
+> Added MopeIO Banner
+
+0.37 (9/04/2017):
+> (I broke the day/night system. I'm fixing it)
+> Added stat to wintercap
+> Decreased Hitbox of Plants
+> Added Snow Biomes (Snow particles soon)
+> Adjusted overall Look of the game
+> Increased move speed
+> Optimized server Side Stuff
+
+0.36 (8/04/2017):
+> Removed Dash ability
+> Reduced Movement Speed a bit
+> Nerfed Spike Gear a bit
+
+0.35 (7/04/2017):
+> The location of your last death is marked on the map as a red X
+> Bug Fixes on Server
+> You now Keep your base after death (this allows for better raiding)
+> Added Dash to improve combat system (press space)
+> Gold Mines now Give more Gold
+> Increased Mill Limit to 6
+> Increased default speed
+
+0.34 (7/04/2017):
+> Fixed Party system
+> Now shows health bar on bush hat (team only)
+
+0.33 (6/04/2017):
+> Added Servers in Asia
+> Increased Place Accuracy (even when moving mouse very quickly)
+> Fixed some connection issues
+> Fixed some issues with Bot Scripts
+> Nerfed Soldier Helm
+> Buffed Honeycrisp regen
+> Changed Map Icon
+> Added new Hats
+> Edited Blue Hat
+> Adjusted client side file access
+
+0.32 (5/04/2017):
+> Added minimap (You can see you and your tribe mates)
+> Adjusted interpolation again
+> Buffed Honeycrisp hat health regen
+> Buffed Spike Gear
+
+0.31 (4/04/2017):
+> Removed some script loading stuff
+> Improved Load Times
+> Fixed spike hat exploit
+> Adjusted Interpolation Code
+> Added some extra security on the server side
+
+0.30 (3/04/2017):
+> Moved Clan name over
+> Added Chat: (Press Enter)
+> Added basic profanity filter
+> Fixed Right Click issue
+> Fixed Keys issue when tabbing out
+> Re Arranged some UI elements
+> ESC key now closes store and alliance menu
+> Fixed white box layout in main menu
+> Buffed Spiked Gear Dmg
+
+0.29 (3/04/2017):
+> Minor Changes to Ads
+> Performance Improvement
+
+0.28 (1/04/2017):
+> Added Gold Ores back
+> You now keep some of the resources after death (1/4)
+> Added passive effects to some of the hats
+> Added new Hats
+> Fixed Great Axe description
+> Optimized Collision Checking on Server
+
+0.27 (31/03/2017):
+> Adjusted Store Display
+> Fixed spike knockback
+> Made night time darker
+> Increased Boost Pad Limit
+> Increased Trap limit
+> Renamed Points to Gold
+> Added Bush Hat
+> Reduced Goldfish speed
+
+0.26 (30/03/2017)
+> Fixed Getting stuck issue
+> Changed Boost Pad a bit
+> Fixed some collision issues
+
+0.25 (29/03/2017):
+> Added Goldfish
+> Buffed Pit Trap HP
+> Improved all collisions
+> Added Store: (Items are kept after death)
+> Added Hats (Created by EatMyApples) (Feel free to submit your own on reddit)
+> Increased Spike Knockback a bit
+> Removed Castle Walls for now
+> Made Great Axe movement speed faster
+> Forcing Position in case of lag (reduces rubber banding)
+> Made Map Larger
+> Added Boost Platform (pushes objects in a certain direction)
+> Fixed issue with clan invites
+> Fixed Bug with clan creation
+
+0.24 (26/03/2017): (Flying back to australia tomorrow. So more frequent updates coming up)
+> General Fixes
+> Adjusted Interpolation
+> Replaced Door with Trap
+> Made movement a bit smoother
+
+0.23 (25/03/2017) (Chat and Map in Next update. I had to fix the lag first):
+> Fixed Jitter
+> Added servers in Europe
+> Server Optimizations
+
+0.22 (23/03/2017):
+> Added Castle Wall Upgrade
+> Added Doors
+> Fixed some issues on Server
+> Optimized client side rendering
+> Nerfed Short sword
+> Moved Short Sword and Great Axe to Age 2
+> Added Day/Night Cycle (Later, monsters will spawn at night)
+> Make Map Larger Again
+
+0.21 (20/03/2017):
+> Added kicking function to alliances
+> Updated Tribe UI so you can see all Members in a List
+> The last name you used is now saved
+> Increased Server Size again
+> Fixed Keys issue when opening Alliance Menu
+> Renamed Alliances to Tribes
+> Increased Map Size
+> Increased Forest Density
+> Disabled Spammy Characters in Tribe Names
+> Renamed Score to Gold
+> Added Gold Ores around map
+> Added new Youtubers to List
+
+0.20 (19/03/2017):
+> Added Alliances (Top right button in-game. Names must be unique)
+> Fixed some issues on the server
+> Added new Youtubers to Feature List
+> Improved Performance on Server Side
+
+0.19 (17/03/2017): (Alliances coming very soon! sorry for the delay)
+> You now earn points when your spikes kill players
+> Fixed Server Full Issue (Might still actually be full at times)
+> Added team logic on Server
+> Added Auto Gather (Press E)
+> Reduced wooden wall cost
+> Added new Youtubers to List
+> Increased Great Axe Damage
+> Increased Great Axe Speed a bit
+> Fixed Log Error
+> Fixed some Server Disconnect issues
+
+0.18 (15/03/2017):
+> Fixed some of the disconnect issues
+> Added twitter button
+> Fixed Discord Link
+> Added more youtubers to list
+> Added reddit link
+
+0.17 (14/03/2017):
+> Added party join links
+> Increased sword range
+> Added Mine Building (Allows you to mine stone)
+> Adjusted combat mechanics a bit; Attacking slows you down a bit
+> Fixed Leaderboard score display
+> Added more youtubers to the featured list
+
+0.16 (13/03/2017):
+> Great Axe now also farms points faster
+> Reduced sword damage a bit
+> Increased Map Scale a lot
+> Increased player move speed a bit
+> Buffed Wood and Stone Wall Health
+> Reduced Cookie and Apple power
+> Added featured youtuber Link to menu (randomly selects youtuber that has played moomoo)
+> Fixed spawn issue on server
+
+0.15 (11/03/2017):
+> Added Age 2 Upgrades (2 new weapons)
+> Added weapon logic on server
+> Adjusted leaderboard width
+> Updated Favicon
+> Increased Map Size again
+> Bug Fixes
+
+0.14 (10/03/2017):
+> Added hover highlights
+> Fixed UI issues
+> Added new Items
+> You now earn items when you level up (more items and weapons coming soon)
+> You can no longer eat food if you have max health
+
+0.13 (10/03/2017):
+> Increased Map Size
+> Fixed leaderboard issue
+> Added Idle time out
+> Added Upgrades after each age (More coming soon)
+> Added max age limit
+> Fixed issue where you get stuck on the edge of the map
+> Made it easier to hit players and trees
+> Performance Improvement
+
+0.12 - (10/03/2017):
+> Added XP system
+> Fixed Image dragging issue in action bar
+> Fixed leaderboard display
+> Fixed freezing issue when getting a kill
+
+0.11 - (9/03/2017):
+> Optimizations
+> Added Age Display
+
+0.10 - (9/03/2017) (March 9 2017):
+> Initial Release
