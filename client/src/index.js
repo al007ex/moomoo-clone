@@ -1,5 +1,21 @@
 'use strict';
 
+// Ensure a minimal `process` shim exists before loading modules that depend on it.
+(function ensureProcessShim() {
+    var globalObject = typeof globalThis !== "undefined" ? globalThis : window;
+    var proc = globalObject.process || {};
+    if (typeof proc.env !== "object" || proc.env === null) proc.env = {};
+    if (!Array.isArray(proc.argv)) proc.argv = [];
+    proc.browser = true;
+    proc.title = "browser";
+    if (typeof proc.nextTick !== "function") {
+        proc.nextTick = function (fn) {
+            return setTimeout(fn, 0);
+        };
+    }
+    globalObject.process = proc;
+})();
+
 window.loadedScript = true;
 console.log("hello")
 
@@ -1995,7 +2011,7 @@ function updateGame() {
             if (tmpObj.visible) {
 
                 if (tmpObj.skinIndex != 10 || (tmpObj == player) || (tmpObj.team && tmpObj.team == player.team)) {
-                    var tmpText = (tmpObj.team ? "[" + tmpObj.team + "] " : "") + (tmpObj.name || "") + (tmpObj.id ? " (" + tmpObj.id + ")" : "");
+                    var tmpText = (tmpObj.team ? "[" + tmpObj.team + "] " : "") + (tmpObj.name || "");
                     if (tmpText != "") {
                         mainContext.font = (tmpObj.nameScale || 30) + "px Hammersmith One";
                         mainContext.fillStyle = "#fff";

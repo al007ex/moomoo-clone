@@ -35,18 +35,32 @@ export class Game {
                 ]));
             }
 
+        },
+        send: async (playerId, type, ...data) => {
+            if (!playerId) return;
+            const target = this.players.find(p => p.id === playerId);
+            if (!target || !target.socket) return;
+            await delay();
+            target.socket.send(encode([type, data]));
         }
     };
 
     // managers
-    ai_manager = new AiManager(this.ais, AI, this.players, items, this.object_manager, config, UTILS, () => {}, this.server);
-    object_manager = new ObjectManager(GameObject, this.game_objects, UTILS, config, this.players, this.server);
-    projectile_manager = new ProjectileManager(Projectile, this.projectiles, this.players, this.ais, this.object_manager, items, config, UTILS, this.server);
-    clan_manager = new ClanManager(this.players, this.server);
+    ai_manager = null;
+    object_manager = null;
+    projectile_manager = null;
+    clan_manager = null;
 
     id_storage = new Array(config.maxPlayersHard).fill(true);
 
     constructor() {
+
+        this.object_manager = new ObjectManager(GameObject, this.game_objects, UTILS, config, this.players, this.server);
+        this.ai_manager = new AiManager(this.ais, AI, this.players, items, this.object_manager, config, UTILS, () => {}, this.server);
+        this.projectile_manager = new ProjectileManager(Projectile, this.projectiles, this.players, this.ais, this.object_manager, items, config, UTILS, this.server);
+        this.clan_manager = new ClanManager(this.players, this.server);
+        this.aiSpawnPlan = this.buildAiSpawnPlan();
+        this.aiSpawnCheckTimer = 0;
 
         const nano = (1000 / config.serverUpdateRate);
         const timer = new NanoTimer;
@@ -101,6 +115,8 @@ export class Game {
             for (const projectile of this.projectiles)
                 projectile.update(delta);
 
+            this.updateAnimals(delta);
+
             /*for (const object of this.game_objects) 
                 object.update(delta);*/
 
@@ -118,6 +134,8 @@ export class Game {
                 this.server.broadcast("5", sorts.flatMap(p => [p.sid, p.name, p.points]));
 
             }
+
+            const activeAis = this.ais.filter(ai => ai.active);
 
             for (const player of this.players) {
 
@@ -152,7 +170,23 @@ export class Game {
                 player.send("33", sent_players.flatMap(data => data));
 
                 // ais
-                player.send("a", null);
+                const aiPayload = [];
+                for (const ai of activeAis) {
+                    if (!ai.alive) continue;
+                    if (!player.canSee(ai)) {
+                        continue;
+                    }
+                    aiPayload.push(
+                        ai.sid,
+                        ai.index,
+                        UTILS.fixTo(ai.x, 1),
+                        UTILS.fixTo(ai.y, 1),
+                        UTILS.fixTo(ai.dir, 3),
+                        Math.round(ai.health),
+                        ai.nameIndex ?? 0
+                    );
+                }
+                player.send("a", aiPayload.length > 0 ? aiPayload : null);
 
                 if (sent_objects.length > 0) {
                     player.send("6", sent_objects.flatMap(object => [
@@ -177,22 +211,20 @@ export class Game {
 
         const init_objects = () => {
 
-            const s2 = shrink <= 1 ? shrink * .25 : shrink;
-
-            let treesPerArea = 9 * 2 * s2;
-            let bushesPerArea = 3 * 2 * s2;
-            let totalRocks = 32 * 2 * s2;
-            let goldOres = 7 * 2 * s2;
-            let treeScales = [150, 160, 165, 175];
-            let bushScales = [80, 85, 95];
-            let rockScales = [80, 85, 90];
+            let treesPerArea = config.treesPerArea;
+            let bushesPerArea = config.bushesPerArea;
+            let totalRocks = config.totalRocks;
+            let goldOres = config.goldOres;
+            let treeScales = config.treeScales;
+            let bushScales = config.bushScales;
+            let rockScales = config.rockScales;
             let cLoc = function () {
                 return Math.round(Math.random() * config.mapScale);
             };
             let rScale = function (scales) {
                 return scales[Math.floor(Math.random() * scales.length)];
             };
-            for (let i = 0; i < treesPerArea * 7;) {
+            for (let i = 0; i < treesPerArea * config.areaCount;) {
                 let newObject = [this.game_objects.length, cLoc(), cLoc(), 0, rScale(treeScales), 0, undefined, false, null];
                 if (newObject[2] >= config.mapScale / 2 - config.riverWidth / 2 && newObject[2] <= config.mapScale / 2 + config.riverWidth / 2) continue;
                 if (newObject[2] >= config.mapScale - config.snowBiomeTop) continue;
@@ -203,7 +235,7 @@ export class Game {
                 }
                 i++;
             };
-            for (let i = 0; i < bushesPerArea * 7;) {
+            for (let i = 0; i < bushesPerArea * config.areaCount;) {
                 let newObject = [this.game_objects.length, cLoc(), cLoc(), 0, rScale(bushScales), 1, undefined, false, null];
                 if (newObject[2] >= config.mapScale / 2 - config.riverWidth / 2 && newObject[2] <= config.mapScale / 2 + config.riverWidth / 2) continue;
                 if (this.object_manager.checkItemLocation(newObject[1], newObject[2], newObject[4], 0.6, null, false, null, true)) {
@@ -234,7 +266,145 @@ export class Game {
         };
 
         init_objects();
+        this.ensureAnimals();
 
+    }
+
+    buildAiSpawnPlan() {
+        const map = config.mapScale;
+        return [{
+            index: 0,
+            desired: 6
+        }, {
+            index: 1,
+            desired: 4
+        }, {
+            index: 4,
+            desired: 3
+        }, {
+            index: 5,
+            desired: 2
+        }, {
+            index: 2,
+            desired: 2
+        }, {
+            index: 3,
+            desired: 1
+        }, {
+            index: 6,
+            desired: 1,
+            positions: [{
+                x: Math.round(map * 0.42),
+                y: Math.round(map * 0.72)
+            }]
+        }, {
+            index: 7,
+            desired: 1,
+            positions: [{
+                x: Math.round(map * 0.18),
+                y: Math.round(map * 0.22)
+            }]
+        }, {
+            index: 8,
+            desired: 1,
+            positions: [{
+                x: Math.round(map * 0.78),
+                y: Math.round(map * 0.64)
+            }]
+        }].map(plan => ({
+            ...plan,
+            nextPosition: 0
+        }));
+    }
+
+    ensureAnimals() {
+        if (!this.ai_manager || !this.aiSpawnPlan) return;
+        for (const plan of this.aiSpawnPlan) {
+            let activeOfType = 0;
+            for (const ai of this.ais) {
+                if (ai.active && ai.index === plan.index) {
+                    activeOfType++;
+                }
+            }
+            let safety = 0;
+            while (activeOfType < plan.desired && safety < plan.desired * 3) {
+                const spawnPos = this.nextAnimalPosition(plan);
+                if (!spawnPos) break;
+                const dir = UTILS.randFloat(-Math.PI, Math.PI);
+                this.ai_manager.spawn(spawnPos.x, spawnPos.y, dir, plan.index);
+                activeOfType++;
+                safety++;
+            }
+        }
+    }
+
+    nextAnimalPosition(plan) {
+        const type = this.ai_manager.aiTypes[plan.index];
+        if (!type) {
+            return null;
+        }
+        if (plan.positions && plan.positions.length) {
+            const pos = plan.positions[plan.nextPosition % plan.positions.length];
+            plan.nextPosition = (plan.nextPosition + 1) % plan.positions.length;
+            if (this.validateAnimalSpawn(plan.index, pos.x, pos.y)) {
+                return {
+                    x: pos.x,
+                    y: pos.y
+                };
+            }
+        }
+        return this.randomAnimalPosition(plan.index);
+    }
+
+    validateAnimalSpawn(index, x, y) {
+        const type = this.ai_manager.aiTypes[index];
+        if (!type) return false;
+        const scale = type.scale;
+        if (x < scale || y < scale || x > config.mapScale - scale || y > config.mapScale - scale) {
+            return false;
+        }
+        if (!this.object_manager.checkItemLocation(x, y, scale, 0.6, null, false, null)) {
+            return false;
+        }
+        for (const ai of this.ais) {
+            if (!ai.active) continue;
+            if (UTILS.getDistance(x, y, ai.x, ai.y) < ai.scale + scale) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    randomAnimalPosition(index) {
+        const type = this.ai_manager.aiTypes[index];
+        if (!type) return null;
+        for (let attempt = 0; attempt < 40; attempt++) {
+            const x = UTILS.randInt(type.scale, config.mapScale - type.scale);
+            const y = UTILS.randInt(type.scale, config.mapScale - type.scale);
+            if (this.validateAnimalSpawn(index, x, y)) {
+                return {
+                    x,
+                    y
+                };
+            }
+        }
+        return {
+            x: UTILS.randInt(type.scale, config.mapScale - type.scale),
+            y: UTILS.randInt(type.scale, config.mapScale - type.scale)
+        };
+    }
+
+    updateAnimals(delta) {
+        for (const ai of this.ais) {
+            if (ai.active) {
+                ai.update(delta);
+            }
+        }
+        this.aiSpawnCheckTimer -= delta;
+        if (this.aiSpawnCheckTimer <= 0) {
+            this.aiSpawnCheckTimer = 1000;
+            this.ensureAnimals();
+        }
     }
 
     addPlayer(socket) {
