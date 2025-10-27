@@ -1,7 +1,4 @@
-
 export const config = {};
-
-export const shrink = 0.4;
 
 // RENDER:
 config.maxScreenWidth = 1920;
@@ -51,7 +48,7 @@ config.nameY = 34;
 config.skinColors = ["#bf8f54", "#cbb091", "#896c4b", "#fadadc", "#ececec", "#c37373", "#4c4c4c", "#ecaff7", "#738cc3", "#8bc373"];
 
 // ANIMALS:
-config.animalCount = 7;
+config.animalCount = 40;
 config.aiTurnRandom = 0.06;
 config.cowNames = ["Sid", "Steph", "Bmoe", "Romn", "Jononthecool", "Fiona", "Vince", "Nathan", "Nick", "Flappy", "Ronald", "Otis", "Pepe", "Mc Donald", "Theo", "Fabz", "Oliver", "Jeff", "Jimmy", "Helena", "Reaper", "Ben", "Alan", "Naomi", "XYZ", "Clever", "Jeremy", "Mike", "Destined", "Stallion", "Allison", "Meaty", "Sophia", "Vaja", "Joey", "Pendy", "Murdoch", "Theo", "Jared", "July", "Sonia", "Mel", "Dexter", "Quinn", "Milky"];
 
@@ -101,8 +98,8 @@ config.treesPerArea = 9;
 config.bushesPerArea = 3;
 config.totalRocks = 32;
 config.goldOres = 7;
-config.riverWidth = 724 * shrink;
-config.riverPadding = 114 * shrink;
+config.riverWidth = 724;
+config.riverPadding = 114;
 config.waterCurrent = 0.0011;
 config.waveSpeed = 0.0001;
 config.waveMax = 1.3;
@@ -111,14 +108,14 @@ config.bushScales = [80, 85, 95];
 config.rockScales = [80, 85, 90];
 
 // BIOME DATA:
-config.snowBiomeTop = 2400 * shrink;
+config.snowBiomeTop = 2400;
 config.snowSpeed = 0.75;
 
 // DATA:
 config.maxNameLength = 15;
 
 // MAP:
-config.mapScale = 14400 * shrink;
+config.mapScale = 14400;
 config.mapPingScale = 40;
 config.mapPingTime = 2200;
 

@@ -23,15 +23,13 @@ window.WebSocket = class extends WebSocket {
 
 }
 
-const shrink = 0.4;
-
 let c = setInterval(() => {
 
     if (window.config) {
-        window.config.mapScale = 14400 * shrink;
-        window.config.snowBiomeTop = 2400 * shrink;
-        window.config.riverWidth = 724 * shrink;
-        window.config.riverPadding = 114 * shrink;
+        window.config.mapScale = 14400;
+        window.config.snowBiomeTop = 2400;
+        window.config.riverWidth = 724;
+        window.config.riverPadding = 114;
         window.config.weaponVariants = [{
             id: 0,
             src: "",

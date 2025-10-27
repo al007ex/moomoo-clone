@@ -2,7 +2,7 @@
 import { Player } from "./modules/player.js";
 import { AI } from "./modules/ai.js";
 import { UTILS } from "./libs/utils.js";
-import { config, shrink } from "./config.js";
+import { config } from "./config.js";
 import { ProjectileManager } from "./modules/projectileManager.js";
 import { Projectile } from "./modules/projectile.js";
 import { ObjectManager } from "./modules/objectManager.js";
@@ -56,7 +56,11 @@ export class Game {
     constructor() {
 
         this.object_manager = new ObjectManager(GameObject, this.game_objects, UTILS, config, this.players, this.server);
-        this.ai_manager = new AiManager(this.ais, AI, this.players, items, this.object_manager, config, UTILS, () => {}, this.server);
+        this.ai_manager = new AiManager(this.ais, AI, this.players, items, this.object_manager, config, UTILS, (player, score) => {
+            if (player && player.addResource) {
+                player.addResource(3, score); // 3 = points/gold
+            }
+        }, this.server);
         this.projectile_manager = new ProjectileManager(Projectile, this.projectiles, this.players, this.ais, this.object_manager, items, config, UTILS, this.server);
         this.clan_manager = new ClanManager(this.players, this.server);
         this.aiSpawnPlan = this.buildAiSpawnPlan();
@@ -424,7 +428,11 @@ export class Game {
             hats,
             accessories,
             socket,
-            () => {},
+            (player, score) => {
+                if (player && player.addResource) {
+                    player.addResource(3, score); // 3 = points/gold
+                }
+            },
             () => {}
         );
 

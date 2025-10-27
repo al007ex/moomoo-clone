@@ -277,8 +277,8 @@ export class Player {
             if (timerCount <= 0) {
 
                 if (this.pps) {
-                    this.addResource(3, this.pps * 1000, true);
-                    this.earnXP(this.pps * 1000);
+                    this.addResource(3, this.pps, true);
+                    this.earnXP(this.pps);
                 }
 
                 var regenAmount = (this.skin && this.skin.healthRegen ? this.skin.healthRegen : 0) + (this.tail && this.tail.healthRegen ? this.tail.healthRegen : 0);
