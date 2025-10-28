@@ -4,7 +4,6 @@ import {
 import {
     encode
 } from "msgpack-lite";
-import { delay } from "./delay.js";
 
 var langFilter = new Filter();
 var newProfane = ['jew', 'black', 'baby', 'child', 'white', 'porn', 'pedo', 'trump', 'clinton', 'hitler', 'nazi', 'gay', 'pride', 'sex', 'pleasure', 'touch', 'poo', 'kids', 'rape', 'white power', 'nigga', 'nig nog', 'doggy', 'rapist', 'boner', 'nigger', 'nigg', 'finger', 'nogger', 'nagger', 'nig', 'fag', 'gai', 'pole', 'stripper', "penis", 'vagina', 'pussy', 'nazi', 'hitler', 'stalin', 'burn', 'chamber', 'cock', 'peen', 'dick', 'spick', 'nieger', 'die', 'satan', 'n|ig', 'nlg', 'cunt', 'c0ck', 'fag', 'lick', 'condom', 'anal', 'shit', 'phile', 'little', 'kids', 'free KR', 'tiny', 'sidney', 'ass', 'kill', '.io', '(dot)', '[dot]', 'mini', 'whiore', 'whore', 'faggot', 'github', '1337', '666', 'satan', 'senpa', 'discord', 'd1scord', 'mistik', '.io', 'senpa.io', 'sidney', 'sid', 'senpaio', 'vries', 'asa'];
@@ -26,8 +25,6 @@ export class Player {
     packet_spam = 0;
 
     async send(type, ...data) {
-
-        await delay();
 
         if (!this.socket) return;
 
@@ -278,7 +275,7 @@ export class Player {
 
                 if (this.pps) {
                     this.addResource(3, this.pps, true);
-                    this.earnXP(this.pps);
+                    this.earnXP(this.pps * 10);
                 }
 
                 var regenAmount = (this.skin && this.skin.healthRegen ? this.skin.healthRegen : 0) + (this.tail && this.tail.healthRegen ? this.tail.healthRegen : 0);

@@ -14,7 +14,6 @@ import { ClanManager } from "./modules/clanManager.js";
 
 import NanoTimer from "nanotimer";
 import { encode } from "msgpack-lite";
-import { delay } from "./modules/delay.js";
 
 export class Game {
 
@@ -26,7 +25,6 @@ export class Game {
 
     server = {
         broadcast: async (type, ...data) => {
-            await delay();
             for (const player of this.players) {
                 if (!player.socket) continue;
                 player.socket.send(encode([
@@ -40,7 +38,6 @@ export class Game {
             if (!playerId) return;
             const target = this.players.find(p => p.id === playerId);
             if (!target || !target.socket) return;
-            await delay();
             target.socket.send(encode([type, data]));
         }
     };

@@ -17,14 +17,12 @@ module.exports = {
         require("./package.json").version + (isProd ? "" : "-dev")
       )
     }),
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: path.resolve(__dirname, "public"),
-          to: path.resolve(__dirname, "../dist/client")
-        }
-      ]
-    })
+    new CopyWebpackPlugin([
+      {
+        from: path.resolve(__dirname, "public"),
+        to: path.resolve(__dirname, "../dist/client")
+      }
+    ])
   ],
   module: {
     rules: [

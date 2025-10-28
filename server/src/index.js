@@ -9,7 +9,6 @@ import { Player } from "./moomoo/modules/player.js";
 import { items } from "./moomoo/modules/items.js";
 import { UTILS } from "./moomoo/libs/utils.js";
 import { hats, accessories } from "./moomoo/modules/store.js";
-import { delay } from "./moomoo/modules/delay.js";
 import { filter_chat } from "./moomoo/libs/filterchat.js";
 import { config } from "./moomoo/config.js";
 import { ConnectionLimit } from "./moomoo/libs/limit.js";
@@ -69,7 +68,6 @@ wss.on("connection", async (socket, req) => {
 
     const emit = async (type, ...data) => {
 
-        await delay();
         if (!player.socket) return;
         socket.send(encode([type, data]));
     };
@@ -84,8 +82,6 @@ wss.on("connection", async (socket, req) => {
             ] = decode(new Uint8Array(msg));
 
             const t = type?.toString();
-
-            await delay();
 
             switch(t) {
                 case "sp": {
