@@ -1,14 +1,6 @@
-# moomoo clone
+# MooMoo.io Clone
 
-Full-stack MooMoo.io project containing a Node.js game server and a bundled web client.
-
-## Disclaimer
-
-This is a **non-commercial, educational** fan project and clone of MooMoo.io. This project is intended solely for learning purposes and personal use.
-
-**All original game assets, artwork, trademarks, and intellectual property belong to their respective owners and creators of MooMoo.io.** No copyright infringement is intended. All rights to the original game content remain with the original developers.
-
-This project is not affiliated with, endorsed by, or connected to the official MooMoo.io game or its developers. If you are the original creator and have concerns about this project, please reach out and it will be addressed promptly.
+Fully working MooMoo.io private server
 
 ## Project structure
 - `client/` Webpack-powered front-end source and static assets.
@@ -30,3 +22,11 @@ This project is not affiliated with, endorsed by, or connected to the official M
    ```
 
 Use `npm run build:dev` while iterating on the client for an auto-rebuilt bundle, or `npm run dev` to run the server in development mode.
+
+## Disclaimer
+
+This is a **non-commercial, educational** fan project and clone of MooMoo.io. This project is intended solely for learning purposes and personal use.
+
+**All original game assets, artwork, trademarks, and intellectual property belong to their respective owners and creators of MooMoo.io.** No copyright infringement is intended. All rights to the original game content remain with the original developers.
+
+This project is not affiliated with, endorsed by, or connected to the official MooMoo.io game or its developers. If you are the original creator and have concerns about this project, please reach out and it will be addressed promptly.
