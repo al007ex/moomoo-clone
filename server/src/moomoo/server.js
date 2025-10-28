@@ -12,9 +12,17 @@ import { AiManager } from "./modules/aiMaanager.js";
 import { accessories, hats } from "./modules/store.js";
 import { ClanManager } from "./modules/clanManager.js";
 
-import NanoTimer from "nanotimer";
 import { encode } from "msgpack-lite";
 import { delay } from "./modules/delay.js";
+import { GameEngine } from "../domain/game/gameEngine.js";
+import { GameState } from "../domain/game/state.js";
+import { FixedTimestepScheduler } from "../infrastructure/scheduler.js";
+import { PlayerSystem } from "../domain/systems/playerSystem.js";
+import { ProjectileSystem } from "../domain/systems/projectileSystem.js";
+import { LeaderboardSystem } from "../domain/systems/leaderboardSystem.js";
+import { MinimapSystem } from "../domain/systems/minimapSystem.js";
+import { AiSystem } from "../domain/systems/aiSystem.js";
+import { MapSystem } from "../domain/systems/mapSystem.js";
 
 export class Game {
 
@@ -24,7 +32,10 @@ export class Game {
     projectiles = [];
     game_objects = [];
     running = false;
-    loopHandle = null;
+    scheduler = null;
+    engine = null;
+    state = GameState.empty();
+    lastSnapshot = null;
 
     server = {
         broadcast: async (type, ...data) => {
@@ -68,157 +79,7 @@ export class Game {
         this.aiSpawnPlan = this.buildAiSpawnPlan();
         this.aiSpawnCheckTimer = 0;
 
-        const nano = (1000 / config.serverUpdateRate);
-        const timer = new NanoTimer;
-
-        let last = 0;
-        let minimap_cd = config.minimapRate;
-
-        this.running = true;
-
-        this.loopHandle = setInterval(() => {
-            if (!this.running) {
-                return;
-            }
-
-            const t = performance.now();
-
-            const delta = t - last;
-            last = t;
-
-            let kills = 0;
-            let leader = null;
-
-            const updt_map = minimap_cd <= 0;
-
-            if (updt_map) {
-                minimap_cd = config.minimapRate;
-            } else {
-                minimap_cd -= delta;
-            }
-
-            const minimap_ext = [];
-
-            for (const player of this.players) {
-
-                player.update(delta);
-                player.iconIndex = 0;
-
-                if (!player.alive) continue;
-
-                if (kills < player.kills) {
-                    kills = player.kills;
-                    leader = player;
-                }
-
-                if (updt_map) {
-                    minimap_ext.push({
-                        sid: player.sid,
-                        x: player.x,
-                        y: player.y
-                    });
-                }
-
-            }
-
-            if (leader) leader.iconIndex = 1;
-
-            for (const projectile of this.projectiles)
-                projectile.update(delta);
-
-            this.updateAnimals(delta);
-
-            /*for (const object of this.game_objects) 
-                object.update(delta);*/
-
-            // leaderboard
-            {
-
-                const sort = this.players.filter(x => x.alive).sort((a, b) => {
-                    return b.points - a.points;
-                });
-                const sorts = [];
-                for (let i = 0; i < Math.min(10, sort.length); i++) {
-                    sorts.push(sort[i]);
-                }
-
-                this.server.broadcast("5", sorts.flatMap(p => [p.sid, p.name, p.points]));
-
-            }
-
-            const activeAis = this.ais.filter(ai => ai.active);
-
-            for (const player of this.players) {
-
-                const sent_players = [];
-                const sent_objects = [];
-            
-                for (const player2 of this.players) {
-
-                    if (!player.canSee(player2) || !player2.alive) {
-                        continue;
-                    }
-
-                    if (!player2.sentTo[player.id]) {
-                        player2.sentTo[player.id] = true;
-                        player.send("2", player2.getData(), player.id === player2.id);
-                    }
-                    sent_players.push(player2.getInfo());
-
-                }
-
-                for (const object of this.game_objects) {
-
-                    if (
-                        !object.sentTo[player.id] && object.active && object.visibleToPlayer(player) && player.canSee(object)
-                    ) {
-                        sent_objects.push(object);
-                        object.sentTo[player.id] = true;
-                    }
-
-                }
-
-                player.send("33", sent_players.flatMap(data => data));
-
-                // ais
-                const aiPayload = [];
-                for (const ai of activeAis) {
-                    if (!ai.alive) continue;
-                    if (!player.canSee(ai)) {
-                        continue;
-                    }
-                    aiPayload.push(
-                        ai.sid,
-                        ai.index,
-                        UTILS.fixTo(ai.x, 1),
-                        UTILS.fixTo(ai.y, 1),
-                        UTILS.fixTo(ai.dir, 3),
-                        Math.round(ai.health),
-                        ai.nameIndex ?? 0
-                    );
-                }
-                player.send("a", aiPayload.length > 0 ? aiPayload : null);
-
-                if (sent_objects.length > 0) {
-                    player.send("6", sent_objects.flatMap(object => [
-                        object.sid,
-                        UTILS.fixTo(object.x, 1),
-                        UTILS.fixTo(object.y, 1),
-                        object.dir,
-                        object.scale,
-                        object.type,
-                        object.id,
-                        object.owner ? object.owner.sid : -1
-                    ]));
-                }
-
-                if (minimap_ext.length === 0) continue;
-
-                player.send("mm", minimap_ext.filter(x => x.sid !== player.sid).flatMap(x => [x.x, x.y]));
-
-            }
-
-        }, nano);
+        this.initializeEngine();
 
         const init_objects = () => {
 
@@ -281,11 +142,70 @@ export class Game {
 
     }
 
+    initializeEngine() {
+        const timestep = 1000 / config.serverUpdateRate;
+        this.scheduler = new FixedTimestepScheduler({
+            timestep,
+            maxUpdatesPerFrame: 8,
+            lagCompensationThreshold: timestep * 8
+        });
+        this.engine = new GameEngine(this.scheduler, this.state);
+        for (const system of this.buildSystems()) {
+            this.engine.addSystem(system);
+        }
+        this.engine.onSnapshot(snapshot => {
+            this.lastSnapshot = snapshot;
+            this.state = GameState.fromSnapshot(snapshot);
+        });
+        this.engine.start();
+        this.running = true;
+    }
+
+    buildSystems() {
+        return [
+            new PlayerSystem({
+                getPlayers: () => this.players,
+                getGameObjects: () => this.game_objects,
+                getAis: () => this.ais,
+                utils: UTILS
+            }),
+            new ProjectileSystem({
+                getProjectiles: () => this.projectiles
+            }),
+            new AiSystem({
+                updateAnimals: delta => this.updateAnimals(delta)
+            }),
+            new LeaderboardSystem({
+                broadcast: this.server.broadcast
+            }),
+            new MinimapSystem({
+                getPlayers: () => this.players,
+                intervalMs: config.minimapRate
+            }),
+            new MapSystem({
+                getMapCells: () => []
+            })
+        ];
+    }
+
+    createSnapshot() {
+        return this.engine ? this.engine.createSnapshot() : null;
+    }
+
+    rollbackToSnapshot(snapshot) {
+        if (!this.engine || !snapshot) {
+            return;
+        }
+        this.engine.rollback(snapshot);
+    }
+
     stop() {
         this.running = false;
-        if (this.loopHandle) {
-            clearInterval(this.loopHandle);
-            this.loopHandle = null;
+        if (this.engine) {
+            this.engine.stop();
+        }
+        if (this.scheduler && this.scheduler.isRunning?.()) {
+            this.scheduler.stop();
         }
         for (const player of this.players) {
             const socket = player.socket;
