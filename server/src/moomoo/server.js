@@ -23,6 +23,8 @@ export class Game {
     ais = [];
     projectiles = [];
     game_objects = [];
+    running = false;
+    loopHandle = null;
 
     server = {
         broadcast: async (type, ...data) => {
@@ -72,7 +74,12 @@ export class Game {
         let last = 0;
         let minimap_cd = config.minimapRate;
 
-        setInterval(() => {
+        this.running = true;
+
+        this.loopHandle = setInterval(() => {
+            if (!this.running) {
+                return;
+            }
 
             const t = performance.now();
 
@@ -272,6 +279,24 @@ export class Game {
         init_objects();
         this.ensureAnimals();
 
+    }
+
+    stop() {
+        this.running = false;
+        if (this.loopHandle) {
+            clearInterval(this.loopHandle);
+            this.loopHandle = null;
+        }
+        for (const player of this.players) {
+            const socket = player.socket;
+            if (socket && typeof socket.close === "function") {
+                try {
+                    socket.close(1001, "Server shutting down");
+                } catch {
+                    // ignore socket close errors during shutdown cleanup
+                }
+            }
+        }
     }
 
     buildAiSpawnPlan() {

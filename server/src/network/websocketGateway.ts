@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { Buffer } from "node:buffer";
-import { WebSocketServer, type WebSocket } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 
 import { ConnectionLimit } from "../moomoo/libs/limit.js";
 import type {
@@ -59,8 +59,23 @@ export class DefaultWebSocketGateway implements WebSocketGateway {
       return;
     }
 
+    const wss = this.wss;
+    this.wss = null;
+
     await new Promise<void>((resolve, reject) => {
-      this.wss?.close(error => {
+      wss.clients.forEach(client => {
+        try {
+          if (client.readyState === WebSocket.OPEN) {
+            client.close(1001, "Server shutting down");
+          } else {
+            client.terminate();
+          }
+        } catch (error) {
+          this.deps.logger.error(error instanceof Error ? error : String(error));
+        }
+      });
+
+      wss.close(error => {
         if (error) {
           reject(error);
           return;
@@ -68,7 +83,6 @@ export class DefaultWebSocketGateway implements WebSocketGateway {
         resolve();
       });
     });
-    this.wss = null;
   }
 
   private async handleConnection(socket: WebSocket, request: IncomingMessage): Promise<void> {

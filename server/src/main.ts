@@ -167,6 +167,7 @@ async function bootstrap(): Promise<void> {
   const logger = container.resolve<Logger>("logger");
   const metrics = container.resolve<MetricsCollector>("metrics");
   const persistence = container.resolve<PersistenceAdapter>("persistence");
+  const game = container.resolve<Game>("game");
   const httpServer = container.resolve<HttpServer>("httpServer");
   const webSocketGateway = container.resolve<WebSocketGateway>("webSocketGateway");
 
@@ -178,21 +179,37 @@ async function bootstrap(): Promise<void> {
 
   logger.info("Server bootstrap complete");
 
-  const shutdown = async () => {
-    logger.info("Shutting down server");
-    await persistence.disconnect();
-    await webSocketGateway.stop();
-    await httpServer.stop();
-    logger.info("Shutdown complete");
-    process.exit(0);
+  let shuttingDown = false;
+
+  const shutdown = async (signal: NodeJS.Signals) => {
+    if (shuttingDown) {
+      logger.warn(`Received ${signal} while shutting down; forcing exit`);
+      process.exit(1);
+      return;
+    }
+
+    shuttingDown = true;
+    logger.info(`Shutting down server (signal: ${signal})`);
+
+    try {
+      await Promise.resolve(game.stop?.());
+      await webSocketGateway.stop();
+      await httpServer.stop();
+      await persistence.disconnect();
+      logger.info("Shutdown complete");
+      process.exit(0);
+    } catch (error) {
+      logger.error(error instanceof Error ? error : String(error));
+      process.exit(1);
+    }
   };
 
-  process.on("SIGINT", () => {
-    void shutdown();
-  });
-  process.on("SIGTERM", () => {
-    void shutdown();
-  });
+  const handleSignal = (signal: NodeJS.Signals) => {
+    void shutdown(signal);
+  };
+
+  process.on("SIGINT", handleSignal);
+  process.on("SIGTERM", handleSignal);
 }
 
 bootstrap().catch(error => {

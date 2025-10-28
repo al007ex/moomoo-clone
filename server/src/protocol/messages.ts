@@ -21,9 +21,29 @@ export enum ClientMessageType {
   ResetMoveDirection = "rmd"
 }
 
-const booleanLike = z.union([z.boolean(), z.number()]).transform(value =>
-  typeof value === "number" ? value !== 0 : value
-);
+function createZodError(message: string, path: (string | number)[] = []): ZodError {
+  return new ZodError([{ code: "custom", path, message }]);
+}
+
+const booleanLike = z.union([z.boolean(), z.number(), z.string(), z.null()]).transform(value => {
+  if (value === null) {
+    return false;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "" || normalized === "0" || normalized === "false") {
+      return false;
+    }
+    if (normalized === "1" || normalized === "true") {
+      return true;
+    }
+    return Boolean(normalized);
+  }
+  return value;
+});
 
 const optionalBooleanLike = booleanLike.optional();
 
@@ -34,7 +54,7 @@ const userDataSchema = z
     hat: z.number().optional(),
     accessory: z.number().optional(),
     color: z.number().optional(),
-    moofoll: z.boolean().optional()
+    moofoll: optionalBooleanLike
   })
   .optional()
   .transform(value => value ?? {});
@@ -49,8 +69,10 @@ const moveDirectionPayloadSchema = z
     direction: typeof direction === "number" ? direction : null
   }));
 
+const angleLike = z.union([z.number(), z.literal(null)]).optional();
+
 const actionPayloadSchema = z
-  .tuple([optionalBooleanLike, z.number().optional()])
+  .tuple([optionalBooleanLike, angleLike])
   .transform(([state, angle]) => ({
     active: typeof state === "boolean" ? state : state === undefined ? false : Boolean(state),
     angle: typeof angle === "number" ? angle : null
@@ -84,7 +106,7 @@ const upgradePayloadSchema = z
   .transform(([choice]) => {
     const parsed = typeof choice === "string" ? Number.parseInt(choice, 10) : choice;
     if (!Number.isFinite(parsed)) {
-      throw new ZodError("Invalid upgrade choice");
+      throw createZodError("Invalid upgrade choice");
     }
     return { choice: parsed };
   });
@@ -95,15 +117,21 @@ const singleStringPayloadSchema = z
   .tuple([z.string()])
   .transform(([value]) => ({ value }));
 
-const inviteClanPayloadSchema = singleStringPayloadSchema;
+const inviteClanPayloadSchema = z
+  .tuple([z.union([z.string(), z.number()])])
+  .transform(([value]) => ({ value: String(value) }));
 
 const acceptClanPayloadSchema = z
-  .tuple([z.union([z.string(), z.number()]), z.union([z.string(), z.number()]).optional()])
+  .tuple([z.union([z.string(), z.number()]), z.union([z.string(), z.number(), z.null()]).optional()])
   .transform(([target, leader]) => ({ target, leader: leader ?? null }));
 
 const kickClanPayloadSchema = z
   .tuple([z.union([z.string(), z.number()])])
   .transform(([target]) => ({ target }));
+
+const mapPingPayloadSchema = z
+  .tuple([optionalBooleanLike])
+  .transform(([flag]) => ({ active: flag === undefined ? true : Boolean(flag) }));
 
 const emptyPayloadSchema = z.tuple([]).transform(() => ({}));
 
@@ -175,7 +203,9 @@ export interface KickClanPayload {
   target: string | number;
 }
 
-export interface MapPingPayload {}
+export interface MapPingPayload {
+  active: boolean;
+}
 
 export interface ResetMovePayload {}
 
@@ -214,14 +244,14 @@ const payloadParsers: Record<ClientMessageType, ZodType<any>> = {
   [ClientMessageType.InviteClan]: inviteClanPayloadSchema,
   [ClientMessageType.AcceptClanInvite]: acceptClanPayloadSchema,
   [ClientMessageType.KickClanMember]: kickClanPayloadSchema,
-  [ClientMessageType.MapPing]: emptyPayloadSchema,
+  [ClientMessageType.MapPing]: mapPingPayloadSchema,
   [ClientMessageType.ResetMoveDirection]: emptyPayloadSchema
 };
 
 function parseType(rawType: unknown): ClientMessageType {
   const type = typeof rawType === "string" ? rawType : String(rawType ?? "");
   if (!Object.values(ClientMessageType).includes(type as ClientMessageType)) {
-    throw new ZodError(`Unknown message type: ${type}`);
+    throw createZodError(`Unknown message type: ${type}`);
   }
   return type as ClientMessageType;
 }
@@ -233,7 +263,7 @@ function ensureArray(payload: unknown): unknown[] {
 export function parseClientMessage(buffer: Uint8Array): ClientMessage {
   const decoded = decode(buffer);
   if (!Array.isArray(decoded) || decoded.length < 1) {
-    throw new ZodError("Invalid message envelope");
+    throw createZodError("Invalid message envelope");
   }
 
   const [rawType, rawPayload] = decoded;
