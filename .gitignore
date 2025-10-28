@@ -39,6 +39,10 @@ build/Release
 
 # Dependency directories
 node_modules/
+!server/node_modules/
+server/node_modules/*
+!server/node_modules/zod/
+!server/node_modules/zod/**
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
