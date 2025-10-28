@@ -23,6 +23,14 @@ import { LeaderboardSystem } from "../domain/systems/leaderboardSystem.js";
 import { MinimapSystem } from "../domain/systems/minimapSystem.js";
 import { AiSystem } from "../domain/systems/aiSystem.js";
 import { MapSystem } from "../domain/systems/mapSystem.js";
+import { PlayerFactory } from "../domain/entities/player.js";
+import { StructureFactory } from "../domain/entities/structure.js";
+import { NpcFactory } from "../domain/entities/npc.js";
+import { ProjectileFactory } from "../domain/entities/projectile.js";
+import { LegacyPlayerRepository } from "../domain/repositories/playerRepository.js";
+import { LegacyStructureRepository } from "../domain/repositories/structureRepository.js";
+import { LegacyNpcRepository } from "../domain/repositories/npcRepository.js";
+import { LegacyProjectileRepository } from "../domain/repositories/projectileRepository.js";
 
 export class Game {
 
@@ -66,6 +74,16 @@ export class Game {
 
     id_storage = new Array(config.maxPlayersHard).fill(true);
 
+    player_factory = null;
+    structure_factory = null;
+    npc_factory = null;
+    projectile_factory = null;
+
+    playerRepository = null;
+    structureRepository = null;
+    npcRepository = null;
+    projectileRepository = null;
+
     constructor() {
 
         this.object_manager = new ObjectManager(GameObject, this.game_objects, UTILS, config, this.players, this.server);
@@ -76,6 +94,33 @@ export class Game {
         }, this.server);
         this.projectile_manager = new ProjectileManager(Projectile, this.projectiles, this.players, this.ais, this.object_manager, items, config, UTILS, this.server);
         this.clan_manager = new ClanManager(this.players, this.server);
+
+        const mapScale = Number.isFinite(config.mapScale) ? Number(config.mapScale) : 0;
+        this.player_factory = new PlayerFactory({
+            mapBounds: { minX: 0, maxX: mapScale, minY: 0, maxY: mapScale },
+            minIconIndex: 0,
+            maxIconIndex: 255
+        });
+        this.structure_factory = new StructureFactory();
+        this.npc_factory = new NpcFactory();
+        this.projectile_factory = new ProjectileFactory();
+
+        this.playerRepository = new LegacyPlayerRepository({
+            source: () => this.players,
+            factory: this.player_factory
+        });
+        this.structureRepository = new LegacyStructureRepository({
+            source: () => this.game_objects,
+            factory: this.structure_factory
+        });
+        this.npcRepository = new LegacyNpcRepository({
+            source: () => this.ais,
+            factory: this.npc_factory
+        });
+        this.projectileRepository = new LegacyProjectileRepository({
+            source: () => this.projectiles,
+            factory: this.projectile_factory
+        });
         this.aiSpawnPlan = this.buildAiSpawnPlan();
         this.aiSpawnCheckTimer = 0;
 
@@ -164,13 +209,13 @@ export class Game {
     buildSystems() {
         return [
             new PlayerSystem({
-                getPlayers: () => this.players,
-                getGameObjects: () => this.game_objects,
-                getAis: () => this.ais,
+                players: this.playerRepository,
+                structures: this.structureRepository,
+                npcs: this.npcRepository,
                 utils: UTILS
             }),
             new ProjectileSystem({
-                getProjectiles: () => this.projectiles
+                projectiles: this.projectileRepository
             }),
             new AiSystem({
                 updateAnimals: delta => this.updateAnimals(delta)
@@ -179,7 +224,7 @@ export class Game {
                 broadcast: this.server.broadcast
             }),
             new MinimapSystem({
-                getPlayers: () => this.players,
+                players: this.playerRepository,
                 intervalMs: config.minimapRate
             }),
             new MapSystem({

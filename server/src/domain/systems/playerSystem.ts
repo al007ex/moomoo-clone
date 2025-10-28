@@ -1,146 +1,84 @@
 import type { GameSystem } from "../game/gameEngine.js";
-import type { GameState, PlayerState } from "../game/state.js";
+import type { GameState } from "../game/state.js";
+import { serializeNpcPayload, serializePlayerInfo, serializePlayerState, serializeStructurePayload } from "../../application/serialization/index.js";
+import type { PlayerRepository } from "../repositories/playerRepository.js";
+import type { StructureRepository } from "../repositories/structureRepository.js";
+import type { NpcRepository } from "../repositories/npcRepository.js";
 
 export interface PlayerSystemOptions {
-  readonly getPlayers: () => Iterable<any>;
-  readonly getGameObjects: () => Iterable<any>;
-  readonly getAis: () => Iterable<any>;
-  readonly utils: any;
+  readonly players: PlayerRepository;
+  readonly structures: StructureRepository;
+  readonly npcs: NpcRepository;
+  readonly utils: { fixTo?: (value: number, precision: number) => number };
 }
 
 export class PlayerSystem implements GameSystem {
-  private readonly getPlayers: () => Iterable<any>;
-  private readonly getGameObjects: () => Iterable<any>;
-  private readonly getAis: () => Iterable<any>;
-  private readonly utils: any;
+  private readonly players: PlayerRepository;
+  private readonly structures: StructureRepository;
+  private readonly npcs: NpcRepository;
+  private readonly utils: { fixTo?: (value: number, precision: number) => number };
 
   constructor(options: PlayerSystemOptions) {
-    this.getPlayers = options.getPlayers;
-    this.getGameObjects = options.getGameObjects;
-    this.getAis = options.getAis;
+    this.players = options.players;
+    this.structures = options.structures;
+    this.npcs = options.npcs;
     this.utils = options.utils;
   }
 
   update(state: GameState, dt: number): GameState {
-    const players = Array.from(this.getPlayers());
-    const objects = Array.from(this.getGameObjects());
-    const activeAis = Array.from(this.getAis()).filter(ai => ai?.active);
+    const players = Array.from(this.players.all());
 
-    let leader: any = null;
+    let leader: typeof players[number] | null = null;
     let maxKills = -Infinity;
 
     for (const player of players) {
-      if (typeof player.update === "function") {
-        player.update(dt);
-      }
-      if (player) {
-        player.iconIndex = 0;
-        if (player.alive && typeof player.kills === "number" && player.kills > maxKills) {
-          maxKills = player.kills;
-          leader = player;
-        }
+      player.tick(dt);
+      player.setIcon(0);
+      if (player.alive && player.kills > maxKills) {
+        leader = player;
+        maxKills = player.kills;
       }
     }
 
     if (leader) {
-      leader.iconIndex = 1;
+      leader.setIcon(1);
     }
 
-    const snapshots: PlayerState[] = players.map(player => ({
-      id: player.id,
-      sid: player.sid,
-      name: player.name,
-      x: player.x,
-      y: player.y,
-      kills: player.kills ?? 0,
-      points: player.points ?? 0,
-      alive: Boolean(player.alive),
-      iconIndex: player.iconIndex ?? 0
-    }));
+    const snapshots = players.map(player => serializePlayerState(player));
 
     for (const player of players) {
       const sentPlayers: number[] = [];
-      const sentObjects: any[] = [];
 
       for (const other of players) {
-        if (typeof player.canSee === "function" && !player.canSee(other)) {
+        if (!player.canSee(other) || !other.alive) {
           continue;
         }
-        if (!other?.alive) {
-          continue;
+        if (other.markSentTo(player.id)) {
+          player.send("2", other.getData(), player.id === other.id);
         }
-        if (!other.sentTo) {
-          other.sentTo = Object.create(null);
-        }
-        if (!other.sentTo[player.id]) {
-          other.sentTo[player.id] = true;
-          if (typeof player.send === "function") {
-            player.send("2", typeof other.getData === "function" ? other.getData() : null, player.id === other.id);
-          }
-        }
-        if (typeof other.getInfo === "function") {
-          const info = other.getInfo();
-          if (Array.isArray(info)) {
-            sentPlayers.push(...info);
-          }
+        const info = serializePlayerInfo(other);
+        if (info.length > 0) {
+          sentPlayers.push(...info);
         }
       }
 
-      for (const object of objects) {
-        if (!object) continue;
-        if (!object.sentTo) {
-          object.sentTo = Object.create(null);
-        }
-        if (
-          !object.sentTo[player.id] &&
-          object.active &&
-          typeof object.visibleToPlayer === "function" &&
-          object.visibleToPlayer(player) &&
-          typeof player.canSee === "function" &&
-          player.canSee(object)
-        ) {
-          object.sentTo[player.id] = true;
-          sentObjects.push(object);
-        }
-      }
+      player.send("33", sentPlayers);
 
-      if (typeof player.send === "function") {
-        player.send("33", sentPlayers);
-      }
+      const visibleStructures = this.structures.visibleTo(player);
+      const structurePayload = visibleStructures
+        .filter(structure => structure.markSentTo(player.id))
+        .flatMap(structure => serializeStructurePayload(structure, this.utils));
 
-      if (sentObjects.length > 0 && typeof player.send === "function") {
-        const payload = sentObjects.flatMap(object => [
-          object.sid,
-          this.utils?.fixTo ? this.utils.fixTo(object.x, 1) : object.x,
-          this.utils?.fixTo ? this.utils.fixTo(object.y, 1) : object.y,
-          object.dir,
-          object.scale,
-          object.type,
-          object.id,
-          object.owner ? object.owner.sid : -1
-        ]);
-        player.send("6", payload);
+      if (structurePayload.length > 0) {
+        player.send("6", structurePayload);
       }
 
       const aiPayload: number[] = [];
-      for (const ai of activeAis) {
-        if (!ai?.alive) continue;
-        if (typeof player.canSee === "function" && !player.canSee(ai)) {
-          continue;
-        }
-        aiPayload.push(
-          ai.sid,
-          ai.index,
-          this.utils?.fixTo ? this.utils.fixTo(ai.x, 1) : ai.x,
-          this.utils?.fixTo ? this.utils.fixTo(ai.y, 1) : ai.y,
-          this.utils?.fixTo ? this.utils.fixTo(ai.dir, 3) : ai.dir,
-          Math.round(ai.health ?? 0),
-          ai.nameIndex ?? 0
-        );
+      for (const npc of this.npcs.visibleTo(player)) {
+        if (!npc.isAlive()) continue;
+        aiPayload.push(...serializeNpcPayload(npc, this.utils));
       }
-      if (typeof player.send === "function") {
-        player.send("a", aiPayload.length > 0 ? aiPayload : null);
-      }
+      player.send("a", aiPayload.length > 0 ? aiPayload : null);
     }
 
     return state.withPlayers(snapshots);

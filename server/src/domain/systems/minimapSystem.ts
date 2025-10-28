@@ -1,18 +1,19 @@
 import type { GameSystem } from "../game/gameEngine.js";
 import type { GameState, MinimapEntry } from "../game/state.js";
+import type { PlayerRepository } from "../repositories/playerRepository.js";
 
 export interface MinimapSystemOptions {
-  readonly getPlayers: () => Iterable<any>;
+  readonly players: PlayerRepository;
   readonly intervalMs: number;
 }
 
 export class MinimapSystem implements GameSystem {
-  private readonly getPlayers: () => Iterable<any>;
+  private readonly players: PlayerRepository;
   private readonly intervalMs: number;
   private elapsed = 0;
 
   constructor(options: MinimapSystemOptions) {
-    this.getPlayers = options.getPlayers;
+    this.players = options.players;
     this.intervalMs = Math.max(16, options.intervalMs);
   }
 
@@ -23,16 +24,19 @@ export class MinimapSystem implements GameSystem {
     }
     this.elapsed = 0;
 
-    const minimap: MinimapEntry[] = Array.from(state.players.values())
+    const players = Array.from(this.players.all());
+
+    const minimap: MinimapEntry[] = players
       .filter(player => player.alive)
       .map(player => ({
         sid: player.sid,
-        x: player.x,
-        y: player.y
+        x: player.position.x,
+        y: player.position.y
       }));
 
-    for (const player of this.getPlayers()) {
-      if (!player?.socket || typeof player.send !== "function") continue;
+    for (const player of players) {
+      const socket = player.raw?.socket;
+      if (!socket || typeof player.send !== "function") continue;
       const payload = minimap
         .filter(entry => entry.sid !== player.sid)
         .flatMap(entry => [entry.x, entry.y]);
