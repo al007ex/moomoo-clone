@@ -36,9 +36,9 @@ var ProjectileManager = require("./data/projectileManager.js");
 var SoundManager = require("./libs/soundManager.js").obj;
 var textManager = new animText.TextManager();
 
-var VultrClient = require("./libs/VultrClient.js");
-var vultrClient = new VultrClient("moomoo.io", 3000, config.maxPlayers, 5, false);
-vultrClient.debugLog = false;
+var ServerManagerPolyfill = require("./libs/ServerManagerPolyfill.js");
+var serverManager = new ServerManagerPolyfill("moomoo.io", 3000, config.maxPlayers, 5, false);
+serverManager.debugLog = false;
 
 function getParameterByName(name, url) {
     if (!url) {
@@ -75,7 +75,7 @@ function connectSocketIfReady() {
 
 function connectSocket(token) {
 
-    vultrClient.start(function (address, port, gameIndex) {
+    serverManager.start(function (address, port, gameIndex) {
 
         var protocol = isProd ? "wss" : "ws";
         var wsAddress = protocol + "://" + address + ":" + 8008 + "/?gameIndex=" + gameIndex;
@@ -134,7 +134,7 @@ function connectSocket(token) {
 
         setTimeout(() => updateServerList(), 3 * 1000);
     }, function (error) {
-        console.error("Vultr error:", error);
+        console.error("Server manager error:", error);
         alert("Error:\n" + error);
         disconnect("disconnected");
     });
@@ -477,13 +477,13 @@ function bindEvents() {
 var gamesPerServer = 1;
 
 function setupServerStatus() {
-    var tmpHTML = "";
+    var tmpHTML = "<select>";
 
     var overallTotal = 0;
     var regionCounter = 0;
-    for (var region in vultrClient.servers) {
-        var serverList = vultrClient.servers[region];
-
+    for (var region in serverManager.servers) {
+        var serverList = serverManager.servers[region];
+        console.log("Region:", region, serverList);
         var totalPlayers = 0;
         for (var i = 0; i < serverList.length; i++) {
             for (var j = 0; j < serverList[i].games.length; j++) {
@@ -492,7 +492,10 @@ function setupServerStatus() {
         }
         overallTotal += totalPlayers;
 
-        var regionName = vultrClient.regionInfo[region].name;
+        var regionInfo = serverManager.regionInfo[region] || {
+            name: serverManager.stripRegion(region)
+        };
+        var regionName = regionInfo.name;
         tmpHTML += "<option disabled>" + regionName + " - " + totalPlayers + " players</option>"
 
         for (var serverIndex = 0; serverIndex < serverList.length; serverIndex++) {
@@ -501,11 +504,11 @@ function setupServerStatus() {
             for (var gameIndex = 0; gameIndex < server.games.length; gameIndex++) {
                 var game = server.games[gameIndex];
                 var adjustedIndex = server.index * gamesPerServer + gameIndex + 1;
-                var isSelected = vultrClient.server && vultrClient.server.region === server.region && vultrClient.server.index === server.index && vultrClient.gameIndex == gameIndex;
+                var isSelected = serverManager.server && serverManager.server.region === server.region && serverManager.server.index === server.index && serverManager.gameIndex == gameIndex;
                 var serverLabel = regionName + " " + adjustedIndex + " [" + Math.min(game.playerCount, config.maxPlayers) + "/" + config.maxPlayers + "]";
 
 
-                let serverID = vultrClient.stripRegion(region) + ":" + serverIndex + ":" + gameIndex;
+                let serverID = serverManager.stripRegion(region) + ":" + serverIndex + ":" + gameIndex;
                 if (isSelected) partyButton.getElementsByTagName("span")[0].innerText = serverID;
                 let selected = isSelected ? "selected" : "";
                 tmpHTML += "<option value='" + serverID + "' " + selected + ">" + serverLabel + "</option>";
@@ -518,6 +521,7 @@ function setupServerStatus() {
     }
 
     tmpHTML += "<option disabled>All Servers - " + overallTotal + " players</option>";
+    tmpHTML += "</select>";
 
     serverBrowser.innerHTML = tmpHTML;
 
@@ -534,15 +538,20 @@ function setupServerStatus() {
 }
 
 function updateServerList() {
+    if (typeof serverManager.getServerSnapshot === "function") {
+        var snapshot = serverManager.getServerSnapshot();
+        serverManager.processServers(snapshot.servers);
+        setupServerStatus();
+        return;
+    }
+
     var xmlhttp = new XMLHttpRequest();
     var url = "/serverData";
     xmlhttp.onreadystatechange = function () {
         if (this.readyState == 4) {
             if (this.status == 200) {
-
-                window.vultr = JSON.parse(this.responseText);
-                vultrClient.processServers(vultr.servers);
-
+                var payload = JSON.parse(this.responseText);
+                serverManager.processServers(payload.servers);
                 setupServerStatus();
             } else {
                 console.error("Failed to load server data with status code:", this.status);
@@ -553,9 +562,11 @@ function updateServerList() {
     xmlhttp.send();
 }
 
-serverBrowser.addEventListener("change", UTILS.checkTrusted(function () {
-    let parts = serverBrowser.value.split(":");
-    vultrClient.switchServer(parts[0], parts[1], parts[2]);
+serverBrowser.addEventListener("change", UTILS.checkTrusted(function (e) {
+    if (e.target.tagName === "SELECT") {
+        let parts = e.target.value.split(":");
+        serverManager.switchServer(parts[0], parts[1], parts[2]);
+    }
 }));
 
 
