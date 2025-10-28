@@ -1,4 +1,4 @@
-# moomoo-nurotech
+# moomoo clone
 
 Full-stack MooMoo.io project containing a Node.js game server and a bundled web client.
 
