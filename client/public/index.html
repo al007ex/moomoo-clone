@@ -17,6 +17,71 @@
     <link href="./css/material-icons.css" rel="stylesheet">
     <link href="./css/hammersmith-one.css" rel="stylesheet">
     <script type="module" crossorigin src="./assets/bundle.js"></script>
+    <script>
+        window.cpmstarAPI = () => { };
+
+        const is_prod = location.protocol === "https:";
+        const ws_url = `ws${is_prod ? "s" : ""}://${location.host}`;
+
+
+        window.connected_count = 0;
+
+        window.WebSocket = class extends WebSocket {
+
+            constructor(_url, a) {
+                super(ws_url, a);
+                window.connected_count++;
+            }
+
+        }
+
+
+        let c = setInterval(() => {
+
+            if (window.config) {
+                window.config.weaponVariants = [{
+                    id: 0,
+                    src: "",
+                    xp: 0,
+                    val: 1
+                }, {
+                    id: 1,
+                    src: "_g",
+                    xp: 3000,
+                    val: 1.1
+                }, {
+                    id: 2,
+                    src: "_d",
+                    xp: 7000,
+                    val: 1.18
+                }, {
+                    id: 3,
+                    src: "_r",
+                    poison: true,
+                    xp: 12000,
+                    val: 1.18
+                }, {
+                    id: 4,
+                    src: "_e",
+                    poison: true,
+                    xp: 24000,
+                    val: 1.18
+                }];
+            }
+
+            if (!window?.captchaCallback) return;
+
+            window.captchaCallback();
+            window.onload({});
+
+            clearInterval(c);
+
+        }, 100);
+
+
+
+
+    </script>
 </head>
 
 <body>
@@ -76,8 +141,7 @@
                         <div class="settingRadio"><input id="nativeResolution" type="checkbox" /> Use Native Resolution
                         </div>
                         <div class="settingRadio"><input id="showPing" type="checkbox" /> Show Ping</div>
-                        <div class="menuText">Created by <a href="" target="_blank"
-                                class="menuLink">Yendis</a></div>
+                        <div class="menuText">Created by <a href="" target="_blank" class="menuLink">Yendis</a></div>
                     </div>
                 </div>
             </div>
@@ -96,11 +160,12 @@
                 href="https://discord.gg/NMS3YR9Q5R" target="_blank" class="menuLink">Discord</a> | <a
                 href="https://www.youtube.com/watch?v=5DlROhT8NgU" target="_blank" class="menuLink">Terms</a> | <a
                 href="https://www.youtube.com/watch?v=5DlROhT8NgU" target="_blank" class="menuLink">Privacy</a></div>
-                <div id="youtuberOf">
-                    Featured Mootuber:
-                    <div class="spanLink" id="featuredYoutube"><a target="_blank" class="ytLink"
-                            href="https://web.archive.org/web/20200602171143/https://www.youtube.com/channel/UCj6C_tiDeATiKd3GX127XoQ"><i
-                                class="material-icons" style="vertical-align: top;"></i> LightThief</a></div>      </div>
+        <div id="youtuberOf">
+            Featured Mootuber:
+            <div class="spanLink" id="featuredYoutube"><a target="_blank" class="ytLink"
+                    href="https://web.archive.org/web/20200602171143/https://www.youtube.com/channel/UCj6C_tiDeATiKd3GX127XoQ"><i
+                        class="material-icons" style="vertical-align: top;"></i> LightThief</a></div>
+        </div>
     </div>
     <div id="pingDisplay" hidden>Not connected</div>
     <div id="diedText">YOU DIED</div>
