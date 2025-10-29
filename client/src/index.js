@@ -17,7 +17,6 @@
 })();
 
 window.loadedScript = true;
-console.log("hello")
 
 var isProd = location.hostname !== "127.0.0.1" && !location.hostname.startsWith("192.168.");
 
@@ -33,53 +32,29 @@ var Player = require("./data/player.js");
 var store = require("./data/store.js");
 var Projectile = require("./data/projectile.js");
 var ProjectileManager = require("./data/projectileManager.js");
-var SoundManager = require("./libs/soundManager.js").obj;
 var textManager = new animText.TextManager();
 
 var ServerManagerPolyfill = require("./libs/ServerManagerPolyfill.js");
 var serverManager = new ServerManagerPolyfill("moomoo.io", 3000, config.maxPlayers, 5, false);
 serverManager.debugLog = false;
 
-function getParameterByName(name, url) {
-    if (!url) {
-        url = window.location.href;
-    }
-    name = name.replace(/[\[\]]/g, "\\$&");
-    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-        results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
-    return decodeURIComponent(results[2].replace(/\+/g, " "));
-}
-
 var connected = false;
 var startedConnecting = false;
 
 function connectSocketIfReady() {
 
-    if (!didLoad || !captchaReady) return;
+    if (!didLoad) return;
     startedConnecting = true;
 
-    if (isProd) {
-        window.grecaptcha.execute("6LevKusUAAAAAAFknhlV8sPtXAk5Z5dGP5T2FYIZ", {
-            action: "homepage"
-        }).then(function (token) {
-
-            connectSocket(token);
-        });
-    } else {
-
-        connectSocket(null);
-    }
+    connectSocket();
 }
 
-function connectSocket(token) {
+function connectSocket() {
 
     serverManager.start(function (address, port, gameIndex) {
 
         var protocol = isProd ? "wss" : "ws";
         var wsAddress = protocol + "://" + address + ":" + 8008 + "/?gameIndex=" + gameIndex;
-        if (token) wsAddress += "&token=" + encodeURIComponent(token);
 
         io.connect(wsAddress, function (error) {
             pingSocket();
@@ -153,19 +128,8 @@ function joinParty() {
     }
 }
 
-var Sound = new SoundManager(config, UTILS);
-
-function toggleSound(active) {
-    if (active == undefined)
-        active = !Sound.active;
-    Sound.active = active;
-
-    saveVal("moo_moosic", active ? 1 : 0);
-}
-
 var mathPI = Math.PI;
 var mathPI2 = mathPI * 2;
-var mathPI3 = mathPI * 3;
 Math.lerpAngle = function (value1, value2, amount) {
     var difference = Math.abs(value2 - value1);
     if (difference > mathPI) {
@@ -206,10 +170,6 @@ function saveVal(name, val) {
         localStorage.setItem(name, val);
 }
 
-function deleteVal(name) {
-    if (canStore)
-        localStorage.removeItem(name);
-}
 
 function getSavedVal(name) {
     if (canStore)
@@ -235,7 +195,6 @@ function follmoo() {
 }
 var useNativeResolution;
 var showPing;
-var playSound;
 var pixelDensity = 1;
 var delta, now, lastSent;
 var lastUpdate = Date.now();
@@ -275,7 +234,6 @@ var maxScreenWidth = config.maxScreenWidth;
 var maxScreenHeight = config.maxScreenHeight;
 var screenWidth, screenHeight;
 var inGame = false;
-var adContainer = document.getElementById("ad-container");
 var mainMenu = document.getElementById("mainMenu");
 var enterGameButton = document.getElementById("enterGame");
 var promoImageButton = document.getElementById("promoImg");
@@ -291,7 +249,6 @@ var mainContext = gameCanvas.getContext("2d");
 var serverBrowser = document.getElementById("serverBrowser");
 var nativeResolutionCheckbox = document.getElementById("nativeResolution");
 var showPingCheckbox = document.getElementById("showPing");
-var playMusicCheckbox = document.getElementById("playMusic");
 var pingDisplay = document.getElementById("pingDisplay");
 var shutdownDisplay = document.getElementById("shutdownDisplay");
 var menuCardHolder = document.getElementById("menuCardHolder");
@@ -392,7 +349,6 @@ featuredYoutuber.innerHTML = "<a target='_blank' class='ytLink' href='" + tmpYou
 
 var inWindow = true;
 var didLoad = false;
-var captchaReady = false;
 window.onblur = function () {
     inWindow = false;
 };
@@ -404,17 +360,6 @@ window.onfocus = function () {
 };
 window.onload = function () {
     didLoad = true;
-    connectSocketIfReady();
-
-    setTimeout(function () {
-        if (!startedConnecting) {
-            alert("Captcha failed to load");
-            window.location.reload();
-        }
-    }, 20 * 1000);
-};
-window.captchaCallback = function () {
-    captchaReady = true;
     connectSocketIfReady();
 };
 gameCanvas.oncontextmenu = function () {
@@ -483,7 +428,6 @@ function setupServerStatus() {
     var regionCounter = 0;
     for (var region in serverManager.servers) {
         var serverList = serverManager.servers[region];
-        console.log("Region:", region, serverList);
         var totalPlayers = 0;
         for (var i = 0; i < serverList.length; i++) {
             for (var j = 0; j < serverList[i].games.length; j++) {
@@ -1010,7 +954,6 @@ function renderMinimap(delta) {
 }
 
 var currentStoreIndex = 0;
-var playerItems = {};
 
 function changeStoreIndex(index) {
     if (currentStoreIndex != index) {
@@ -1148,8 +1091,6 @@ function prepareUI() {
 
     showPing = getSavedVal("show_ping") == "true";
     pingDisplay.hidden = !showPing;
-
-    playSound = getSavedVal("moo_moosic") || 0;
 
     setInterval(function () {
         if (window.cordova) {
@@ -1644,7 +1585,6 @@ function enterGame() {
     saveVal("moo_name", nameInput.value);
     if (!inGame && socketReady()) {
         inGame = true;
-        Sound.stop("menu");
         showLoadingText("Loading...");
         io.send("sp", {
             name: nameInput.value,
@@ -1798,10 +1738,6 @@ function updateUpgrades(points, age) {
         upgradeCounter.style.display = "none";
         showItemInfo();
     }
-}
-
-function sendUpgrade(index) {
-    io.send("6", index);
 }
 
 function updateAge(xp, mxp, age) {
@@ -2047,7 +1983,6 @@ function updateGame() {
                     }
                     if (tmpObj.health > 0) {
 
-                        var tmpWidth = config.healthBarWidth;
                         mainContext.fillStyle = darkOutlineColor;
                         mainContext.roundRect(tmpObj.x - xOffset - config.healthBarWidth - config.healthBarPad,
                             (tmpObj.y - yOffset + tmpObj.scale) + config.nameY, (config.healthBarWidth * 2) +
@@ -2662,7 +2597,6 @@ function renderRectCircle(x, y, s, sw, seg, ctxt, stroke) {
 
 function renderBlob(ctxt, spikes, outer, inner) {
     var rot = Math.PI / 2 * 3;
-    var x, y;
     var step = Math.PI / spikes;
     var tmpOuter;
     ctxt.beginPath();
