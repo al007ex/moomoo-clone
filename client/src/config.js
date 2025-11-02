@@ -1,115 +1,135 @@
+"use strict";
 
-	// RENDER:
-	module.exports.maxScreenWidth = 1920;
-	module.exports.maxScreenHeight = 1080;
+var hasProcess = typeof process === "object" && process !== null;
+var hasArgv = hasProcess && Array.isArray(process.argv);
 
-	// SERVER:
-	module.exports.serverUpdateRate = 9;
-	module.exports.maxPlayers =  (process && process.argv.indexOf("--largeserver") != -1) ? 80 : 40;
-	module.exports.maxPlayersHard =  module.exports.maxPlayers + 10;
-	module.exports.collisionDepth = 6;
-	module.exports.minimapRate = 3000;
+function resolveMaxPlayers() {
+    if (hasArgv && process.argv.indexOf("--largeserver") !== -1) {
+        return 80;
+    }
+    return 10;
+}
 
-	// COLLISIONS:
-	module.exports.colGrid = 10;
+var config = {};
 
-	// CLIENT:
-	module.exports.clientSendRate = 5;
+// RENDER:
+config.maxScreenWidth = 1920;
+config.maxScreenHeight = 1080;
 
-	// UI:
-	module.exports.healthBarWidth = 50;
-	module.exports.healthBarPad = 4.5;
-	module.exports.iconPadding = 15;
-	module.exports.iconPad = 0.9;
-	module.exports.deathFadeout = 3000;
-	module.exports.crownIconScale = 60;
-	module.exports.crownPad = 35;
+// SERVER:
+config.serverUpdateRate = 9;
+config.maxPlayers = resolveMaxPlayers();
+config.maxPlayersHard = config.maxPlayers + 10;
+config.collisionDepth = 6;
+config.minimapRate = 3000;
 
-	// CHAT:
-	module.exports.chatCountdown = 3000;
-	module.exports.chatCooldown = 500;
+// COLLISIONS:
+config.colGrid = 10;
 
-	// SANDBOX:
-	module.exports.inSandbox = process && process.env.VULTR_SCHEME === "mm_exp";;
+// CLIENT:
+config.clientSendRate = 5;
 
-	// PLAYER:
-	module.exports.maxAge = 100;
-	module.exports.gatherAngle = Math.PI/2.6;
-	module.exports.gatherWiggle = 10;
-	module.exports.hitReturnRatio = 0.25;
-	module.exports.hitAngle = Math.PI / 2;
-	module.exports.playerScale = 35;
-	module.exports.playerSpeed = 0.0016;
-	module.exports.playerDecel = 0.993;
-	module.exports.nameY = 34;
+// UI:
+config.healthBarWidth = 50;
+config.healthBarPad = 4.5;
+config.iconPadding = 15;
+config.iconPad = 0.9;
+config.deathFadeout = 3000;
+config.crownIconScale = 60;
+config.crownPad = 35;
 
-	// CUSTOMIZATION:
-	module.exports.skinColors = ["#bf8f54", "#cbb091", "#896c4b",
-		"#fadadc", "#ececec", "#c37373", "#4c4c4c", "#ecaff7", "#738cc3",
-	 	"#8bc373"];
+// CHAT:
+config.chatCountdown = 3000;
+config.chatCooldown = 500;
 
-	// ANIMALS:
-	module.exports.animalCount = 7;
-	module.exports.aiTurnRandom = 0.06;
-	module.exports.cowNames = ["Sid", "Steph", "Bmoe", "Romn", "Jononthecool", "Fiona", "Vince", "Nathan", "Nick", "Flappy", "Ronald", "Otis", "Pepe", "Mc Donald", "Theo", "Fabz", "Oliver", "Jeff", "Jimmy", "Helena", "Reaper",
-		"Ben", "Alan", "Naomi", "XYZ", "Clever", "Jeremy", "Mike", "Destined", "Stallion", "Allison", "Meaty", "Sophia", "Vaja", "Joey", "Pendy", "Murdoch", "Theo", "Jared", "July", "Sonia", "Mel", "Dexter", "Quinn", "Milky"];
+// SANDBOX:
+config.inSandbox = true;
 
-	// WEAPONS:
-	module.exports.shieldAngle = Math.PI/3;
-	module.exports.weaponVariants = [{
-		id: 0,
-		src: "",
-		xp: 0,
-		val: 1
-	}, {
-		id: 1,
-		src: "_g",
-		xp: 3000,
-		val: 1.1
-	}, {
-		id: 2,
-		src: "_d",
-		xp: 7000,
-		val: 1.18
-	}, {
-		id: 3,
-		src: "_r",
-		poison: true,
-		xp: 12000,
-		val: 1.18
-	}];
-	module.exports.fetchVariant = function(player) {
-		var tmpXP = player.weaponXP[player.weaponIndex]||0;
-		for (var i = module.exports.weaponVariants.length - 1; i >= 0; --i) {
-			if (tmpXP >= module.exports.weaponVariants[i].xp)
-				return module.exports.weaponVariants[i];
-		}
-	};
+// PLAYER:
+config.maxAge = 100;
+config.gatherAngle = Math.PI / 2.6;
+config.gatherWiggle = 10;
+config.hitReturnRatio = 0.25;
+config.hitAngle = Math.PI / 2;
+config.playerScale = 35;
+config.playerSpeed = 0.0016;
+config.playerDecel = 0.993;
+config.nameY = 34;
 
-	// NATURE:
-	module.exports.resourceTypes = ["wood", "food", "stone", "points"];
-	module.exports.areaCount = 7;
-	module.exports.treesPerArea = 9;
-	module.exports.bushesPerArea = 3;
-	module.exports.totalRocks = 32;
-	module.exports.goldOres = 7;
-	module.exports.riverWidth = 724;
-	module.exports.riverPadding = 114;
-	module.exports.waterCurrent = 0.0011;
-	module.exports.waveSpeed = 0.0001;
-	module.exports.waveMax = 1.3;
-	module.exports.treeScales = [150, 160, 165, 175];
-	module.exports.bushScales = [80, 85, 95];
-	module.exports.rockScales = [80, 85, 90];
+// CUSTOMIZATION:
+config.skinColors = ["#bf8f54", "#cbb091", "#896c4b", "#fadadc", "#ececec", "#c37373", "#4c4c4c", "#ecaff7", "#738cc3", "#8bc373"];
 
-	// BIOME DATA:
-	module.exports.snowBiomeTop = 2400;
-	module.exports.snowSpeed = 0.75;
+// ANIMALS:
+config.animalCount = 40;
+config.aiTurnRandom = 0.06;
+config.cowNames = ["Sid", "Steph", "Bmoe", "Romn", "Jononthecool", "Fiona", "Vince", "Nathan", "Nick", "Flappy", "Ronald", "Otis", "Pepe", "Mc Donald", "Theo", "Fabz", "Oliver", "Jeff", "Jimmy", "Helena", "Reaper", "Ben", "Alan", "Naomi", "XYZ", "Clever", "Jeremy", "Mike", "Destined", "Stallion", "Allison", "Meaty", "Sophia", "Vaja", "Joey", "Pendy", "Murdoch", "Theo", "Jared", "July", "Sonia", "Mel", "Dexter", "Quinn", "Milky"];
 
-	// DATA:
-	module.exports.maxNameLength = 15;
+// WEAPONS:
+config.shieldAngle = Math.PI / 3;
+config.weaponVariants = [{
+    id: 0,
+    src: "",
+    xp: 0,
+    val: 1
+}, {
+    id: 1,
+    src: "_g",
+    xp: 3000,
+    val: 1.1
+}, {
+    id: 2,
+    src: "_d",
+    xp: 7000,
+    val: 1.18
+}, {
+    id: 3,
+    src: "_r",
+    poison: true,
+    xp: 12000,
+    val: 1.18
+}, {
+    id: 4,
+    src: "_e",
+    poison: true,
+    xp: 24000,
+    val: 1.18
+}];
 
-	// MAP:
-	module.exports.mapScale = 14400;
-	module.exports.mapPingScale = 40;
-	module.exports.mapPingTime = 2200;
+config.fetchVariant = function (player) {
+    var tmpXP = player.weaponXP[player.weaponIndex] || 0;
+    for (var i = config.weaponVariants.length - 1; i >= 0; --i) {
+        if (tmpXP >= config.weaponVariants[i].xp) {
+            return config.weaponVariants[i];
+        }
+    }
+};
+
+// NATURE:
+config.resourceTypes = ["wood", "food", "stone", "points"];
+config.areaCount = 7;
+config.treesPerArea = 9;
+config.bushesPerArea = 3;
+config.totalRocks = 32;
+config.goldOres = 7;
+config.riverWidth = 724;
+config.riverPadding = 114;
+config.waterCurrent = 0.0011;
+config.waveSpeed = 0.0001;
+config.waveMax = 1.3;
+config.treeScales = [150, 160, 165, 175];
+config.bushScales = [80, 85, 95];
+config.rockScales = [80, 85, 90];
+
+// BIOME DATA:
+config.snowBiomeTop = 2400;
+config.snowSpeed = 0.75;
+
+// DATA:
+config.maxNameLength = 15;
+
+// MAP:
+config.mapScale = 14400;
+config.mapPingScale = 40;
+config.mapPingTime = 2200;
+
+module.exports = config;

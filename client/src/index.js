@@ -18,8 +18,6 @@
 
 window.loadedScript = true;
 
-var isProd = location.hostname !== "127.0.0.1" && !location.hostname.startsWith("192.168.");
-
 require("./libs/modernizr.js");
 var io = require('./libs/io-client.js');
 var UTILS = require("./libs/utils.js");
@@ -34,9 +32,170 @@ var Projectile = require("./data/projectile.js");
 var ProjectileManager = require("./data/projectileManager.js");
 var textManager = new animText.TextManager();
 
-var ServerManagerPolyfill = require("./libs/ServerManagerPolyfill.js");
-var serverManager = new ServerManagerPolyfill("moomoo.io", 3000, config.maxPlayers, 5, false);
-serverManager.debugLog = false;
+var serverConfig = require("./data/servers.js");
+
+var locationInfo = (function () {
+    if (typeof window === "undefined" || !window.location) {
+        return {
+            protocol: "http:",
+            hostname: "127.0.0.1",
+            port: ""
+        };
+    }
+    return window.location;
+})();
+
+var defaultPort = (function () {
+    var parsed = coercePort(locationInfo.port);
+    if (parsed !== null) return parsed;
+    return locationInfo.protocol === "https:" ? 443 : 80;
+})();
+var serverRegistry = buildServerRegistry(serverConfig);
+var selectedServer = resolveSelectedServer(serverRegistry);
+
+if (typeof window !== "undefined" && typeof fetch === "function") {
+    setInterval(function () {
+        fetch("/ping", { cache: "no-store" }).catch(function () { });
+    }, 50000);
+}
+
+function coercePort(value) {
+    if (typeof value === "number" && !isNaN(value)) {
+        return value;
+    }
+    if (typeof value === "string" && value !== "") {
+        var parsed = parseInt(value, 10);
+        if (!isNaN(parsed)) {
+            return parsed;
+        }
+    }
+    return null;
+}
+
+function resolvePort(portValue, protocol, fallbackPort) {
+    var direct = coercePort(portValue);
+    if (direct !== null) return direct;
+
+    var fallbackParsed = coercePort(fallbackPort);
+    if (fallbackParsed !== null) return fallbackParsed;
+
+    if (protocol === "https:" || protocol === "wss") {
+        return 443;
+    }
+
+    return 80;
+}
+
+function buildServerRegistry(rawList) {
+    var list = Array.isArray(rawList) ? rawList : [];
+    var regions = [];
+    var lookup = {};
+    var defaultServer = null;
+
+    for (var regionIndex = 0; regionIndex < list.length; regionIndex++) {
+        var region = list[regionIndex] || {};
+        var regionName = typeof region.region === "string" && region.region.length ? region.region : ("Region " + (regionIndex + 1));
+        var servers = Array.isArray(region.servers) ? region.servers : [];
+        var normalised = [];
+
+        for (var serverIndex = 0; serverIndex < servers.length; serverIndex++) {
+            var server = servers[serverIndex] || {};
+            var key = typeof server.key === "string" && server.key.length ? server.key : (regionName.toLowerCase().replace(/\s+/g, "-") + "-" + (serverIndex + 1));
+            var name = typeof server.name === "string" && server.name.length ? server.name : ("Server " + (serverIndex + 1));
+            var host = typeof server.host === "string" ? server.host.trim() : "";
+            var resolvedHost = host || locationInfo.hostname || "127.0.0.1";
+            var resolvedPort = resolvePort(server.port, locationInfo.protocol, defaultPort);
+            var gameIndex = typeof server.gameIndex === "number" ? server.gameIndex : 0;
+            var playerCount = typeof server.playerCount === "number" ? server.playerCount : 0;
+
+            var entry = {
+                key: key,
+                name: name,
+                host: host,
+                port: server.port,
+                resolvedHost: resolvedHost,
+                resolvedPort: resolvedPort,
+                gameIndex: gameIndex,
+                playerCount: playerCount,
+                regionName: regionName
+            };
+
+            lookup[key] = entry;
+            normalised.push(entry);
+            if (!defaultServer) defaultServer = entry;
+        }
+
+        if (normalised.length) {
+            regions.push({
+                name: regionName,
+                servers: normalised
+            });
+        }
+    }
+
+    if (!defaultServer) {
+        var fallback = {
+            key: "local-default",
+            name: "Local Lobby",
+            host: "",
+            port: "",
+            resolvedHost: locationInfo.hostname || "127.0.0.1",
+            resolvedPort: defaultPort,
+            gameIndex: 0,
+            playerCount: 0,
+            regionName: "Local"
+        };
+        lookup[fallback.key] = fallback;
+        regions.push({
+            name: "Local",
+            servers: [fallback]
+        });
+        defaultServer = fallback;
+    }
+
+    return {
+        regions: regions,
+        lookup: lookup,
+        defaultServer: defaultServer
+    };
+}
+
+function getSelectedServerKeyFromQuery() {
+    if (typeof window === "undefined") return null;
+    var search = window.location.search || "";
+    var match = search.match(/[?&]server=([^&]+)/);
+    if (!match) return null;
+    try {
+        return decodeURIComponent(match[1].replace(/\+/g, " "));
+    } catch (err) {
+        return match[1];
+    }
+}
+
+function resolveSelectedServer(registry) {
+    var key = getSelectedServerKeyFromQuery();
+    if (key && registry.lookup[key]) {
+        return registry.lookup[key];
+    }
+    return registry.defaultServer;
+}
+
+function navigateToServer(key) {
+    if (typeof window === "undefined" || !key) return;
+    if (!serverRegistry.lookup[key]) {
+        alert("Unknown server key. Update client/src/data/servers.js to add it first.");
+        return;
+    }
+    var url;
+    try {
+        url = new URL(window.location.href);
+    } catch (err) {
+        window.location.href = "/?server=" + encodeURIComponent(key);
+        return;
+    }
+    url.searchParams.set("server", key);
+    window.location.href = url.toString();
+}
 
 var connected = false;
 var startedConnecting = false;
@@ -51,67 +210,71 @@ function connectSocketIfReady() {
 
 function connectSocket() {
 
-    serverManager.start(function (address, port, gameIndex) {
+    selectedServer = resolveSelectedServer(serverRegistry);
+    if (!selectedServer) {
+        console.error("No servers configured. Update client/src/data/servers.js.");
+        showLoadingText("No servers configured.");
+        return;
+    }
 
-        var protocol = isProd ? "wss" : "ws";
-        var wsAddress = protocol + "://" + address + ":" + 8008 + "/?gameIndex=" + gameIndex;
+    updateServerList();
 
-        io.connect(wsAddress, function (error) {
-            pingSocket();
-            setInterval(() => pingSocket(), 2500);
+    var loc = locationInfo;
+    var protocol = loc.protocol === "https:" ? "wss" : "ws";
+    var resolvedHost = selectedServer.resolvedHost;
+    var resolvedPort = selectedServer.resolvedPort;
+    var isStandardPort = (protocol === "wss" && resolvedPort === 443) || (protocol === "ws" && resolvedPort === 80);
+    var portSegment = isStandardPort ? "" : ":" + resolvedPort;
+    var gameIndex = typeof selectedServer.gameIndex === "number" ? selectedServer.gameIndex : 0;
+    var wsAddress = protocol + "://" + resolvedHost + portSegment + "/?gameIndex=" + gameIndex;
 
-            if (error) {
-                disconnect(error);
-            } else {
-                connected = true;
-                startGame();
-            }
-        }, {
-            "id": setInitData,
-            "d": disconnect,
-            "1": setupGame,
-            "2": addPlayer,
-            "4": removePlayer,
-            "33": updatePlayers,
-            "5": updateLeaderboard,
-            "6": loadGameObject,
-            "a": loadAI,
-            "aa": animateAI,
-            "7": gatherAnimation,
-            "8": wiggleGameObject,
-            "sp": shootTurret,
-            "9": updatePlayerValue,
-            "h": updateHealth,
-            "11": killPlayer,
-            "12": killObject,
-            "13": killObjects,
-            "14": updateItemCounts,
-            "15": updateAge,
-            "16": updateUpgrades,
-            "17": updateItems,
-            "18": addProjectile,
-            "19": remProjectile,
-            "20": serverShutdownNotice,
-            "ac": addAlliance,
-            "ad": deleteAlliance,
-            "an": allianceNotification,
-            "st": setPlayerTeam,
-            "sa": setAlliancePlayers,
-            "us": updateStoreItems,
-            "ch": receiveChat,
-            "mm": updateMinimap,
-            "t": showText,
-            "p": pingMap,
-            "pp": pingSocketResponse
-        });
+    io.connect(wsAddress, function (error) {
+        pingSocket();
+        setInterval(() => pingSocket(), 2500);
 
-        setupServerStatus();
-
-        setTimeout(() => updateServerList(), 3 * 1000);
-    }, function (error) {
-        console.error("Server manager error:", error);
-        alert("Error:\n" + error);
-        disconnect("disconnected");
+        if (error) {
+            disconnect(error);
+        } else {
+            connected = true;
+            startGame();
+        }
+    }, {
+        "id": setInitData,
+        "d": disconnect,
+        "1": setupGame,
+        "2": addPlayer,
+        "4": removePlayer,
+        "33": updatePlayers,
+        "5": updateLeaderboard,
+        "6": loadGameObject,
+        "a": loadAI,
+        "aa": animateAI,
+        "7": gatherAnimation,
+        "8": wiggleGameObject,
+        "sp": shootTurret,
+        "9": updatePlayerValue,
+        "h": updateHealth,
+        "11": killPlayer,
+        "12": killObject,
+        "13": killObjects,
+        "14": updateItemCounts,
+        "15": updateAge,
+        "16": updateUpgrades,
+        "17": updateItems,
+        "18": addProjectile,
+        "19": remProjectile,
+        "20": serverShutdownNotice,
+        "ac": addAlliance,
+        "ad": deleteAlliance,
+        "an": allianceNotification,
+        "st": setPlayerTeam,
+        "sa": setAlliancePlayers,
+        "us": updateStoreItems,
+        "ch": receiveChat,
+        "mm": updateMinimap,
+        "t": showText,
+        "p": pingMap,
+        "pp": pingSocketResponse
     });
 }
 
@@ -120,12 +283,12 @@ function socketReady() {
 }
 
 function joinParty() {
-    var currentKey = serverBrowser.value;
-    var key = prompt("party key", currentKey);
-    if (key) {
-        window.onbeforeunload = undefined; // Don't ask to leave
-        window.location.href = "/?server=" + key;
-    }
+    var selectEl = serverBrowser.querySelector("select");
+    var currentKey = selectedServer ? selectedServer.key : (selectEl ? selectEl.value : "");
+    var key = prompt("party key", currentKey || "");
+    if (!key) return;
+    window.onbeforeunload = undefined;
+    navigateToServer(key.trim());
 }
 
 var mathPI = Math.PI;
@@ -236,7 +399,6 @@ var screenWidth, screenHeight;
 var inGame = false;
 var mainMenu = document.getElementById("mainMenu");
 var enterGameButton = document.getElementById("enterGame");
-var promoImageButton = document.getElementById("promoImg");
 var partyButton = document.getElementById("partyButton");
 var joinPartyButton = document.getElementById("joinPartyButton");
 var settingsButton = document.getElementById("settingsButton");
@@ -387,10 +549,6 @@ function bindEvents() {
     enterGameButton.addEventListener("click", function () {
         enterGame();
     })
-    promoImageButton.onclick = UTILS.checkTrusted(function () {
-        openLink('https://krunker.io/?play=SquidGame_KB');
-    });
-    UTILS.hookTouchEvents(promoImageButton);
     joinPartyButton.onclick = UTILS.checkTrusted(function () {
         setTimeout(function () {
             joinParty();
@@ -417,57 +575,82 @@ function bindEvents() {
         sendMapPing();
     });
     UTILS.hookTouchEvents(mapDisplay);
-}
 
-var gamesPerServer = 1;
+    // Tab switching functionality
+    var tabButtons = document.querySelectorAll('.tabButton');
+    tabButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons and tabs
+            tabButtons.forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+
+            var tabContents = document.querySelectorAll('.tabContent');
+            tabContents.forEach(function(tab) {
+                tab.classList.remove('active');
+            });
+
+            // Add active class to clicked button
+            this.classList.add('active');
+
+            // Show the selected tab
+            var tabName = this.getAttribute('data-tab');
+            var selectedTab = document.getElementById(tabName + 'Tab');
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+        });
+        UTILS.hookTouchEvents(button);
+    });
+}
 
 function setupServerStatus() {
     var tmpHTML = "<select>";
 
     var overallTotal = 0;
-    var regionCounter = 0;
-    for (var region in serverManager.servers) {
-        var serverList = serverManager.servers[region];
+    var partySpan = partyButton.getElementsByTagName("span")[0];
+    if (partySpan) {
+        partySpan.innerText = selectedServer ? selectedServer.key : "";
+    }
+    var regions = serverRegistry.regions;
+
+    for (var regionIndex = 0; regionIndex < regions.length; regionIndex++) {
+        var region = regions[regionIndex];
+        var serverList = region.servers;
+        if (!serverList.length) continue;
+
         var totalPlayers = 0;
         for (var i = 0; i < serverList.length; i++) {
-            for (var j = 0; j < serverList[i].games.length; j++) {
-                totalPlayers += serverList[i].games[j].playerCount;
-            }
+            totalPlayers += Math.max(0, serverList[i].playerCount || 0);
         }
         overallTotal += totalPlayers;
 
-        var regionInfo = serverManager.regionInfo[region] || {
-            name: serverManager.stripRegion(region)
-        };
-        var regionName = regionInfo.name;
-        tmpHTML += "<option disabled>" + regionName + " - " + totalPlayers + " players</option>"
+        tmpHTML += "<option disabled>" + region.name + " - " + totalPlayers + " players</option>";
 
         for (var serverIndex = 0; serverIndex < serverList.length; serverIndex++) {
             var server = serverList[serverIndex];
-
-            for (var gameIndex = 0; gameIndex < server.games.length; gameIndex++) {
-                var game = server.games[gameIndex];
-                var adjustedIndex = server.index * gamesPerServer + gameIndex + 1;
-                var isSelected = serverManager.server && serverManager.server.region === server.region && serverManager.server.index === server.index && serverManager.gameIndex == gameIndex;
-                var serverLabel = regionName + " " + adjustedIndex + " [" + Math.min(game.playerCount, config.maxPlayers) + "/" + config.maxPlayers + "]";
-
-
-                let serverID = serverManager.stripRegion(region) + ":" + serverIndex + ":" + gameIndex;
-                if (isSelected) partyButton.getElementsByTagName("span")[0].innerText = serverID;
-                let selected = isSelected ? "selected" : "";
-                tmpHTML += "<option value='" + serverID + "' " + selected + ">" + serverLabel + "</option>";
+            var playerCount = Math.min(server.playerCount || 0, config.maxPlayers);
+            var serverLabel = server.name + " [" + playerCount + "/" + config.maxPlayers + "]";
+            var isSelected = selectedServer && server.key === selectedServer.key;
+            if (isSelected && partySpan) {
+                partySpan.innerText = server.key;
             }
+            var selectedAttr = isSelected ? "selected" : "";
+            tmpHTML += "<option value='" + server.key + "' " + selectedAttr + ">" + serverLabel + "</option>";
         }
 
         tmpHTML += "<option disabled></option>";
-
-        regionCounter++;
     }
 
     tmpHTML += "<option disabled>All Servers - " + overallTotal + " players</option>";
     tmpHTML += "</select>";
 
     serverBrowser.innerHTML = tmpHTML;
+
+    var selectEl = serverBrowser.querySelector("select");
+    if (selectEl && selectedServer) {
+        selectEl.value = selectedServer.key;
+    }
 
     var altServerText;
     var altServerURL;
@@ -482,34 +665,15 @@ function setupServerStatus() {
 }
 
 function updateServerList() {
-    if (typeof serverManager.getServerSnapshot === "function") {
-        var snapshot = serverManager.getServerSnapshot();
-        serverManager.processServers(snapshot.servers);
-        setupServerStatus();
-        return;
-    }
-
-    var xmlhttp = new XMLHttpRequest();
-    var url = "/serverData";
-    xmlhttp.onreadystatechange = function () {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                var payload = JSON.parse(this.responseText);
-                serverManager.processServers(payload.servers);
-                setupServerStatus();
-            } else {
-                console.error("Failed to load server data with status code:", this.status);
-            }
-        }
-    };
-    xmlhttp.open("GET", url, true);
-    xmlhttp.send();
+    selectedServer = resolveSelectedServer(serverRegistry);
+    setupServerStatus();
 }
 
 serverBrowser.addEventListener("change", UTILS.checkTrusted(function (e) {
     if (e.target.tagName === "SELECT") {
-        let parts = e.target.value.split(":");
-        serverManager.switchServer(parts[0], parts[1], parts[2]);
+        var key = e.target.value;
+        if (!key) return;
+        navigateToServer(key);
     }
 }));
 
@@ -960,6 +1124,7 @@ function changeStoreIndex(index) {
         currentStoreIndex = index;
         generateStoreList();
     }
+    updateStoreTabs();
 }
 
 function toggleStoreMenu() {
@@ -968,6 +1133,7 @@ function toggleStoreMenu() {
         allianceMenu.style.display = "none";
         closeChat();
         generateStoreList();
+        updateStoreTabs();
     } else {
         storeMenu.style.display = "none";
     }
@@ -987,6 +1153,18 @@ function updateStoreItems(type, id, index) {
     }
     if (storeMenu.style.display == "block")
         generateStoreList();
+}
+
+function updateStoreTabs() {
+    if (!storeMenu) return;
+    var tabs = storeMenu.querySelectorAll(".overlay-tab");
+    for (var i = 0; i < tabs.length; i++) {
+        if (i === currentStoreIndex) {
+            tabs[i].classList.add("active");
+        } else {
+            tabs[i].classList.remove("active");
+        }
+    }
 }
 
 function generateStoreList() {

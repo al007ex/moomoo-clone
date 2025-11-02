@@ -17,7 +17,9 @@
     <link href="./css/material-icons.css" rel="stylesheet">
     <link href="./css/hammersmith-one.css" rel="stylesheet">
     <script type="module" crossorigin src="./assets/bundle.js"></script>
-    <script>window.cpmstarAPI=()=>{};const is_prod="https:"===location.protocol,ws_url=`ws${is_prod?"s":""}://`+location.host;setInterval(()=>{fetch(origin+"/ping").then(t=>t.text()).then(t=>{})},5e4),window.connected_count=0,window.WebSocket=class extends WebSocket{constructor(t,e){super(ws_url,e),window.connected_count++}};let c=setInterval(()=>{window.config&&(window.config.weaponVariants=[{id:0,src:"",xp:0,val:1},{id:1,src:"_g",xp:3e3,val:1.1},{id:2,src:"_d",xp:7e3,val:1.18},{id:3,src:"_r",poison:!0,xp:12e3,val:1.18},{id:4,src:"_e",poison:!0,xp:24e3,val:1.18}],clearInterval(c))},100);Object.defineProperty(Object.prototype,"start",{get(){return this["‎start"]},set(t){this.hasOwnProperty("regionInfo")?this["‎start"]=t=>t():this["‎start"]=t}});</script>
+    <script>
+        window.cpmstarAPI = window.cpmstarAPI || function () { };
+    </script>
 </head>
 
 <body>
@@ -41,48 +43,183 @@
             <div id="gameName">MOOMOO.io</div>
             <div id="loadingText">Loading...</div>
             <div id="menuCardHolder" style="display:none">
-                <div class="menuCard adMenuCard" style="max-width:300px;max-height:250px" id="adCard">
-                    <div align="center" id="what_is_this_tfff"></div>
-                </div>
-                <div style="display:inline-block">
-                    <div class="menuCard" id="setupCard"><input id="nameInput" placeholder="Enter Name"
-                            maxlength="15"><altcha-widget id="altcha" challengeurl="https://api.moomoo.io/verify"
-                            hidefooter auto="onfocus"></altcha-widget><br />
-                        <div id="enterGame" class="menuButton"><span>Enter Game</span></div>
+                <!-- Left Column -->
+                <div class="menuColumn leftColumn">
+                    <div class="menuCard mainCard" id="setupCard">
+                        <div class="cardSection">
+                            <input id="nameInput" placeholder="Enter Name" maxlength="15">
+                            <altcha-widget id="altcha" challengeurl="https://api.moomoo.io/verify" hidefooter auto="onfocus"></altcha-widget>
+                        </div>
+                        <div id="enterGame" class="menuButton primaryButton"><span>Enter Game</span></div>
                     </div>
-                    <div id="promoImgHolder" class="menuCard" style="display:block;margin-top:16px;padding-bottom:12px"
-                        id="setupCard"><img id="promoImg" src="./img/promotion/banner_4.png"
-                            style="width:300px;cursor:pointer"></div>
-                </div>
-                <div id="rightCardHolder">
-                    <div class="menuCard" id="guideCard">
-                        <div class="menuHeader">Servers</div>
+
+                    <div class="menuCard serverCard">
+                        <div class="sectionTitle">
+                            <i class="material-icons">dns</i>
+                            <span>Server Selection</span>
+                        </div>
                         <div id="serverBrowser"></div>
                         <div id="altServer"></div>
-                        <div class="menuHeader" style="margin-top:10px">Select Color</div>
-                        <div id="skinColorHolder"></div>
-                        <div class="menuHeader" style="margin-top:10px">How To Play</div>
-                        <div class="menuText">Collect resources around the map to build a village. Your Windmills
-                            generate gold over time. But make sure to protect them from other players.</div>
-                        <div class="menuHeader">Controls</div>
-                        <div id="desktopInstructions" class="menuText">Movement: W, A, S, D<br />Look:
-                            Mouse<br />Gather/Attack: Mouse or Space<br />Auto Attack: E<br />Select Item: 1-9 or
-                            Click<br />Quick Select Food: Q<br />Lock Rotation: X<br />Ping Minimap: R<br />Add Map
-                            Marker: C<br />Chat: Enter Key<br />Close Windows: ESC</div>
-                        <div id="mobileInstructions" class="menuText">Movement: Drag on left side of
-                            screen<br />Gather/Attack: Drag on right side of screen<br />Select Item: Touch item at
-                            bottom<br />Ping Minimap: Touch map<br /></div>
-                        <div class="menuHeader">Settings</div>
-                        <div class="settingRadio"><input id="nativeResolution" type="checkbox" /> Use Native Resolution
-                        </div>
-                        <div class="settingRadio"><input id="showPing" type="checkbox" /> Show Ping</div>
-                        <div class="menuText">Created by <a href="" target="_blank" class="menuLink">Yendis</a></div>
                     </div>
                 </div>
-            </div>
-            <div id="wideAdCard" class="menuCard adMenuCard"
-                style="max-width:728px;max-height:90px;display:inline-block;margin-top:10px">
-                <div align="center" id="squid_game_ad_lmao"></div>
+
+                <!-- Right Column -->
+                <div class="menuColumn rightColumn">
+                    <div class="menuCard tabbedCard" id="guideCard">
+                        <div class="tabNavigation">
+                            <div class="tabButton active" data-tab="controls">
+                                <i class="material-icons">gamepad</i>
+                                <span>Controls</span>
+                            </div>
+                            <div class="tabButton" data-tab="customize">
+                                <i class="material-icons">palette</i>
+                                <span>Customize</span>
+                            </div>
+                            <div class="tabButton" data-tab="settings">
+                                <i class="material-icons">settings</i>
+                                <span>Settings</span>
+                            </div>
+                            <div class="tabButton" data-tab="account">
+                                <i class="material-icons">account_circle</i>
+                                <span>Account</span>
+                            </div>
+                        </div>
+
+                        <div class="tabContentWrapper">
+                            <!-- Controls Tab -->
+                            <div id="controlsTab" class="tabContent active">
+                                <div class="tabInner">
+                                    <div class="contentSection">
+                                        <div class="sectionTitle">
+                                            <i class="material-icons">info</i>
+                                            <span>How To Play</span>
+                                        </div>
+                                        <div class="menuText">Collect resources around the map to build a village. Your Windmills
+                                            generate gold over time. But make sure to protect them from other players.</div>
+                                    </div>
+
+                                    <div class="contentSection">
+                                        <div class="sectionTitle">
+                                            <i class="material-icons">keyboard</i>
+                                            <span>Controls</span>
+                                        </div>
+                                        <div id="desktopInstructions" class="controlsList">
+                                            <div class="controlItem"><span class="controlKey">W, A, S, D</span> Movement</div>
+                                            <div class="controlItem"><span class="controlKey">Mouse</span> Look Around</div>
+                                            <div class="controlItem"><span class="controlKey">Click / Space</span> Gather/Attack</div>
+                                            <div class="controlItem"><span class="controlKey">E</span> Auto Attack</div>
+                                            <div class="controlItem"><span class="controlKey">1-9</span> Select Item</div>
+                                            <div class="controlItem"><span class="controlKey">Q</span> Quick Select Food</div>
+                                            <div class="controlItem"><span class="controlKey">X</span> Lock Rotation</div>
+                                            <div class="controlItem"><span class="controlKey">R</span> Ping Minimap</div>
+                                            <div class="controlItem"><span class="controlKey">C</span> Add Map Marker</div>
+                                            <div class="controlItem"><span class="controlKey">Enter</span> Chat</div>
+                                            <div class="controlItem"><span class="controlKey">ESC</span> Close Windows</div>
+                                        </div>
+                                        <div id="mobileInstructions" class="menuText">
+                                            Movement: Drag on left side of screen<br />
+                                            Gather/Attack: Drag on right side of screen<br />
+                                            Select Item: Touch item at bottom<br />
+                                            Ping Minimap: Touch map
+                                        </div>
+                                    </div>
+
+                                    <div class="contentFooter">
+                                        <div class="menuText">Created by <a href="" target="_blank" class="menuLink">Yendis</a></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Customize Tab -->
+                            <div id="customizeTab" class="tabContent">
+                                <div class="tabInner">
+                                    <div class="contentSection">
+                                        <div class="sectionTitle">
+                                            <i class="material-icons">color_lens</i>
+                                            <span>Skin Color</span>
+                                        </div>
+                                        <div id="skinColorHolder"></div>
+                                    </div>
+
+                                    <div class="contentSection">
+                                        <div class="sectionTitle">
+                                            <i class="material-icons">checkroom</i>
+                                            <span>Hats & Accessories</span>
+                                        </div>
+                                        <div class="menuText">Unlock cosmetics by playing the game and earning points. Visit the in-game store to browse available items.</div>
+                                        <div class="infoBox">
+                                            <i class="material-icons">stars</i>
+                                            <span>Play to unlock exclusive items!</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Settings Tab -->
+                            <div id="settingsTab" class="tabContent">
+                                <div class="tabInner">
+                                    <div class="contentSection">
+                                        <div class="sectionTitle">
+                                            <i class="material-icons">tune</i>
+                                            <span>Game Settings</span>
+                                        </div>
+                                        <div class="settingsGrid">
+                                            <div class="settingItem">
+                                                <div class="settingLabel">
+                                                    <i class="material-icons">high_quality</i>
+                                                    <span>Native Resolution</span>
+                                                </div>
+                                                <input id="nativeResolution" type="checkbox" class="settingCheckbox" />
+                                            </div>
+                                            <div class="settingItem">
+                                                <div class="settingLabel">
+                                                    <i class="material-icons">wifi</i>
+                                                    <span>Show Ping</span>
+                                                </div>
+                                                <input id="showPing" type="checkbox" class="settingCheckbox" />
+                                            </div>
+                                            <div class="settingItem">
+                                                <div class="settingLabel">
+                                                    <i class="material-icons">autorenew</i>
+                                                    <span>Auto Respawn</span>
+                                                </div>
+                                                <input id="autoRespawn" type="checkbox" class="settingCheckbox" />
+                                            </div>
+                                            <div class="settingItem">
+                                                <div class="settingLabel">
+                                                    <i class="material-icons">hd</i>
+                                                    <span>High Graphics</span>
+                                                </div>
+                                                <input id="graphicsQuality" type="checkbox" class="settingCheckbox" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account Tab -->
+                            <div id="accountTab" class="tabContent">
+                                <div class="tabInner">
+                                    <div class="contentSection centerContent">
+                                        <div class="accountIcon">
+                                            <i class="material-icons">account_circle</i>
+                                        </div>
+                                        <div class="menuHeader" style="text-align:center;margin-top:10px">Welcome to MooMoo.io</div>
+                                        <div class="menuText" style="text-align:center">Sign in to save your progress, track statistics, and unlock exclusive features.</div>
+                                        <div class="buttonGroup">
+                                            <div class="menuButton primaryButton"><span>Sign In</span></div>
+                                            <div class="menuButton secondaryButton"><span>Create Account</span></div>
+                                        </div>
+                                        <div class="infoBox" style="margin-top:16px">
+                                            <i class="material-icons">info</i>
+                                            <span>Guest mode: Play without an account</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="settingsButton" class="ytLink"><i class="material-icons"

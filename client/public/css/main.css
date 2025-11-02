@@ -238,14 +238,12 @@ span {
 	display: block;
 }
 
-.menuCard, .adMenuCard {
-	vertical-align: top;
+.menuCard {
 	text-align: left;
 	white-space: normal;
 	word-wrap: break-word;
-	margin: 5px;
-	display: inline-block;
-	width: 300px;
+	margin: 0;
+	display: block;
 	padding: 18px;
 	background-color: #fff;
 	-moz-box-shadow: 0px 7px #c4c4c4;
@@ -255,15 +253,7 @@ span {
 	-moz-border-radius: 4px;
 	border-radius: 4px;
 	overflow: hidden;
-}
-
-.adMenuCard {
-	min-width: 0;
-	min-height: 0;
-	height: initial;
-	width: initial;
-	padding: 0;
-	box-shadow: none;
+	box-sizing: border-box;
 }
 
 .menuHeader {
@@ -280,7 +270,25 @@ span {
 
 #serverBrowser select {
 	width: 100%;
-	height: 24px;
+	height: 36px;
+	padding: 6px 12px;
+	font-size: 15px;
+	border: 2px solid #e0e0e0;
+	border-radius: 6px;
+	background-color: #fff;
+	color: #4A4A4A;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	outline: none;
+}
+
+#serverBrowser select:hover {
+	border-color: #7ee559;
+}
+
+#serverBrowser select:focus {
+	border-color: #7ee559;
+	box-shadow: 0 0 0 3px rgba(126, 229, 89, 0.1);
 }
 
 #altServer {
@@ -342,21 +350,357 @@ span {
 	color: #fff;
 }
 
-#guideCard {
-	max-height: 250px;
-	overflow-y: scroll;
+/* Menu Layout */
+#menuCardHolder {
+	display: inline-flex;
+	gap: 30px;
+	justify-content: center;
+	align-items: flex-start;
+	animation: menuFadeIn 0.5s ease-out;
+	white-space: normal;
+	padding: 0 20px;
+}
+
+@keyframes menuFadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.menuColumn {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 12px;
+	vertical-align: top;
+	flex-shrink: 0;
+}
+
+.leftColumn {
+	width: 300px;
+	animation: slideInLeft 0.6s ease-out;
+}
+
+.rightColumn {
+	width: 500px;
+	animation: slideInRight 0.6s ease-out;
+}
+
+@keyframes slideInLeft {
+	from {
+		opacity: 0;
+		transform: translateX(-30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slideInRight {
+	from {
+		opacity: 0;
+		transform: translateX(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* Card Styles */
+.menuCard {
+	box-sizing: border-box;
+	max-width: 100%;
+}
+
+.mainCard {
+	padding: 20px !important;
+	width: 100%;
+}
+
+.cardSection {
+	margin-bottom: 16px;
+}
+
+.serverCard {
+	padding: 16px !important;
+	width: 100%;
+}
+
+/* Section Titles */
+.sectionTitle {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 20px;
+	color: #292929;
+	margin-bottom: 12px;
+	font-weight: bold;
+}
+
+.sectionTitle i {
+	font-size: 22px;
+	color: #7ee559;
+}
+
+/* Tabbed Card */
+.tabbedCard {
+	padding: 0 !important;
+	overflow: hidden;
+	height: 420px;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.tabNavigation {
+	display: flex;
+	background: linear-gradient(to bottom, #f8f8f8, #eeeeee);
+	border-bottom: 2px solid #e0e0e0;
+	padding: 0;
+	flex-shrink: 0;
+}
+
+.tabButton {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	padding: 10px 6px;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	border-bottom: 3px solid transparent;
+	background: transparent;
+	position: relative;
+	min-width: 0;
+}
+
+.tabButton:hover {
+	background: rgba(126, 229, 89, 0.1);
+}
+
+.tabButton.active {
+	background: #fff;
+	border-bottom-color: #7ee559;
+}
+
+.tabButton i {
+	font-size: 22px;
+	color: #888;
+	transition: all 0.3s ease;
+}
+
+.tabButton.active i {
+	color: #7ee559;
+	transform: scale(1.05);
+}
+
+.tabButton span {
+	font-size: 12px;
+	color: #666;
+	font-weight: 500;
+	transition: color 0.3s ease;
+	white-space: nowrap;
+}
+
+.tabButton.active span {
+	color: #292929;
+	font-weight: 600;
+}
+
+/* Tab Content */
+.tabContentWrapper {
+	flex: 1;
+	overflow-y: auto;
+	background: #fff;
 	-webkit-overflow-scrolling: touch;
 }
 
-#guideCard #smallLinks {
-	display: none;
+.tabContentWrapper::-webkit-scrollbar {
+	width: 8px;
 }
 
-#guideCard #desktopInstructions {
+.tabContentWrapper::-webkit-scrollbar-track {
+	background: #f1f1f1;
+}
+
+.tabContentWrapper::-webkit-scrollbar-thumb {
+	background: #7ee559;
+	border-radius: 4px;
+}
+
+.tabContentWrapper::-webkit-scrollbar-thumb:hover {
+	background: #6fc94e;
+}
+
+.tabContent {
+	display: none;
+	animation: fadeSlideIn 0.4s ease;
+}
+
+.tabContent.active {
 	display: block;
 }
 
-#guideCard #mobileInstructions {
+.tabInner {
+	padding: 20px;
+}
+
+@keyframes fadeSlideIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.contentSection {
+	margin-bottom: 20px;
+}
+
+.contentSection:last-child {
+	margin-bottom: 0;
+}
+
+.contentFooter {
+	margin-top: 24px;
+	padding-top: 16px;
+	border-top: 1px solid #e0e0e0;
+	text-align: center;
+}
+
+/* Controls List */
+.controlsList {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.controlItem {
+	display: flex;
+	align-items: center;
+	font-size: 15px;
+	color: #666;
+	padding: 6px 8px;
+	background: #f8f8f8;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+}
+
+.controlItem:hover {
+	background: #f0f0f0;
+	transform: translateX(2px);
+}
+
+.controlKey {
+	display: inline-block;
+	background: linear-gradient(to bottom, #fff, #e8e8e8);
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #333;
+	margin-right: 8px;
+	min-width: 50px;
+	text-align: center;
+	box-shadow: 0 2px 0 #bbb;
+}
+
+/* Settings Grid */
+.settingsGrid {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.settingItem {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px;
+	background: #f8f8f8;
+	border-radius: 6px;
+	transition: all 0.2s ease;
+}
+
+.settingItem:hover {
+	background: #f0f0f0;
+	transform: translateX(4px);
+}
+
+.settingLabel {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 16px;
+	color: #444;
+}
+
+.settingLabel i {
+	font-size: 20px;
+	color: #7ee559;
+}
+
+.settingCheckbox {
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	accent-color: #7ee559;
+}
+
+/* Info Box */
+.infoBox {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px;
+	background: linear-gradient(135deg, #7ee559 0%, #6fc94e 100%);
+	color: #fff;
+	border-radius: 6px;
+	font-size: 15px;
+	box-shadow: 0 2px 8px rgba(126, 229, 89, 0.3);
+}
+
+.infoBox i {
+	font-size: 22px;
+}
+
+/* Account Tab */
+.centerContent {
+	text-align: center;
+	padding: 20px 0;
+}
+
+.accountIcon i {
+	font-size: 80px;
+	color: #7ee559;
+}
+
+.buttonGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+/* Mobile Instructions */
+#desktopInstructions {
+	display: block;
+}
+
+#mobileInstructions {
 	display: none;
 }
 
@@ -368,12 +712,9 @@ span {
 	display: block;
 }
 
-#promoImgHolder {
-	text-align: center;
-}
-
-#promoImg:hover {
-	opacity: 0.9;
+/* Legacy Support */
+#guideCard #smallLinks {
+	display: none;
 }
 
 #rightCardHolder {
@@ -381,71 +722,75 @@ span {
 	vertical-align: top;
 }
 
-#downloadButtonContainer {
-	display: block;
-	text-align: center;
-	padding-bottom: 12px;
-	margin-top: 14px;
-}
-
-#downloadButtonContainer.cordova {
-	display: none;
-}
-
-#mobileDownloadButtonContainer {
-	display: none;
-}
-
-#mobileDownloadButtonContainer.cordova {
-	display: none;
-}
-
-.downloadBadge {
-	margin: 0 6px 0 6px;
-}
-
-.downloadBadge img {
-	height: 40px;
-}
-
-#adCard {
-	text-align: center;
-	width: 300px;
-	height: auto;
-}
-
 #nameInput {
 	text-align: center;
-	font-size: 26px;
-	margin-bottom: 16px;
-	padding: 6px;
-	border: none;
+	font-size: 20px;
+	margin-bottom: 12px;
+	padding: 12px;
+	border: 2px solid #e0e0e0;
 	outline: none;
 	box-sizing: border-box;
 	color: #4A4A4A;
-	background-color: #e5e3e3;
+	background-color: #fff;
 	width: 100%;
-	-webkit-border-radius: 4px;
-	-moz-border-radius: 4px;
-	border-radius: 4px;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+	border-radius: 6px;
+	transition: all 0.2s ease;
+	font-weight: 500;
+}
+
+#nameInput:hover {
+	border-color: #c0c0c0;
+}
+
+#nameInput:focus {
+	border-color: #7ee559;
+	box-shadow: 0 0 0 3px rgba(126, 229, 89, 0.1);
+	background-color: #fff;
 }
 
 .menuButton {
 	text-align: center;
-	font-size: 23px;
-	padding: 6px;
+	font-size: 20px;
+	padding: 12px;
 	box-sizing: border-box;
 	color: #fff;
 	background-color: #7ee559;
 	width: 100%;
-	-webkit-border-radius: 4px;
-	-moz-border-radius: 4px;
-	border-radius: 4px;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+	border-radius: 6px;
 	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	font-weight: 600;
+	border: none;
+	box-shadow: 0 2px 8px rgba(126, 229, 89, 0.3);
 }
 
 .menuButton:hover {
 	background-color: #6fc94e;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(126, 229, 89, 0.4);
+}
+
+.menuButton:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 4px rgba(126, 229, 89, 0.3);
+}
+
+.primaryButton {
+	background: linear-gradient(135deg, #7ee559 0%, #6fc94e 100%);
+}
+
+.secondaryButton {
+	background: linear-gradient(135deg, #6eb3ef 0%, #5c96c9 100%);
+	box-shadow: 0 2px 8px rgba(110, 179, 239, 0.3);
+}
+
+.secondaryButton:hover {
+	background: linear-gradient(135deg, #5c96c9 0%, #4a7ba7 100%);
+	box-shadow: 0 4px 12px rgba(110, 179, 239, 0.4);
 }
 
 #gameUI {
@@ -1025,15 +1370,6 @@ span {
 	}
 
 	/* HOME */
-	#wideAdCard, #promoImgHolder {
-		display: none !important;
-	}
-
-	#adCard {
-		display: block;
-		margin: 0 auto;
-	}
-
 	#guideCard {
 		position: absolute;
 		display: none;
@@ -1048,26 +1384,8 @@ span {
 	}
 
 	#guideCard.showing {
-		display: block;
-	}
-
-	#downloadButtonContainer {
-		display: none;
-	}
-
-	#mobileDownloadButtonContainer {
-		display: block;
-		text-align: center;
-		margin-top: 16px;
-		margin-bottom: -6px;
-	}
-
-	.downloadBadge {
-		margin: 0 2px 0 2px;
-	}
-
-	.downloadBadge img {
-		height: 36px;
+		display: flex !important;
+		flex-direction: column;
 	}
 
 	#loadingText {
@@ -1088,9 +1406,68 @@ span {
 		margin-top: 20px;
 	}
 
-	#setupCard {
-		width: 260px;
-		margin-top: 4px;
+	#menuCardHolder {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.leftColumn, .rightColumn {
+		width: 300px;
+	}
+
+	.mainCard, .serverCard {
+		width: 300px;
+	}
+
+	.tabbedCard {
+		height: 380px;
+	}
+
+	.tabButton {
+		padding: 8px 4px;
+		gap: 2px;
+	}
+
+	.tabButton i {
+		font-size: 18px;
+	}
+
+	.tabButton span {
+		font-size: 10px;
+	}
+
+	.controlsList {
+		grid-template-columns: 1fr;
+	}
+
+	.controlKey {
+		min-width: 60px;
+		font-size: 11px;
+	}
+
+	.controlItem {
+		font-size: 14px;
+	}
+
+	.sectionTitle {
+		font-size: 18px;
+	}
+
+	.sectionTitle i {
+		font-size: 20px;
+	}
+
+	.settingLabel {
+		font-size: 14px;
+	}
+
+	.accountIcon i {
+		font-size: 60px;
+	}
+
+	#guideCard.showing {
+		display: flex !important;
 	}
 
 	#partyButton {
