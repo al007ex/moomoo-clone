@@ -74,6 +74,10 @@ span {
 	font-size: inherit;
 }
 
+:root {
+	--menu-card-width: 360px;
+}
+
 #errorNotification {
 	position: absolute;
 	top: 20px;
@@ -381,12 +385,12 @@ span {
 }
 
 .leftColumn {
-	width: 300px;
+	width: var(--menu-card-width);
 	animation: slideInLeft 0.6s ease-out;
 }
 
 .rightColumn {
-	width: 500px;
+	width: var(--menu-card-width);
 	animation: slideInRight 0.6s ease-out;
 }
 
@@ -1355,6 +1359,9 @@ span {
 
 /* MOBILE */
 @media only screen and (max-width: 896px) {
+	:root {
+		--menu-card-width: 300px;
+	}
 
   #pingDisplay {
     right: 10px;
@@ -1413,11 +1420,11 @@ span {
 	}
 
 	.leftColumn, .rightColumn {
-		width: 300px;
+		width: var(--menu-card-width);
 	}
 
 	.mainCard, .serverCard {
-		width: 300px;
+		width: 100%;
 	}
 
 	.tabbedCard {
