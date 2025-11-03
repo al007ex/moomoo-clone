@@ -36,15 +36,8 @@
             <div id="gameName">MOOMOO.io</div>
             <div id="loadingText">Loading...</div>
             <div id="menuCardHolder" style="display:none">
-                <!-- Left Column -->
+                <!-- Left Column - Servers -->
                 <div class="menuColumn leftColumn">
-                    <div class="menuCard mainCard" id="setupCard">
-                        <div class="cardSection">
-                            <input id="nameInput" placeholder="Enter Name" maxlength="15">
-                        </div>
-                        <div id="enterGame" class="menuButton primaryButton"><span>Enter Game</span></div>
-                    </div>
-
                     <div class="menuCard serverCard">
                         <div class="sectionTitle">
                             <i class="material-icons">dns</i>
@@ -55,7 +48,21 @@
                     </div>
                 </div>
 
-                <!-- Right Column -->
+                <!-- Center Column - Enter Game -->
+                <div class="menuColumn centerColumn">
+                    <div class="menuCard mainCard" id="setupCard">
+                        <div class="sectionTitle">
+                            <i class="material-icons">sports_esports</i>
+                            <span>Default</span>
+                        </div>
+                        <div class="cardSection">
+                            <input id="nameInput" placeholder="Enter Name" maxlength="15">
+                        </div>
+                        <div id="enterGame" class="menuButton primaryButton"><span>Enter Game</span></div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Info Tabs -->
                 <div class="menuColumn rightColumn">
                     <div class="menuCard tabbedCard" id="guideCard">
                         <div class="tabNavigation">
@@ -97,7 +104,7 @@
                                             <i class="material-icons">keyboard</i>
                                             <span>Controls</span>
                                         </div>
-                                        <div id="desktopInstructions" class="controlsList">
+                                        <div id="desktopInstructions">
                                             <div class="controlItem"><span class="controlKey">W, A, S, D</span> Movement
                                             </div>
                                             <div class="controlItem"><span class="controlKey">Mouse</span> Look Around

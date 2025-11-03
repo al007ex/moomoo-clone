@@ -675,16 +675,13 @@ function setupServerStatus() {
         selectEl.value = selectedServer.key;
     }
 
-    var altServerText;
-    var altServerURL;
-    if (location.hostname == "sandbox.moomoo.io") {
-        altServerText = "Back to MooMoo";
-        altServerURL = "//moomoo.io/";
-    } else {
-        altServerText = "Try the sandbox";
-        altServerURL = "//sandbox.moomoo.io/";
-    }
-    document.getElementById("altServer").innerHTML = "<a href='" + altServerURL + "'>" + altServerText + "<i class='material-icons' style='font-size:10px;vertical-align:middle'>arrow_forward_ios</i></a>";
+    var currentMode = location.hostname == "sandbox.moomoo.io" ? "sandbox" : "default";
+    var altServerHTML = "";
+    
+    altServerHTML += "<div class='serverModeButton " + (currentMode === "default" ? "active" : "") + "' onclick='switchServerMode(\"default\")'>Default Server</div>";
+    altServerHTML += "<div class='serverModeButton " + (currentMode === "sandbox" ? "active" : "") + "' onclick='switchServerMode(\"sandbox\")'>Sandbox Server</div>";
+    
+    document.getElementById("altServer").innerHTML = altServerHTML;
 }
 
 function updateServerList() {
@@ -3438,6 +3435,14 @@ function openLink(link) {
     window.open(link, "_blank")
 }
 
+function switchServerMode(mode) {
+    if (mode === "sandbox") {
+        window.location.href = "//sandbox.moomoo.io/";
+    } else {
+        window.location.href = "//moomoo.io/";
+    }
+}
+
 window.openLink = openLink;
 window.aJoinReq = aJoinReq;
 window.follmoo = follmoo;
@@ -3450,4 +3455,5 @@ window.storeEquip = storeEquip;
 window.showItemInfo = showItemInfo;
 window.selectSkinColor = selectSkinColor;
 window.changeStoreIndex = changeStoreIndex;
+window.switchServerMode = switchServerMode;
 window.config = config;

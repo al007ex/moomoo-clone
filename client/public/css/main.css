@@ -1,12 +1,12 @@
 
 html, body {
-	background-color: #000;
+	background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
 	overflow: hidden;
 }
 
 html, body {
-	position: relative; /* Fixes scrolling on Android */
-	overflow: hidden; /* Same */
+	position: relative;
+	overflow: hidden;
 	width: 100%;
 	height: 100%;
 	margin: 0;
@@ -248,39 +248,42 @@ span {
 	word-wrap: break-word;
 	margin: 0;
 	display: block;
-	padding: 18px;
-	background-color: #fff;
-	-moz-box-shadow: 0px 7px #c4c4c4;
-	-webkit-box-shadow: 0px 7px #c4c4c4;
-	box-shadow: 0px 7px #c4c4c4;
-	-webkit-border-radius: 4px;
-	-moz-border-radius: 4px;
-	border-radius: 4px;
+	padding: 20px;
+	background: #ffffff;
+	backdrop-filter: blur(10px);
+	border: 2px solid #e0e0e0;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+	-webkit-border-radius: 12px;
+	-moz-border-radius: 12px;
+	border-radius: 12px;
 	overflow: hidden;
 	box-sizing: border-box;
+	transition: all 0.3s ease;
 }
 
 .menuHeader {
 	font-size: 24px;
 	color: #292929;
-	margin-bottom: 5px;
+	margin-bottom: 8px;
+	font-weight: 600;
 }
 
 .menuText {
-	font-size: 18px;
-	color: #a8a8a8;
-	margin-bottom: 10px;
+	font-size: 15px;
+	color: #666;
+	margin-bottom: 12px;
+	line-height: 1.5;
 }
 
 #serverBrowser select {
 	width: 100%;
-	height: 36px;
-	padding: 6px 12px;
+	height: 42px;
+	padding: 10px 14px;
 	font-size: 15px;
 	border: 2px solid #e0e0e0;
-	border-radius: 6px;
-	background-color: #fff;
-	color: #4A4A4A;
+	border-radius: 8px;
+	background: #fff;
+	color: #333;
 	cursor: pointer;
 	transition: all 0.2s ease;
 	outline: none;
@@ -288,17 +291,47 @@ span {
 
 #serverBrowser select:hover {
 	border-color: #7ee559;
+	background: #f9fff7;
 }
 
 #serverBrowser select:focus {
 	border-color: #7ee559;
-	box-shadow: 0 0 0 3px rgba(126, 229, 89, 0.1);
+	box-shadow: 0 0 0 3px rgba(126, 229, 89, 0.2);
+	background: #fff;
 }
 
 #altServer {
 	width: 100%;
 	text-align: center;
 	margin-top: 10px;
+	display: flex;
+	gap: 8px;
+	flex-direction: column;
+}
+
+#altServer .serverModeButton {
+	padding: 10px 14px;
+	font-size: 15px;
+	border: 2px solid #e0e0e0;
+	border-radius: 8px;
+	background: #fff;
+	color: #333;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	outline: none;
+	font-weight: 500;
+	text-align: center;
+}
+
+#altServer .serverModeButton:hover {
+	border-color: #7ee559;
+	background: #f9fff7;
+}
+
+#altServer .serverModeButton.active {
+	border-color: #7ee559;
+	background: #7ee559;
+	color: #fff;
 }
 
 #skinColorHolder {
@@ -309,27 +342,29 @@ span {
 }
 
 .activeSkin {
-	-webkit-border-radius: 8px !important;
-	-moz-border-radius: 8px !important;
-	border-radius: 8px !important;
+	border-color: #7ee559 !important;
+	border-width: 4px !important;
+	transform: scale(1.15) !important;
+	box-shadow: 0 0 12px rgba(126, 229, 89, 0.6) !important;
 }
 
 .skinColorItem {
 	cursor: pointer;
 	display: inline-block;
-	margin-right: 10px;
-	width: 30px;
-	height: 30px;
-	-webkit-border-radius: 20px;
-	-moz-border-radius: 20px;
-	border-radius: 20px;
-	border: 3px solid #525252;
+	margin-right: 12px;
+	margin-bottom: 12px;
+	width: 36px;
+	height: 36px;
+	-webkit-border-radius: 50%;
+	-moz-border-radius: 50%;
+	border-radius: 50%;
+	border: 3px solid #ccc;
+	transition: all 0.2s ease;
 }
 
 .skinColorItem:hover {
-	-webkit-border-radius: 8px;
-	-moz-border-radius: 8px;
-	border-radius: 8px;
+	transform: scale(1.1);
+	border-color: #7ee559;
 }
 
 .settingRadio {
@@ -357,7 +392,7 @@ span {
 /* Menu Layout */
 #menuCardHolder {
 	display: inline-flex;
-	gap: 30px;
+	gap: 20px;
 	justify-content: center;
 	align-items: flex-start;
 	animation: menuFadeIn 0.5s ease-out;
@@ -385,13 +420,21 @@ span {
 }
 
 .leftColumn {
-	width: var(--menu-card-width);
+	width: 280px;
 	animation: slideInLeft 0.6s ease-out;
+	height: 420px;
+}
+
+.centerColumn {
+	width: 320px;
+	animation: slideInCenter 0.6s ease-out;
+	height: 420px;
 }
 
 .rightColumn {
 	width: var(--menu-card-width);
 	animation: slideInRight 0.6s ease-out;
+	height: 420px;
 }
 
 @keyframes slideInLeft {
@@ -402,6 +445,17 @@ span {
 	to {
 		opacity: 1;
 		transform: translateX(0);
+	}
+}
+
+@keyframes slideInCenter {
+	from {
+		opacity: 0;
+		transform: translateY(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
 	}
 }
 
@@ -420,6 +474,9 @@ span {
 .menuCard {
 	box-sizing: border-box;
 	max-width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
 }
 
 .mainCard {
@@ -429,10 +486,14 @@ span {
 
 .cardSection {
 	margin-bottom: 16px;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
 }
 
 .serverCard {
-	padding: 16px !important;
+	padding: 18px !important;
 	width: 100%;
 }
 
@@ -440,11 +501,13 @@ span {
 .sectionTitle {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	font-size: 20px;
+	gap: 10px;
+	font-size: 18px;
 	color: #292929;
-	margin-bottom: 12px;
-	font-weight: bold;
+	margin-bottom: 14px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
 }
 
 .sectionTitle i {
@@ -465,7 +528,7 @@ span {
 
 .tabNavigation {
 	display: flex;
-	background: linear-gradient(to bottom, #f8f8f8, #eeeeee);
+	background: linear-gradient(to bottom, #f8f8f8, #f0f0f0);
 	border-bottom: 2px solid #e0e0e0;
 	padding: 0;
 	flex-shrink: 0;
@@ -477,10 +540,10 @@ span {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 3px;
-	padding: 10px 6px;
+	gap: 4px;
+	padding: 12px 8px;
 	cursor: pointer;
-	transition: all 0.3s ease;
+	transition: all 0.2s ease;
 	border-bottom: 3px solid transparent;
 	background: transparent;
 	position: relative;
@@ -499,7 +562,7 @@ span {
 .tabButton i {
 	font-size: 22px;
 	color: #888;
-	transition: all 0.3s ease;
+	transition: all 0.2s ease;
 }
 
 .tabButton.active i {
@@ -511,7 +574,7 @@ span {
 	font-size: 12px;
 	color: #666;
 	font-weight: 500;
-	transition: color 0.3s ease;
+	transition: color 0.2s ease;
 	white-space: nowrap;
 }
 
@@ -584,42 +647,37 @@ span {
 	text-align: center;
 }
 
-/* Controls List */
-.controlsList {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
-}
-
 .controlItem {
 	display: flex;
 	align-items: center;
-	font-size: 15px;
-	color: #666;
-	padding: 6px 8px;
-	background: #f8f8f8;
-	border-radius: 4px;
+	font-size: 14px;
+	color: #333;
+	padding: 8px 10px;
+	background: #f5f5f5;
+	border-radius: 6px;
 	transition: all 0.2s ease;
+	border: 1px solid #e0e0e0;
 }
 
 .controlItem:hover {
-	background: #f0f0f0;
+	background: #e8f5e0;
+	border-color: rgba(126, 229, 89, 0.4);
 	transform: translateX(2px);
 }
 
 .controlKey {
 	display: inline-block;
-	background: linear-gradient(to bottom, #fff, #e8e8e8);
-	border: 1px solid #ccc;
-	border-radius: 4px;
-	padding: 2px 8px;
-	font-size: 12px;
+	background: linear-gradient(to bottom, #7ee559, #6fc94e);
+	border: 1px solid #5fb03d;
+	border-radius: 5px;
+	padding: 3px 10px;
+	font-size: 11px;
 	font-weight: 600;
-	color: #333;
-	margin-right: 8px;
+	color: #ffffff;
+	margin-right: 10px;
 	min-width: 50px;
 	text-align: center;
-	box-shadow: 0 2px 0 #bbb;
+	box-shadow: 0 2px 4px rgba(126, 229, 89, 0.3);
 }
 
 /* Settings Grid */
@@ -633,23 +691,25 @@ span {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 12px;
-	background: #f8f8f8;
-	border-radius: 6px;
+	padding: 14px;
+	background: #f5f5f5;
+	border-radius: 8px;
 	transition: all 0.2s ease;
+	border: 1px solid #e0e0e0;
 }
 
 .settingItem:hover {
-	background: #f0f0f0;
-	transform: translateX(4px);
+	background: #e8f5e0;
+	border-color: rgba(126, 229, 89, 0.4);
+	transform: translateX(2px);
 }
 
 .settingLabel {
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	font-size: 16px;
-	color: #444;
+	gap: 12px;
+	font-size: 15px;
+	color: #333;
 }
 
 .settingLabel i {
@@ -668,17 +728,18 @@ span {
 .infoBox {
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	padding: 12px;
-	background: linear-gradient(135deg, #7ee559 0%, #6fc94e 100%);
-	color: #fff;
-	border-radius: 6px;
-	font-size: 15px;
-	box-shadow: 0 2px 8px rgba(126, 229, 89, 0.3);
+	gap: 12px;
+	padding: 14px;
+	background: rgb(126 229 89 / 45%);
+	color: #ffffff;
+	border-radius: 8px;
+	font-size: 14px;
+	border: 1px solid rgb(126 229 89 / 70%);
 }
 
 .infoBox i {
-	font-size: 22px;
+	font-size: 20px;
+	color: #7ee559;
 }
 
 /* Account Tab */
@@ -701,7 +762,9 @@ span {
 
 /* Mobile Instructions */
 #desktopInstructions {
-	display: block;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 }
 
 #mobileInstructions {
@@ -728,73 +791,78 @@ span {
 
 #nameInput {
 	text-align: center;
-	font-size: 20px;
-	margin-bottom: 12px;
-	padding: 12px;
+	font-size: 18px;
+	margin-bottom: 14px;
+	padding: 14px 16px;
 	border: 2px solid #e0e0e0;
 	outline: none;
 	box-sizing: border-box;
-	color: #4A4A4A;
-	background-color: #fff;
+	color: #333;
+	background: #fff;
 	width: 100%;
-	-webkit-border-radius: 6px;
-	-moz-border-radius: 6px;
-	border-radius: 6px;
-	transition: all 0.2s ease;
+	-webkit-border-radius: 8px;
+	-moz-border-radius: 8px;
+	border-radius: 8px;
+	transition: all 0.3s ease;
 	font-weight: 500;
 }
 
 #nameInput:hover {
 	border-color: #c0c0c0;
+	background: #f9fff7;
 }
 
 #nameInput:focus {
 	border-color: #7ee559;
-	box-shadow: 0 0 0 3px rgba(126, 229, 89, 0.1);
-	background-color: #fff;
+	box-shadow: 0 0 0 3px rgba(126, 229, 89, 0.2);
+	background: #fff;
 }
 
 .menuButton {
 	text-align: center;
-	font-size: 20px;
-	padding: 12px;
+	font-size: 18px;
+	padding: 14px 20px;
 	box-sizing: border-box;
 	color: #fff;
 	background-color: #7ee559;
 	width: 100%;
-	-webkit-border-radius: 6px;
-	-moz-border-radius: 6px;
-	border-radius: 6px;
+	-webkit-border-radius: 8px;
+	-moz-border-radius: 8px;
+	border-radius: 8px;
 	cursor: pointer;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	transition: all 0.2s ease;
 	font-weight: 600;
 	border: none;
-	box-shadow: 0 2px 8px rgba(126, 229, 89, 0.3);
+	box-shadow: 0 4px 0 #5fb03d;
 }
 
 .menuButton:hover {
 	background-color: #6fc94e;
 	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(126, 229, 89, 0.4);
+	box-shadow: 0 6px 0 #5fb03d;
 }
 
 .menuButton:active {
-	transform: translateY(0);
-	box-shadow: 0 2px 4px rgba(126, 229, 89, 0.3);
+	transform: translateY(2px);
+	box-shadow: 0 2px 0 #5fb03d;
 }
 
 .primaryButton {
-	background: linear-gradient(135deg, #7ee559 0%, #6fc94e 100%);
+	background: linear-gradient(to bottom, #7ee559, #6fc94e);
 }
 
 .secondaryButton {
-	background: linear-gradient(135deg, #6eb3ef 0%, #5c96c9 100%);
-	box-shadow: 0 2px 8px rgba(110, 179, 239, 0.3);
+	background: linear-gradient(to bottom, #6eb3ef, #5c96c9);
+	box-shadow: 0 4px 0 #4a7ba7;
 }
 
 .secondaryButton:hover {
-	background: linear-gradient(135deg, #5c96c9 0%, #4a7ba7 100%);
-	box-shadow: 0 4px 12px rgba(110, 179, 239, 0.4);
+	background: linear-gradient(to bottom, #5c96c9, #4a7ba7);
+	box-shadow: 0 6px 0 #4a7ba7;
+}
+
+.secondaryButton:active {
+	box-shadow: 0 2px 0 #4a7ba7;
 }
 
 #gameUI {
@@ -1419,7 +1487,7 @@ span {
 		align-items: center;
 	}
 
-	.leftColumn, .rightColumn {
+	.leftColumn, .centerColumn, .rightColumn {
 		width: var(--menu-card-width);
 	}
 
@@ -1442,10 +1510,6 @@ span {
 
 	.tabButton span {
 		font-size: 10px;
-	}
-
-	.controlsList {
-		grid-template-columns: 1fr;
 	}
 
 	.controlKey {
