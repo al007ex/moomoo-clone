@@ -4,8 +4,12 @@
 (function ensureProcessShim() {
     var globalObject = typeof globalThis !== "undefined" ? globalThis : window;
     var proc = globalObject.process || {};
-    if (typeof proc.env !== "object" || proc.env === null) proc.env = {};
-    if (!Array.isArray(proc.argv)) proc.argv = [];
+    if (typeof proc.env !== "object" || proc.env === null) {
+        proc.env = {};
+    }
+    if (!Array.isArray(proc.argv)) {
+        proc.argv = [];
+    }
     proc.browser = true;
     proc.title = "browser";
     if (typeof proc.nextTick !== "function") {
@@ -19,20 +23,32 @@
 window.loadedScript = true;
 
 require("./libs/modernizr.js");
+
 var io = require('./libs/io-client.js');
+
 var UTILS = require("./libs/utils.js");
+
 var animText = require("./libs/animText.js");
+
 var config = require("./config.js");
+
 var GameObject = require("./data/gameObject.js");
+
 var items = require("./data/items.js");
+
 var ObjectManager = require("./data/objectManager.js");
+
 var Player = require("./data/player.js");
+
 var store = require("./data/store.js");
+
 var Projectile = require("./data/projectile.js");
+
 var ProjectileManager = require("./data/projectileManager.js");
-var textManager = new animText.TextManager();
 
 var serverConfig = require("./data/servers.js");
+
+var textManager = new animText.TextManager();
 
 var locationInfo = (function () {
     if (typeof window === "undefined" || !window.location) {
@@ -50,6 +66,7 @@ var defaultPort = (function () {
     if (parsed !== null) return parsed;
     return locationInfo.protocol === "https:" ? 443 : 80;
 })();
+
 var serverRegistry = buildServerRegistry(serverConfig);
 var selectedServer = resolveSelectedServer(serverRegistry);
 
@@ -74,10 +91,14 @@ function coercePort(value) {
 
 function resolvePort(portValue, protocol, fallbackPort) {
     var direct = coercePort(portValue);
-    if (direct !== null) return direct;
+    if (direct !== null) {
+        return direct;
+    }
 
     var fallbackParsed = coercePort(fallbackPort);
-    if (fallbackParsed !== null) return fallbackParsed;
+    if (fallbackParsed !== null) {
+        return fallbackParsed;
+    }
 
     if (protocol === "https:" || protocol === "wss") {
         return 443;
@@ -122,7 +143,9 @@ function buildServerRegistry(rawList) {
 
             lookup[key] = entry;
             normalised.push(entry);
-            if (!defaultServer) defaultServer = entry;
+            if (!defaultServer) {
+                defaultServer = entry;
+            }
         }
 
         if (normalised.length) {
@@ -161,7 +184,9 @@ function buildServerRegistry(rawList) {
 }
 
 function getSelectedServerKeyFromQuery() {
-    if (typeof window === "undefined") return null;
+    if (typeof window === "undefined") {
+        return null;
+    }
     var search = window.location.search || "";
     var match = search.match(/[?&]server=([^&]+)/);
     if (!match) return null;
@@ -201,10 +226,8 @@ var connected = false;
 var startedConnecting = false;
 
 function connectSocketIfReady() {
-
     if (!didLoad) return;
     startedConnecting = true;
-
     connectSocket();
 }
 
@@ -309,10 +332,15 @@ Math.lerpAngle = function (value1, value2, amount) {
 }
 
 CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-    if (w < 2 * r) r = w / 2;
-    if (h < 2 * r) r = h / 2;
-    if (r < 0)
+    if (w < 2 * r) {
+        r = w / 2;
+    }
+    if (h < 2 * r) {
+        r = h / 2;
+    }
+    if (r < 0) {
         r = 0;
+    }
     this.beginPath();
     this.moveTo(x + r, y);
     this.arcTo(x + w, y, x + w, y + h, r);
@@ -329,18 +357,22 @@ if (typeof (Storage) !== "undefined") {
 }
 
 function saveVal(name, val) {
-    if (canStore)
+    if (canStore) {
         localStorage.setItem(name, val);
+    }
 }
 
-
 function getSavedVal(name) {
-    if (canStore)
+    if (canStore) {
         return localStorage.getItem(name);
+    }
     return null;
 }
 
-if (!getSavedVal("consent")) consentBlock.style.display = "block";
+if (!getSavedVal("consent")) {
+    consentBlock.style.display = "block";
+}
+
 window.checkTerms = function (yes) {
     if (yes) {
         consentBlock.style.display = "none";
@@ -356,6 +388,7 @@ function follmoo() {
         saveVal("moofoll", 1);
     }
 }
+
 var useNativeResolution;
 var showPing;
 var pixelDensity = 1;
@@ -506,6 +539,7 @@ var youtuberList = [{
     name: "GoneGaming",
     link: "https://www.youtube.com/channel/UCOcQthRanYcwYY0XVyVeK0g"
 }];
+
 var tmpYoutuber = youtuberList[UTILS.randInt(0, youtuberList.length - 1)];
 featuredYoutuber.innerHTML = "<a target='_blank' class='ytLink' href='" + tmpYoutuber.link + "'><i class='material-icons' style='vertical-align: top;'>&#xE064;</i> " + tmpYoutuber.name + "</a>";
 
@@ -540,8 +574,7 @@ function showLoadingText(text) {
     menuCardHolder.style.display = "none";
     diedText.style.display = "none";
     loadingText.style.display = "block";
-    loadingText.innerHTML = text +
-        "<a href='javascript:window.location.href=window.location.href' class='ytLink'>reload</a>";
+    loadingText.innerHTML = text + "<a href='javascript:window.location.href=window.location.href' class='ytLink'>reload</a>";
 }
 
 function bindEvents() {
@@ -578,15 +611,15 @@ function bindEvents() {
 
     // Tab switching functionality
     var tabButtons = document.querySelectorAll('.tabButton');
-    tabButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
+    tabButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
             // Remove active class from all buttons and tabs
-            tabButtons.forEach(function(btn) {
+            tabButtons.forEach(function (btn) {
                 btn.classList.remove('active');
             });
 
             var tabContents = document.querySelectorAll('.tabContent');
-            tabContents.forEach(function(tab) {
+            tabContents.forEach(function (tab) {
                 tab.classList.remove('active');
             });
 
@@ -612,6 +645,7 @@ function setupServerStatus() {
     if (partySpan) {
         partySpan.innerText = selectedServer ? selectedServer.key : "";
     }
+
     var regions = serverRegistry.regions;
 
     for (var regionIndex = 0; regionIndex < regions.length; regionIndex++) {
@@ -679,7 +713,318 @@ serverBrowser.addEventListener("change", UTILS.checkTrusted(function (e) {
 
 
 
+// Test
 
+let panelState = false;
+
+function injectHiddenStyles() {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+            #linksContainer2 {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+            }
+        `;
+    document.head.appendChild(styleElement);
+}
+
+function replaceLinksContainer() {
+    const originalContainer = document.getElementById('linksContainer2');
+    if (!originalContainer) {
+        setTimeout(replaceLinksContainer, 100);
+        return;
+    }
+
+    originalContainer.style.display = 'none';
+    originalContainer.style.visibility = 'hidden';
+    originalContainer.style.opacity = '0';
+
+    const actionButton = document.createElement('div');
+    actionButton.id = 'infoPanelToggle';
+    actionButton.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+            </svg>
+        `;
+    originalContainer.parentElement.appendChild(actionButton);
+
+    const panelOverlay = document.createElement('div');
+    panelOverlay.id = 'linksExpandedPanel';
+    panelOverlay.className = 'hidden';
+    panelOverlay.innerHTML = `
+            <div class="expandedPanelHeader">
+                <span style="color: #666;">Moomoo.io</span> <span style="cursor: pointer;" id="versionText">v1.8.1</span>
+            </div>
+            <div class="expandedPanelSection">
+                <div class="expandedPanelSectionTitle">COMMUNITY</div>
+                <a href="https://discord.gg/MqpUzka" target="_blank" class="menuLink expandedPanelLink">
+                    <svg class="expandedPanelIcon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+                    </svg>
+                    Discord
+                </a>
+                </div>
+            <div class="expandedPanelSection">
+                <div class="expandedPanelSectionTitle">LEGAL</div>
+                <a href="https://frvr.com/legal#TermsofService" target="_blank" class="menuLink expandedPanelLink">
+                    <svg class="expandedPanelIcon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    </svg>
+                    Terms
+                </a>
+                <a href="https://frvr.com/legal#PrivacyPolicy" target="_blank" class="menuLink expandedPanelLink">
+                    <svg class="expandedPanelIcon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1Z"/>
+                    </svg>
+                    Privacy
+                </a>
+            </div>
+
+            <div class="expandedPanelSection">
+                <div class="expandedPanelSectionTitle">JOIN</div>
+                <div class="expandedPanelJoinButton">
+                    <svg class="expandedPanelButtonIcon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z"/>
+                    </svg>
+                    Join Party
+                </div>
+            </div>
+        `;
+    originalContainer.parentElement.appendChild(panelOverlay);
+
+    const versionElement = panelOverlay.querySelector('#versionText');
+    if (versionElement) {
+        versionElement.addEventListener('click', (event) => {
+            event.preventDefault();
+            window.open('./docs/versions.txt', '_blank');
+        });
+    }
+
+    actionButton.addEventListener('click', () => {
+        panelState = !panelState;
+        if (panelState) {
+            panelOverlay.classList.remove('hidden');
+            panelOverlay.classList.add('visible');
+            actionButton.style.opacity = '1';
+        } else {
+            panelOverlay.classList.remove('visible');
+            panelOverlay.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (panelState && !panelOverlay.contains(event.target) && !actionButton.contains(event.target)) {
+            panelState = false;
+            panelOverlay.classList.remove('visible');
+            panelOverlay.classList.add('hidden');
+        }
+    });
+}
+
+function handleProximityFade(cursorX, cursorY) {
+    const actionButton = document.getElementById('infoPanelToggle');
+
+    if (!actionButton) {
+        return;
+    }
+
+    if (panelState) {
+        actionButton.style.opacity = '1';
+        return;
+    }
+
+    const buttonBounds = actionButton.getBoundingClientRect();
+    const buttonCenterX = buttonBounds.left + buttonBounds.width / 2;
+    const buttonCenterY = buttonBounds.top + buttonBounds.height / 2;
+    const proximityDistance = Math.sqrt(Math.pow(cursorX - buttonCenterX, 2) + Math.pow(cursorY - buttonCenterY, 2));
+
+    if (proximityDistance > 100) {
+        actionButton.style.opacity = '0.3';
+    } else {
+        actionButton.style.opacity = '1';
+    }
+}
+
+function injectStylesheet() {
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = `
+            #linksContainer2 {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+            }
+
+            #infoPanelToggle {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                transition: all 0.3s ease;
+                z-index: 9999;
+                opacity: 0.3;
+                pointer-events: all;
+                transform: scale(1);
+            }
+
+            #infoPanelToggle:hover {
+                background: #fff;
+                transform: scale(1.1);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+                opacity: 1 !important;
+            }
+
+            #infoPanelToggle svg {
+                width: 24px;
+                height: 24px;
+                color: #a56dc8;
+            }
+
+            #linksExpandedPanel {
+                position: fixed;
+                bottom: 75px;
+                right: 20px;
+                width: 320px;
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                padding: 20px;
+                font-family: 'Hammersmith One', sans-serif;
+                z-index: 10000;
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            }
+
+            #linksExpandedPanel.hidden {
+                opacity: 0;
+                transform: translateX(100%);
+                pointer-events: none;
+            }
+
+            #linksExpandedPanel.visible {
+                opacity: 1;
+                transform: translateX(0);
+                pointer-events: all;
+            }
+
+            .expandedPanelHeader {
+                text-align: center;
+                font-size: 20px;
+                padding: 14px;
+                background: #f5f5f5;
+                border-radius: 8px;
+                margin-bottom: 16px;
+                font-weight: 600;
+            }
+
+            #versionText {
+                color: #a56dc8;
+                transition: color 0.3s ease;
+            }
+
+            #versionText:hover {
+                color: #855f9cff;
+            }
+
+            .expandedPanelSection {
+                margin-bottom: 14px;
+            }
+
+            .expandedPanelSection:last-child {
+                margin-bottom: 0;
+            }
+
+            .expandedPanelSectionTitle {
+                font-size: 13px;
+                font-weight: 700;
+                color: #666;
+                letter-spacing: 0.5px;
+                margin-bottom: 10px;
+            }
+
+            .expandedPanelLink {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 11px 14px;
+                background: #f8f8f8;
+                border-radius: 8px;
+                margin-bottom: 6px;
+                text-decoration: none;
+                color: #a56dc8 !important;
+                font-size: 15px;
+                transition: all 0.2s ease;
+            }
+
+            .expandedPanelLink:last-child {
+                margin-bottom: 0;
+            }
+
+            .expandedPanelLink:hover {
+                background: #f0f0f0;
+                transform: translateX(4px);
+                color: #795094 !important;
+            }
+
+            .expandedPanelIcon {
+                width: 20px;
+                height: 20px;
+                flex-shrink: 0;
+            }
+
+            .expandedPanelJoinButton {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                padding: 13px;
+                background: linear-gradient(135deg, #6eb3ef 0%, #5c96c9 100%);
+                color: #fff;
+                border-radius: 8px;
+                font-size: 17px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(110, 179, 239, 0.3);
+            }
+
+            .expandedPanelJoinButton:hover {
+                background: linear-gradient(135deg, #5c96c9 0%, #4a7ba7 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(110, 179, 239, 0.4);
+            }
+
+            .expandedPanelButtonIcon {
+                width: 22px;
+                height: 22px;
+            }
+        `;
+    document.head.appendChild(stylesheet);
+}
+
+function bootstrap() {
+    injectHiddenStyles();
+    injectStylesheet();
+    replaceLinksContainer();
+    document.addEventListener('mousemove', (event) => {
+        handleProximityFade(event.clientX, event.clientY);
+    });
+}
+
+injectHiddenStyles();
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+    bootstrap();
+}
 
 
 
@@ -851,23 +1196,26 @@ function updateNotifications() {
 
 function addAlliance(data) {
     alliances.push(data);
-    if (allianceMenu.style.display == "block")
+    if (allianceMenu.style.display == "block") {
         showAllianceMenu();
+    }
 }
 
 function setPlayerTeam(team, isOwner) {
     if (player) {
         player.team = team;
         player.isOwner = isOwner;
-        if (allianceMenu.style.display == "block")
+        if (allianceMenu.style.display == "block") {
             showAllianceMenu();
+        }
     }
 }
 
 function setAlliancePlayers(data) {
     alliancePlayers = data;
-    if (allianceMenu.style.display == "block")
+    if (allianceMenu.style.display == "block") {
         showAllianceMenu();
+    }
 }
 
 function deleteAlliance(sid) {
@@ -875,8 +1223,9 @@ function deleteAlliance(sid) {
         if (alliances[i].sid == sid)
             alliances.splice(i, 1);
     }
-    if (allianceMenu.style.display == "block")
+    if (allianceMenu.style.display == "block") {
         showAllianceMenu();
+    }
 }
 
 function toggleAllianceMenu() {
@@ -1010,43 +1359,44 @@ function leaveAlliance() {
     io.send("9");
 }
 
-
-
-
-
-
-
-
-
-
 var lastDeath;
 var minimapData;
 var mapMarker;
 var mapPings = [];
 var tmpPing;
 
-function MapPing() {
-    this.init = function (x, y) {
-        this.scale = 0;
-        this.x = x;
-        this.y = y;
-        this.active = true;
-    };
-    this.update = function (ctxt, delta) {
-        if (this.active) {
-            this.scale += 0.05 * delta;
-            if (this.scale >= config.mapPingScale) {
-                this.active = false;
-            } else {
-                ctxt.globalAlpha = (1 - Math.max(0, this.scale / config.mapPingScale));
-                ctxt.beginPath();
-                ctxt.arc((this.x / config.mapScale) * mapDisplay.width, (this.y / config.mapScale) *
-                    mapDisplay.width, this.scale, 0, 2 * Math.PI);
-                ctxt.stroke();
+class MapPing {
+    constructor() {
+        this.init = function (x, y) {
+            this.scale = 0;
+            this.x = x;
+            this.y = y;
+            this.active = true;
+        };
+        this.update = function (ctxt, delta) {
+            if (this.active) {
+                this.scale += 0.05 * delta;
+                if (this.scale >= config.mapPingScale) {
+                    this.active = false;
+                } else {
+                    ctxt.globalAlpha = (1 - Math.max(0, this.scale / config.mapPingScale));
+                    ctxt.beginPath();
+                    ctxt.arc((this.x / config.mapScale) * mapDisplay.width, (this.y / config.mapScale) * mapDisplay.width, this.scale, 0, 2 * Math.PI);
+                    ctxt.stroke();
+                }
             }
-        }
-    };
+        };
+    }
 }
+
+var MiniMapPing = new MapPing();
+
+(function () {
+    if (MiniMapPing == undefined || MiniMapPing == null) {
+        return false;
+    }
+    return true;
+})();
 
 function pingMap(x, y) {
     for (var i = 0; i < mapPings.length; ++i) {
@@ -1063,8 +1413,9 @@ function pingMap(x, y) {
 }
 
 function updateMapMarker() {
-    if (!mapMarker)
+    if (!mapMarker) {
         mapMarker = {};
+    }
     mapMarker.x = player.x;
     mapMarker.y = player.y;
 }
@@ -1086,13 +1437,11 @@ function renderMinimap(delta) {
 
         mapContext.globalAlpha = 1;
         mapContext.fillStyle = "#fff";
-        renderCircle((player.x / config.mapScale) * mapDisplay.width,
-            (player.y / config.mapScale) * mapDisplay.height, 7, mapContext, true);
+        renderCircle((player.x / config.mapScale) * mapDisplay.width, (player.y / config.mapScale) * mapDisplay.height, 7, mapContext, true);
         mapContext.fillStyle = "rgba(255,255,255,0.35)";
         if (player.team && minimapData) {
             for (var i = 0; i < minimapData.length;) {
-                renderCircle((minimapData[i] / config.mapScale) * mapDisplay.width,
-                    (minimapData[i + 1] / config.mapScale) * mapDisplay.height, 7, mapContext, true);
+                renderCircle((minimapData[i] / config.mapScale) * mapDisplay.width, (minimapData[i + 1] / config.mapScale) * mapDisplay.height, 7, mapContext, true);
                 i += 2;
             }
         }
@@ -1102,8 +1451,7 @@ function renderMinimap(delta) {
             mapContext.font = "34px Hammersmith One";
             mapContext.textBaseline = "middle";
             mapContext.textAlign = "center";
-            mapContext.fillText("x", (lastDeath.x / config.mapScale) * mapDisplay.width,
-                (lastDeath.y / config.mapScale) * mapDisplay.height);
+            mapContext.fillText("x", (lastDeath.x / config.mapScale) * mapDisplay.width, (lastDeath.y / config.mapScale) * mapDisplay.height);
         }
 
         if (mapMarker) {
@@ -1111,8 +1459,7 @@ function renderMinimap(delta) {
             mapContext.font = "34px Hammersmith One";
             mapContext.textBaseline = "middle";
             mapContext.textAlign = "center";
-            mapContext.fillText("x", (mapMarker.x / config.mapScale) * mapDisplay.width,
-                (mapMarker.y / config.mapScale) * mapDisplay.height);
+            mapContext.fillText("x", (mapMarker.x / config.mapScale) * mapDisplay.width, (mapMarker.y / config.mapScale) * mapDisplay.height);
         }
     }
 }
@@ -1141,18 +1488,21 @@ function toggleStoreMenu() {
 
 function updateStoreItems(type, id, index) {
     if (index) {
-        if (!type)
+        if (!type) {
             player.tails[id] = 1;
-        else
+        } else {
             player.tailIndex = id;
+        }
     } else {
-        if (!type)
+        if (!type) {
             player.skins[id] = 1;
-        else
+        } else {
             player.skinIndex = id;
+        }
     }
-    if (storeMenu.style.display == "block")
+    if (storeMenu.style.display == "block") {
         generateStoreList();
+    }
 }
 
 function updateStoreTabs() {
@@ -1259,7 +1609,6 @@ function hideAllWindows() {
 }
 
 function prepareUI() {
-
     var savedNativeValue = getSavedVal("native_resolution");
     if (!savedNativeValue) {
         setUseNativeResolution(typeof cordova !== "undefined"); // Only default to native if on mobile
@@ -1310,8 +1659,7 @@ function prepareUI() {
                     this.isLoaded = true;
                     var tmpPad = 1 / (this.height / this.width);
                     var tmpMlt = (items.weapons[i].iPad || 1);
-                    tmpContext.drawImage(this, -(tmpCanvas.width * tmpMlt * config.iconPad * tmpPad) / 2, -(tmpCanvas.height * tmpMlt * config.iconPad) / 2,
-                        tmpCanvas.width * tmpMlt * tmpPad * config.iconPad, tmpCanvas.height * tmpMlt * config.iconPad);
+                    tmpContext.drawImage(this, -(tmpCanvas.width * tmpMlt * config.iconPad * tmpPad) / 2, -(tmpCanvas.height * tmpMlt * config.iconPad) / 2, tmpCanvas.width * tmpMlt * tmpPad * config.iconPad, tmpCanvas.height * tmpMlt * config.iconPad);
                     tmpContext.fillStyle = "rgba(0, 0, 70, 0.1)";
                     tmpContext.globalCompositeOperation = "source-atop";
                     tmpContext.fillRect(-tmpCanvas.width / 2, -tmpCanvas.height / 2, tmpCanvas.width, tmpCanvas.height);
@@ -1363,22 +1711,20 @@ function prepareUI() {
         pingDisplay.hidden = !showPing;
         saveVal("show_ping", showPing ? "true" : "false");
     });
-
-
 }
 
 function updateItems(data, wpn) {
     if (data) {
-        if (wpn) player.weapons = data;
-        else player.items = data;
+        if (wpn) {
+            player.weapons = data;
+        } else player.items = data;
     }
     for (var i = 0; i < items.list.length; ++i) {
         var tmpI = (items.weapons.length + i);
         document.getElementById("actionBarItem" + tmpI).style.display = (player.items.indexOf(items.list[i].id) >= 0) ? "inline-block" : "none";
     }
     for (var i = 0; i < items.weapons.length; ++i) {
-        document.getElementById("actionBarItem" + i).style.display =
-            (player.weapons[items.weapons[i].type] == items.weapons[i].id) ? "inline-block" : "none";
+        document.getElementById("actionBarItem" + i).style.display = (player.weapons[items.weapons[i].type] == items.weapons[i].id) ? "inline-block" : "none";
     }
 }
 
@@ -1412,11 +1758,9 @@ function updateSkinColorPicker() {
     var tmpHTML = "";
     for (var i = 0; i < config.skinColors.length; ++i) {
         if (i == skinColor) {
-            tmpHTML += ("<div class='skinColorItem activeSkin' style='background-color:" +
-                config.skinColors[i] + "' onclick='selectSkinColor(" + i + ")'></div>");
+            tmpHTML += ("<div class='skinColorItem activeSkin' style='background-color:" + config.skinColors[i] + "' onclick='selectSkinColor(" + i + ")'> </div>");
         } else {
-            tmpHTML += ("<div class='skinColorItem' style='background-color:" +
-                config.skinColors[i] + "' onclick='selectSkinColor(" + i + ")'></div>");
+            tmpHTML += ("<div class='skinColorItem' style='background-color:" + config.skinColors[i] + "' onclick='selectSkinColor(" + i + ")'> </div>");
         }
     }
     skinColorHolder.innerHTML = tmpHTML;
@@ -1464,7 +1808,8 @@ function closeChat() {
     chatHolder.style.display = "none";
 }
 
-var profanityList = ["cunt", "whore", "fuck", "shit", "faggot", "nigger",
+var profanityList = [
+    "cunt", "whore", "fuck", "shit", "faggot", "nigger",
     "nigga", "dick", "vagina", "minge", "cock", "rape", "cum", "sex",
     "tits", "penis", "clit", "pussy", "meatcurtain", "jizz", "prune",
     "douche", "wanker", "damn", "bitch", "dick", "fag", "bastard"
@@ -1503,13 +1848,9 @@ function resize() {
     gameCanvas.height = screenHeight * pixelDensity;
     gameCanvas.style.width = screenWidth + "px";
     gameCanvas.style.height = screenHeight + "px";
-    mainContext.setTransform(
-        scaleFillNative, 0,
-        0, scaleFillNative,
-        (screenWidth * pixelDensity - (maxScreenWidth * scaleFillNative)) / 2,
-        (screenHeight * pixelDensity - (maxScreenHeight * scaleFillNative)) / 2
-    );
+    mainContext.setTransform(scaleFillNative, 0, 0, scaleFillNative, (screenWidth * pixelDensity - (maxScreenWidth * scaleFillNative)) / 2, (screenHeight * pixelDensity - (maxScreenHeight * scaleFillNative)) / 2);
 }
+
 resize();
 
 var usingTouch;
@@ -1518,12 +1859,8 @@ setUsingTouch(false);
 function setUsingTouch(using) {
     usingTouch = using;
     updateGuide();
-
-
-
-
-
 }
+
 window.setUsingTouch = setUsingTouch;
 
 gameCanvas.addEventListener('touchmove', UTILS.checkTrusted(touchMove), false);
@@ -1545,6 +1882,7 @@ function touchMove(ev) {
         }
     }
 }
+
 gameCanvas.addEventListener('touchstart', UTILS.checkTrusted(touchStart), false);
 
 function touchStart(ev) {
@@ -1569,6 +1907,7 @@ function touchStart(ev) {
         }
     }
 }
+
 gameCanvas.addEventListener('touchend', UTILS.checkTrusted(touchEnd), false);
 gameCanvas.addEventListener('touchcancel', UTILS.checkTrusted(touchEnd), false);
 gameCanvas.addEventListener('touchleave', UTILS.checkTrusted(touchEnd), false);
@@ -1603,6 +1942,7 @@ function gameInput(e) {
     mouseX = e.clientX;
     mouseY = e.clientY;
 }
+
 gameCanvas.addEventListener('mousedown', mouseDown, false);
 
 function mouseDown(e) {
@@ -1612,6 +1952,7 @@ function mouseDown(e) {
         sendAtckState();
     }
 }
+
 gameCanvas.addEventListener('mouseup', mouseUp, false);
 
 function mouseUp(e) {
@@ -1637,16 +1978,14 @@ function getMoveDir() {
     }
     return (dx == 0 && dy == 0) ? undefined : UTILS.fixTo(Math.atan2(dy, dx), 2);
 }
+
 var lastDir;
 
 function getAttackDir() {
     if (!player)
         return 0;
     if (attackingTouch.id != -1) {
-        lastDir = Math.atan2(
-            attackingTouch.currentY - attackingTouch.startY,
-            attackingTouch.currentX - attackingTouch.startX
-        );
+        lastDir = Math.atan2(attackingTouch.currentY - attackingTouch.startY, attackingTouch.currentX - attackingTouch.startX);
     } else if (!player.lockDir && !usingTouch) {
         lastDir = Math.atan2(mouseY - (screenHeight / 2), mouseX - (screenWidth / 2));
     }
@@ -1671,8 +2010,7 @@ function resetMoveDir() {
 }
 
 function keysActive() {
-    return (allianceMenu.style.display != "block" &&
-        chatHolder.style.display != "block");
+    return (allianceMenu.style.display != "block" && chatHolder.style.display != "block");
 }
 
 function keyDown(event) {
@@ -1705,6 +2043,7 @@ function keyDown(event) {
         }
     }
 }
+
 window.addEventListener('keydown', UTILS.checkTrusted(keyDown));
 
 function keyUp(event) {
@@ -1725,6 +2064,7 @@ function keyUp(event) {
         }
     }
 }
+
 window.addEventListener('keyup', UTILS.checkTrusted(keyUp));
 
 function sendAtckState() {
@@ -1732,6 +2072,7 @@ function sendAtckState() {
         io.send("c", attackState, (player.buildIndex >= 0 ? getAttackDir() : null));
     }
 }
+
 var lastMoveDir = undefined;
 
 function sendMoveDir() {
@@ -1798,7 +2139,7 @@ function killPlayer() {
     inGame = false;
     try {
         factorem.refreshAds([2], true);
-    } catch (e) {};
+    } catch (e) { };
     gameUI.style.display = "none";
     hideAllWindows();
     lastDeath = {
@@ -1812,15 +2153,15 @@ function killPlayer() {
     setTimeout(function () {
         menuCardHolder.style.display = "block";
         mainMenu.style.display = "block";
-
         diedText.style.display = "none";
     }, config.deathFadeout);
-
     updateServerList();
 }
 
 function killObjects(sid) {
-    if (player) objectManager.removeAllItems(sid);
+    if (player) {
+        objectManager.removeAllItems(sid);
+    }
 }
 
 function killObject(sid) {
@@ -1919,12 +2260,15 @@ function updateUpgrades(points, age) {
 }
 
 function updateAge(xp, mxp, age) {
-    if (xp != undefined)
+    if (xp != undefined) {
         player.XP = xp;
-    if (mxp != undefined)
+    }
+    if (mxp != undefined) {
         player.maxXP = mxp;
-    if (age != undefined)
+    }
+    if (age != undefined) {
         player.age = age;
+    }
     if (age == config.maxAge) {
         ageText.innerHTML = "MAX AGE";
         ageBarBody.style.width = "100%";
@@ -1961,19 +2305,16 @@ function updateLeaderboard(data) {
 
 function updateGame() {
     if (true) {
-
         if (player) {
             if (!lastSent || now - lastSent >= (1000 / config.clientSendRate)) {
                 lastSent = now;
                 io.send("2", getAttackDir());
             }
         }
-
         if (deathTextScale < 120) {
             deathTextScale += 0.1 * delta;
             diedText.style.fontSize = Math.min(Math.round(deathTextScale), 120) + "px";
         }
-
         if (player) {
             var tmpDist = UTILS.getDistance(camX, camY, player.x, player.y);
             var tmpDir = UTILS.getDirection(player.x, player.y, camX, camY);
@@ -1989,7 +2330,6 @@ function updateGame() {
             camX = config.mapScale / 2;
             camY = config.mapScale / 2;
         }
-
         var lastTime = now - (1000 / config.serverUpdateRate);
         var tmpDiff;
         for (var i = 0; i < players.length + ais.length; ++i) {
@@ -2031,15 +2371,12 @@ function updateGame() {
             mainContext.fillStyle = "#fff";
             mainContext.fillRect(0, 0, maxScreenWidth, config.snowBiomeTop - yOffset);
             mainContext.fillStyle = "#b6db66";
-            mainContext.fillRect(0, config.snowBiomeTop - yOffset, maxScreenWidth,
-                maxScreenHeight - (config.snowBiomeTop - yOffset));
+            mainContext.fillRect(0, config.snowBiomeTop - yOffset, maxScreenWidth, maxScreenHeight - (config.snowBiomeTop - yOffset));
         } else {
             mainContext.fillStyle = "#b6db66";
-            mainContext.fillRect(0, 0, maxScreenWidth,
-                (config.mapScale - config.snowBiomeTop - yOffset));
+            mainContext.fillRect(0, 0, maxScreenWidth, (config.mapScale - config.snowBiomeTop - yOffset));
             mainContext.fillStyle = "#dbc666";
-            mainContext.fillRect(0, (config.mapScale - config.snowBiomeTop - yOffset), maxScreenWidth,
-                maxScreenHeight - (config.mapScale - config.snowBiomeTop - yOffset));
+            mainContext.fillRect(0, (config.mapScale - config.snowBiomeTop - yOffset), maxScreenWidth, maxScreenHeight - (config.mapScale - config.snowBiomeTop - yOffset));
         }
 
         if (!firstSetup) {
@@ -2061,18 +2398,22 @@ function updateGame() {
         mainContext.strokeStyle = "#000";
         mainContext.globalAlpha = 0.06;
         mainContext.beginPath();
+
+        // Add grind checkbox in main menu
         for (var x = -camX; x < maxScreenWidth; x += maxScreenHeight / 18) {
             if (x > 0) {
                 mainContext.moveTo(x, 0);
                 mainContext.lineTo(x, maxScreenHeight);
             }
         }
+
         for (var y = -camY; y < maxScreenHeight; y += maxScreenHeight / 18) {
             if (x > 0) {
                 mainContext.moveTo(0, y);
                 mainContext.lineTo(maxScreenWidth, y);
             }
         }
+
         mainContext.stroke();
 
         mainContext.globalAlpha = 1;
@@ -2120,10 +2461,10 @@ function updateGame() {
         if (config.mapScale - yOffset <= maxScreenHeight) {
             var tmpX = Math.max(0, -xOffset);
             var tmpMin = 0;
-            if (config.mapScale - xOffset <= maxScreenWidth)
+            if (config.mapScale - xOffset <= maxScreenWidth) {
                 tmpMin = maxScreenWidth - (config.mapScale - xOffset);
-            mainContext.fillRect(tmpX, config.mapScale - yOffset,
-                (maxScreenWidth - tmpX) - tmpMin, maxScreenHeight - (config.mapScale - yOffset));
+            }
+            mainContext.fillRect(tmpX, config.mapScale - yOffset, (maxScreenWidth - tmpX) - tmpMin, maxScreenHeight - (config.mapScale - yOffset));
         }
 
         mainContext.globalAlpha = 1;
@@ -2155,22 +2496,17 @@ function updateGame() {
                         if (tmpObj.iconIndex == 1 && iconSprites["skull"].isLoaded) {
                             var tmpS = config.crownIconScale;
                             var tmpX = tmpObj.x - xOffset - (tmpS / 2) + (mainContext.measureText(tmpText).width / 2) + config.crownPad;
-                            mainContext.drawImage(iconSprites["skull"], tmpX, (tmpObj.y - yOffset - tmpObj.scale) -
-                                config.nameY - (tmpS / 2) - 5, tmpS, tmpS);
+                            mainContext.drawImage(iconSprites["skull"], tmpX, (tmpObj.y - yOffset - tmpObj.scale) - config.nameY - (tmpS / 2) - 5, tmpS, tmpS);
                         }
                     }
                     if (tmpObj.health > 0) {
 
                         mainContext.fillStyle = darkOutlineColor;
-                        mainContext.roundRect(tmpObj.x - xOffset - config.healthBarWidth - config.healthBarPad,
-                            (tmpObj.y - yOffset + tmpObj.scale) + config.nameY, (config.healthBarWidth * 2) +
-                            (config.healthBarPad * 2), 17, 8);
+                        mainContext.roundRect(tmpObj.x - xOffset - config.healthBarWidth - config.healthBarPad, (tmpObj.y - yOffset + tmpObj.scale) + config.nameY, (config.healthBarWidth * 2) + (config.healthBarPad * 2), 17, 8);
                         mainContext.fill();
 
                         mainContext.fillStyle = (tmpObj == player || (tmpObj.team && tmpObj.team == player.team)) ? "#8ecc51" : "#cc5151";
-                        mainContext.roundRect(tmpObj.x - xOffset - config.healthBarWidth,
-                            (tmpObj.y - yOffset + tmpObj.scale) + config.nameY + config.healthBarPad,
-                            ((config.healthBarWidth * 2) * (tmpObj.health / tmpObj.maxHealth)), 17 - config.healthBarPad * 2, 7);
+                        mainContext.roundRect(tmpObj.x - xOffset - config.healthBarWidth, (tmpObj.y - yOffset + tmpObj.scale) + config.nameY + config.healthBarPad, ((config.healthBarWidth * 2) * (tmpObj.health / tmpObj.maxHealth)), 17 - config.healthBarPad * 2, 7);
                         mainContext.fill();
                     }
                 }
@@ -2183,8 +2519,9 @@ function updateGame() {
             tmpObj = players[i];
             if (tmpObj.visible && tmpObj.chatCountdown > 0) {
                 tmpObj.chatCountdown -= delta;
-                if (tmpObj.chatCountdown <= 0)
+                if (tmpObj.chatCountdown <= 0) {
                     tmpObj.chatCountdown = 0;
+                }
                 mainContext.font = "32px Hammersmith One";
                 var tmpSize = mainContext.measureText(tmpObj.chatMessage);
                 mainContext.textBaseline = "middle";
@@ -2205,16 +2542,10 @@ function updateGame() {
     renderMinimap(delta);
 
     if (controllingTouch.id !== -1) {
-        renderControl(
-            controllingTouch.startX, controllingTouch.startY,
-            controllingTouch.currentX, controllingTouch.currentY
-        );
+        renderControl(controllingTouch.startX, controllingTouch.startY, controllingTouch.currentX, controllingTouch.currentY);
     }
     if (attackingTouch.id !== -1) {
-        renderControl(
-            attackingTouch.startX, attackingTouch.startY,
-            attackingTouch.currentX, attackingTouch.currentY
-        );
+        renderControl(attackingTouch.startX, attackingTouch.startY, attackingTouch.currentX, attackingTouch.currentY);
     }
 }
 
@@ -2283,7 +2614,6 @@ function renderProjectile(x, y, obj, ctxt, debug) {
 }
 
 function renderWaterBodies(xOffset, yOffset, ctxt, padding) {
-
     var tmpW = config.riverWidth + padding;
     var tmpY = (config.mapScale / 2) - yOffset - (tmpW / 2);
     if (tmpY < maxScreenHeight && tmpY + tmpW > 0) {
@@ -2327,7 +2657,9 @@ function renderGameObjects(layer, xOffset, yOffset) {
 
 function gatherAnimation(sid, didHit, index) {
     tmpObj = findPlayerBySID(sid);
-    if (tmpObj) tmpObj.startAnim(didHit, index);
+    if (tmpObj) {
+        tmpObj.startAnim(didHit, index);
+    };
 }
 
 function renderPlayers(xOffset, yOffset, zIndex) {
@@ -2341,7 +2673,6 @@ function renderPlayers(xOffset, yOffset, zIndex) {
                 tmpDir = ((tmpObj == player) ? getAttackDir() : tmpObj.dir) + tmpObj.dirPlus;
                 mainContext.save();
                 mainContext.translate(tmpObj.x - xOffset, tmpObj.y - yOffset);
-
                 mainContext.rotate(tmpDir);
                 renderPlayer(tmpObj, mainContext);
                 mainContext.restore();
@@ -2365,21 +2696,18 @@ function renderPlayer(obj, ctxt) {
     if (obj.buildIndex < 0 && !items.weapons[obj.weaponIndex].aboveHand) {
         renderTool(items.weapons[obj.weaponIndex], config.weaponVariants[obj.weaponVariant].src, obj.scale, 0, ctxt);
         if (items.weapons[obj.weaponIndex].projectile != undefined && !items.weapons[obj.weaponIndex].hideProjectile) {
-            renderProjectile(obj.scale, 0,
-                items.projectiles[items.weapons[obj.weaponIndex].projectile], mainContext);
+            renderProjectile(obj.scale, 0, items.projectiles[items.weapons[obj.weaponIndex].projectile], mainContext);
         }
     }
 
     ctxt.fillStyle = config.skinColors[obj.skinColor];
     renderCircle(obj.scale * Math.cos(handAngle), (obj.scale * Math.sin(handAngle)), 14);
-    renderCircle((obj.scale * oHandDist) * Math.cos(-handAngle * oHandAngle),
-        (obj.scale * oHandDist) * Math.sin(-handAngle * oHandAngle), 14);
+    renderCircle((obj.scale * oHandDist) * Math.cos(-handAngle * oHandAngle), (obj.scale * oHandDist) * Math.sin(-handAngle * oHandAngle), 14);
 
     if (obj.buildIndex < 0 && items.weapons[obj.weaponIndex].aboveHand) {
         renderTool(items.weapons[obj.weaponIndex], config.weaponVariants[obj.weaponVariant].src, obj.scale, 0, ctxt);
         if (items.weapons[obj.weaponIndex].projectile != undefined && !items.weapons[obj.weaponIndex].hideProjectile) {
-            renderProjectile(obj.scale, 0,
-                items.projectiles[items.weapons[obj.weaponIndex].projectile], mainContext);
+            renderProjectile(obj.scale, 0, items.projectiles[items.weapons[obj.weaponIndex].projectile], mainContext);
         }
     }
 
@@ -2422,8 +2750,9 @@ function renderSkin(index, ctxt, parentSkin, owner) {
         }
         skinPointers[index] = tmpObj;
     }
-    if (tmpSkin.isLoaded)
+    if (tmpSkin.isLoaded) {
         ctxt.drawImage(tmpSkin, -tmpObj.scale / 2, -tmpObj.scale / 2, tmpObj.scale, tmpObj.scale);
+    }
     if (!parentSkin && tmpObj.topSprite) {
         ctxt.save();
         ctxt.rotate(owner.skinRot);
@@ -2460,8 +2789,9 @@ function renderTail(index, ctxt, owner) {
     if (tmpSkin.isLoaded) {
         ctxt.save();
         ctxt.translate(-20 - (tmpObj.xOff || 0), 0);
-        if (tmpObj.spin)
+        if (tmpObj.spin) {
             ctxt.rotate(owner.skinRot);
+        }
         ctxt.drawImage(tmpSkin, -(tmpObj.scale / 2), -(tmpObj.scale / 2), tmpObj.scale, tmpObj.scale);
         ctxt.restore();
     }
@@ -2480,8 +2810,9 @@ function renderTool(obj, variant, x, y, ctxt) {
         tmpSprite.src = ".././img/weapons/" + tmpSrc + ".png";
         toolSprites[tmpSrc] = tmpSprite;
     }
-    if (tmpSprite.isLoaded)
+    if (tmpSprite.isLoaded) {
         ctxt.drawImage(tmpSprite, x + obj.xOff - (obj.length / 2), y + obj.yOff - (obj.width / 2), obj.length, obj.width);
+    }
 }
 
 var gameObjectSprites = {};
@@ -2505,8 +2836,9 @@ function getResSprite(obj) {
                 renderStar(tmpContext, 7, tmpScale, tmpScale * 0.7);
                 tmpContext.fillStyle = !biomeID ? (!i ? "#9ebf57" : "#b4db62") : (!i ? "#e3f1f4" : "#fff");
                 tmpContext.fill();
-                if (!i)
+                if (!i) {
                     tmpContext.stroke();
+                }
             }
         } else if (obj.type == 1) {
             if (biomeID == 2) {
@@ -2529,8 +2861,7 @@ function getResSprite(obj) {
                 var rotVal = mathPI2 / berries;
                 for (var i = 0; i < berries; ++i) {
                     tmpRange = UTILS.randInt(tmpObj.scale / 3.5, tmpObj.scale / 2.3);
-                    renderCircle(tmpRange * Math.cos(rotVal * i), tmpRange * Math.sin(rotVal * i),
-                        UTILS.randInt(10, 12), tmpContext);
+                    renderCircle(tmpRange * Math.cos(rotVal * i), tmpRange * Math.sin(rotVal * i), UTILS.randInt(10, 12), tmpContext);
                 }
             }
         } else if (obj.type == 2 || obj.type == 3) {
@@ -2554,8 +2885,7 @@ function getItemSprite(obj, asIcon) {
     var tmpSprite = itemSprites[obj.id];
     if (!tmpSprite || asIcon) {
         var tmpCanvas = document.createElement('canvas');
-        tmpCanvas.width = tmpCanvas.height = (obj.scale * 2.5) + outlineWidth +
-            (items.list[obj.id].spritePadding || 0);
+        tmpCanvas.width = tmpCanvas.height = (obj.scale * 2.5) + outlineWidth + (items.list[obj.id].spritePadding || 0);
         var tmpContext = tmpCanvas.getContext('2d');
         tmpContext.translate((tmpCanvas.width / 2), (tmpCanvas.height / 2));
         tmpContext.rotate(asIcon ? 0 : (Math.PI / 2));
@@ -2566,8 +2896,7 @@ function getItemSprite(obj, asIcon) {
             renderCircle(0, 0, obj.scale, tmpContext);
             tmpContext.fillStyle = "#89a54c";
             var leafDir = -(Math.PI / 2);
-            renderLeaf(obj.scale * Math.cos(leafDir), obj.scale * Math.sin(leafDir),
-                25, leafDir + Math.PI / 2, tmpContext);
+            renderLeaf(obj.scale * Math.cos(leafDir), obj.scale * Math.sin(leafDir), 25, leafDir + Math.PI / 2, tmpContext);
         } else if (obj.name == "cookie") {
             tmpContext.fillStyle = "#cca861";
             renderCircle(0, 0, obj.scale, tmpContext);
@@ -2577,8 +2906,7 @@ function getItemSprite(obj, asIcon) {
             var tmpRange;
             for (var i = 0; i < chips; ++i) {
                 tmpRange = UTILS.randInt(obj.scale / 2.5, obj.scale / 1.7);
-                renderCircle(tmpRange * Math.cos(rotVal * i), tmpRange * Math.sin(rotVal * i),
-                    UTILS.randInt(4, 5), tmpContext, true);
+                renderCircle(tmpRange * Math.cos(rotVal * i), tmpRange * Math.sin(rotVal * i), UTILS.randInt(4, 5), tmpContext, true);
             }
         } else if (obj.name == "cheese") {
             tmpContext.fillStyle = "#f4f3ac";
@@ -2589,18 +2917,15 @@ function getItemSprite(obj, asIcon) {
             var tmpRange;
             for (var i = 0; i < chips; ++i) {
                 tmpRange = UTILS.randInt(obj.scale / 2.5, obj.scale / 1.7);
-                renderCircle(tmpRange * Math.cos(rotVal * i), tmpRange * Math.sin(rotVal * i),
-                    UTILS.randInt(4, 5), tmpContext, true);
+                renderCircle(tmpRange * Math.cos(rotVal * i), tmpRange * Math.sin(rotVal * i), UTILS.randInt(4, 5), tmpContext, true);
             }
         } else if (obj.name == "wood wall" || obj.name == "stone wall" || obj.name == "castle wall") {
-            tmpContext.fillStyle = (obj.name == "castle wall") ? "#83898e" : (obj.name == "wood wall") ?
-                "#a5974c" : "#939393";
+            tmpContext.fillStyle = (obj.name == "castle wall") ? "#83898e" : (obj.name == "wood wall") ? "#a5974c" : "#939393";
             var sides = (obj.name == "castle wall") ? 4 : 3;
             renderStar(tmpContext, sides, obj.scale * 1.1, obj.scale * 1.1);
             tmpContext.fill();
             tmpContext.stroke();
-            tmpContext.fillStyle = (obj.name == "castle wall") ? "#9da4aa" : (obj.name == "wood wall") ?
-                "#c9b758" : "#bcbcbc";
+            tmpContext.fillStyle = (obj.name == "castle wall") ? "#9da4aa" : (obj.name == "wood wall") ? "#c9b758" : "#bcbcbc";
             renderStar(tmpContext, sides, obj.scale * 0.65, obj.scale * 0.65);
             tmpContext.fill();
         } else if (obj.name == "spikes" || obj.name == "greater spikes" || obj.name == "poison spikes" ||
@@ -2707,8 +3032,9 @@ function getItemSprite(obj, asIcon) {
             renderCircle(0, 0, obj.scale * 0.5, tmpContext, true);
         }
         tmpSprite = tmpCanvas;
-        if (!asIcon)
+        if (!asIcon) {
             itemSprites[obj.id] = tmpSprite;
+        }
     }
     return tmpSprite;
 }
@@ -2719,10 +3045,8 @@ function renderLeaf(x, y, l, r, ctxt) {
     var width = l * 0.4;
     ctxt.moveTo(x, y);
     ctxt.beginPath();
-    ctxt.quadraticCurveTo(((x + endX) / 2) + (width * Math.cos(r + Math.PI / 2)),
-        ((y + endY) / 2) + (width * Math.sin(r + Math.PI / 2)), endX, endY);
-    ctxt.quadraticCurveTo(((x + endX) / 2) - (width * Math.cos(r + Math.PI / 2)),
-        ((y + endY) / 2) - (width * Math.sin(r + Math.PI / 2)), x, y);
+    ctxt.quadraticCurveTo(((x + endX) / 2) + (width * Math.cos(r + Math.PI / 2)), ((y + endY) / 2) + (width * Math.sin(r + Math.PI / 2)), endX, endY);
+    ctxt.quadraticCurveTo(((x + endX) / 2) - (width * Math.cos(r + Math.PI / 2)), ((y + endY) / 2) - (width * Math.sin(r + Math.PI / 2)), x, y);
     ctxt.closePath();
     ctxt.fill();
     ctxt.stroke();
@@ -2732,8 +3056,12 @@ function renderCircle(x, y, scale, tmpContext, dontStroke, dontFill) {
     tmpContext = tmpContext || mainContext;
     tmpContext.beginPath();
     tmpContext.arc(x, y, scale, 0, 2 * Math.PI);
-    if (!dontFill) tmpContext.fill();
-    if (!dontStroke) tmpContext.stroke();
+    if (!dontFill) {
+        tmpContext.fill();
+    }
+    if (!dontStroke) {
+        tmpContext.stroke();
+    }
 }
 
 function renderStar(ctxt, spikes, outer, inner) {
@@ -2758,9 +3086,11 @@ function renderStar(ctxt, spikes, outer, inner) {
 
 function renderRect(x, y, w, h, ctxt, stroke) {
     ctxt.fillRect(x - (w / 2), y - (h / 2), w, h);
-    if (!stroke)
+    if (!stroke) {
         ctxt.strokeRect(x - (w / 2), y - (h / 2), w, h);
+    }
 }
+
 
 function renderRectCircle(x, y, s, sw, seg, ctxt, stroke) {
     ctxt.save();
@@ -2781,8 +3111,7 @@ function renderBlob(ctxt, spikes, outer, inner) {
     ctxt.moveTo(0, -inner);
     for (var i = 0; i < spikes; i++) {
         tmpOuter = UTILS.randInt(outer + 0.9, outer * 1.2);
-        ctxt.quadraticCurveTo(Math.cos(rot + step) * tmpOuter, Math.sin(rot + step) * tmpOuter,
-            Math.cos(rot + (step * 2)) * inner, Math.sin(rot + (step * 2)) * inner);
+        ctxt.quadraticCurveTo(Math.cos(rot + step) * tmpOuter, Math.sin(rot + step) * tmpOuter, Math.cos(rot + (step * 2)) * inner, Math.sin(rot + (step * 2)) * inner);
         rot += step * 2;
     }
     ctxt.lineTo(0, -inner);
@@ -2820,10 +3149,9 @@ function prepareMenuBackground() {
 
 function loadGameObject(data) {
     for (var i = 0; i < data.length;) {
-        objectManager.add(data[i], data[i + 1], data[i + 2], data[i + 3], data[i + 4],
-            data[i + 5], items.list[data[i + 6]], true, (data[i + 7] >= 0 ? {
-                sid: data[i + 7]
-            } : null));
+        objectManager.add(data[i], data[i + 1], data[i + 2], data[i + 3], data[i + 4], data[i + 5], items.list[data[i + 6]], true, (data[i + 7] >= 0 ? {
+            sid: data[i + 7]
+        } : null));
         i += 8;
     }
 }
@@ -2861,7 +3189,9 @@ function remProjectile(sid, range) {
 
 function animateAI(sid) {
     tmpObj = findAIBySID(sid);
-    if (tmpObj) tmpObj.startAnim();
+    if (tmpObj) {
+        tmpObj.startAnim();
+    }
 }
 
 function loadAI(data) {
@@ -2892,8 +3222,9 @@ function loadAI(data) {
                 tmpObj.y2 = tmpObj.y;
                 tmpObj.d2 = tmpObj.dir;
                 tmpObj.health = data[i + 5];
-                if (!aiManager.aiTypes[data[i + 1]].name)
+                if (!aiManager.aiTypes[data[i + 1]].name) {
                     tmpObj.name = config.cowNames[data[i + 6]];
+                }
                 tmpObj.forcePos = true;
                 tmpObj.sid = data[i];
                 tmpObj.visible = true;
@@ -2931,8 +3262,7 @@ function isOnScreen(x, y, s) {
 function addPlayer(data, isYou) {
     var tmpPlayer = findPlayerByID(data[0]);
     if (!tmpPlayer) {
-        tmpPlayer = new Player(data[0], data[1], config, UTILS, projectileManager,
-            objectManager, players, ais, items, hats, accessories);
+        tmpPlayer = new Player(data[0], data[1], config, UTILS, projectileManager, objectManager, players, ais, items, hats, accessories);
         players.push(tmpPlayer);
     }
     tmpPlayer.spawn(isYou ? moofoll : null);
@@ -2970,8 +3300,9 @@ function updateItemCounts(index, value) {
 function updatePlayerValue(index, value, updateView) {
     if (player) {
         player[index] = value;
-        if (updateView)
+        if (updateView) {
             updateStatusDisplay();
+        }
     }
 }
 
@@ -3066,22 +3397,17 @@ function pingSocket() {
 
 function serverShutdownNotice(countdown) {
     if (countdown < 0) return;
-
     var minutes = Math.floor(countdown / 60);
     var seconds = countdown % 60;
     seconds = ("0" + seconds).slice(-2);
-
     shutdownDisplay.innerText = "Server restarting in " + minutes + ":" + seconds;
     shutdownDisplay.hidden = false;
 }
 
-window.requestAnimFrame = (function () {
-    return window.requestAnimationFrame ||
-        window.webkitRequestAnimationFrame ||
-        window.mozRequestAnimationFrame ||
-        function (callback) {
-            window.setTimeout(callback, 1000 / 60);
-        };
+window.requestAnimationFrame = (function () {
+    return window.requestAnimationFrame || function (callback) {
+        window.setTimeout(callback, 1000 / 60);
+    };
 })();
 
 function doUpdate() {
@@ -3089,7 +3415,7 @@ function doUpdate() {
     delta = now - lastUpdate;
     lastUpdate = now;
     updateGame();
-    requestAnimFrame(doUpdate);
+    window.requestAnimationFrame(doUpdate);
 }
 
 function startGame() {
@@ -3100,6 +3426,7 @@ function startGame() {
     nameInput.value = getSavedVal("moo_name") || "";
     prepareUI();
 }
+
 prepareMenuBackground();
 doUpdate();
 
