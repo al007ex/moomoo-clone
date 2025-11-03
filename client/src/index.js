@@ -624,6 +624,88 @@ function bindEvents() {
         });
         UTILS.hookTouchEvents(button);
     });
+
+    var previewCanvas = document.getElementById('previewCanvas');
+    var characterPreview = document.getElementById('characterPreview');
+    var skinColorPicker = document.getElementById('skinColorPicker');
+    
+    if (previewCanvas && characterPreview) {
+        var previewCtx = previewCanvas.getContext('2d');
+        
+        var canvasSize = 60;
+        previewCanvas.width = canvasSize;
+        previewCanvas.height = canvasSize;
+        
+        function drawCharacterPreview() {
+            var size = previewCanvas.width;
+            var center = size / 2;
+            var bodyRadius = size * 0.35;
+            var armRadius = size * 0.12;
+            var armOffset = size * 0.23;
+            
+            previewCtx.clearRect(0, 0, size, size);
+            previewCtx.save();
+            previewCtx.translate(center, center);
+            
+            previewCtx.fillStyle = config.skinColors[skinColor];
+            previewCtx.beginPath();
+            previewCtx.arc(0, 0, bodyRadius, 0, Math.PI * 2);
+            previewCtx.fill();
+            previewCtx.strokeStyle = "#525252";
+            previewCtx.lineWidth = size * 0.04;
+            previewCtx.stroke();
+            
+            previewCtx.beginPath();
+            previewCtx.arc(-armOffset, -bodyRadius * 0.5, armRadius, 0, Math.PI * 2);
+            previewCtx.arc(armOffset, -bodyRadius * 0.5, armRadius, 0, Math.PI * 2);
+            previewCtx.fill();
+            previewCtx.stroke();
+            
+            previewCtx.restore();
+        }
+        
+        drawCharacterPreview();
+        
+        characterPreview.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (!skinColorPicker.classList.contains('show')) {
+                skinColorPicker.style.display = 'block';
+                setTimeout(function() {
+                    skinColorPicker.classList.add('show');
+                    skinColorPicker.classList.remove('hide');
+                }, 10);
+            } else {
+                skinColorPicker.classList.add('hide');
+                skinColorPicker.classList.remove('show');
+                setTimeout(function() {
+                    skinColorPicker.style.display = 'none';
+                }, 300);
+            }
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (skinColorPicker && skinColorPicker.classList.contains('show')) {
+                if (!skinColorPicker.contains(e.target) && !characterPreview.contains(e.target)) {
+                    skinColorPicker.classList.add('hide');
+                    skinColorPicker.classList.remove('show');
+                    setTimeout(function() {
+                        skinColorPicker.style.display = 'none';
+                    }, 300);
+                }
+            }
+        });
+        
+        var originalSelectSkinColor = window.selectSkinColor;
+        window.selectSkinColor = function(index) {
+            originalSelectSkinColor(index);
+            drawCharacterPreview();
+            skinColorPicker.classList.add('hide');
+            skinColorPicker.classList.remove('show');
+            setTimeout(function() {
+                skinColorPicker.style.display = 'none';
+            }, 300);
+        };
+    }
 }
 
 function setupServerStatus() {
@@ -696,10 +778,6 @@ serverBrowser.addEventListener("change", UTILS.checkTrusted(function (e) {
         navigateToServer(key);
     }
 }));
-
-
-
-// Test
 
 let panelState = false;
 
@@ -2103,7 +2181,7 @@ var firstSetup = true;
 
 function setupGame(yourSID) {
     loadingText.style.display = "none";
-    menuCardHolder.style.display = "block";
+    menuCardHolder.style.display = "flex";
     mainMenu.style.display = "none";
     keys = {};
     playerSID = yourSID;
@@ -2137,7 +2215,7 @@ function killPlayer() {
     diedText.style.fontSize = "0px";
     deathTextScale = 0;
     setTimeout(function () {
-        menuCardHolder.style.display = "block";
+        menuCardHolder.style.display = "flex";
         mainMenu.style.display = "block";
         diedText.style.display = "none";
     }, config.deathFadeout);
@@ -3423,7 +3501,7 @@ function startGame() {
     bindEvents();
     loadIcons();
     loadingText.style.display = "none";
-    menuCardHolder.style.display = "block";
+    menuCardHolder.style.display = "flex";
     nameInput.value = getSavedVal("moo_name") || "";
     prepareUI();
 }

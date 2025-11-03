@@ -45,34 +45,24 @@
                         </div>
                         <div id="serverBrowser"></div>
                         <div id="altServer"></div>
+                        <div class="contentFooter" style="margin-top: 16px;">
+                            <div class="menuText">Created by <a href="" target="_blank" class="menuLink">Yendis</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Center Column - Enter Game -->
+                <!-- Center Column - Tabs -->
                 <div class="menuColumn centerColumn">
-                    <div class="menuCard mainCard" id="setupCard">
-                        <div class="sectionTitle">
-                            <i class="material-icons">sports_esports</i>
-                            <span>Default</span>
-                        </div>
-                        <div class="cardSection">
-                            <input id="nameInput" placeholder="Enter Name" maxlength="15">
-                        </div>
-                        <div id="enterGame" class="menuButton primaryButton"><span>Enter Game</span></div>
-                    </div>
-                </div>
-
-                <!-- Right Column - Info Tabs -->
-                <div class="menuColumn rightColumn">
                     <div class="menuCard tabbedCard" id="guideCard">
                         <div class="tabNavigation">
-                            <div class="tabButton active" data-tab="controls">
-                                <i class="material-icons">gamepad</i>
-                                <span>Controls</span>
+                            <div class="tabButton active" data-tab="game">
+                                <i class="material-icons">sports_esports</i>
+                                <span>Game</span>
                             </div>
-                            <div class="tabButton" data-tab="customize">
-                                <i class="material-icons">palette</i>
-                                <span>Customize</span>
+                            <div class="tabButton" data-tab="info">
+                                <i class="material-icons">info</i>
+                                <span>Info</span>
                             </div>
                             <div class="tabButton" data-tab="settings">
                                 <i class="material-icons">settings</i>
@@ -85,20 +75,77 @@
                         </div>
 
                         <div class="tabContentWrapper">
-                            <!-- Controls Tab -->
-                            <div id="controlsTab" class="tabContent active">
-                                <div class="tabInner">
-                                    <div class="contentSection">
-                                        <div class="sectionTitle">
-                                            <i class="material-icons">info</i>
-                                            <span>How To Play</span>
+                            <!-- Game Tab -->
+                            <div id="gameTab" class="tabContent active">
+                                <div class="tabInner"
+                                    style="padding: 16px; display: flex; flex-direction: column; height: 100%;">
+                                    <div class="sectionTitle" style="margin-bottom: 12px; flex-shrink: 0;">
+                                        <i class="material-icons">sports_esports</i>
+                                        <span>Enter Game</span>
+                                    </div>
+                                    <input id="nameInput" placeholder="Enter Name" maxlength="15"
+                                        style="margin-bottom: 12px; flex-shrink: 0;">
+                                    <div id="characterMainContainer"
+                                        style="position: relative; background: linear-gradient(135deg, #f8f8f8 0%, #f0f0f0 100%); border: 2px solid #e0e0e0; border-radius: 8px; min-height: 140px; padding: 12px; display: flex; gap: 12px; flex: 1;">
+                                        <div id="characterPreviewContainer"
+                                            style="position: relative; width: 75px; height: 75px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f8f8f8 0%, #f0f0f0 100%); border: 2px solid #e0e0e0; border-radius: 8px; flex-shrink: 0;">
+                                            <div id="characterPreview"
+                                                style="cursor: pointer; position: relative; z-index: 1;">
+                                                <canvas id="previewCanvas"
+                                                    style="border-radius: 10px; background: transparent; display: block;"></canvas>
+                                            </div>
+
+                                            <div id="skinColorPicker"
+                                                style="display: none; position: absolute; bottom: calc(100% - 10px); left: calc(100% + 110px); transform: translateX(-50%); background: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); border: 2px solid #e0e0e0; z-index: 10; min-width: 160px; opacity: 0; transition: 0.5s ease, transform 0.5s ease;">
+                                                <div
+                                                    style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
+                                                    <i class="material-icons"
+                                                        style="font-size: 18px; color: #7ee559;">color_lens</i>
+                                                    <span
+                                                        style="font-size: 14px; font-weight: 600; color: #292929;">Skin
+                                                        Color</span>
+                                                </div>
+                                                <div id="skinColorHolder"></div>
+                                            </div>
                                         </div>
-                                        <div class="menuText">Collect resources around the map to build a village. Your
-                                            Windmills
-                                            generate gold over time. But make sure to protect them from other players.
+
+                                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                                            <div>
+                                                <label
+                                                    style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">Hat</label>
+                                                <select id="hatSelect"
+                                                    style="width: 100%; padding: 6px 8px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; outline: none;">
+                                                    <option value="0">No Hat</option>
+                                                    <option value="1">Test 1</option>
+                                                    <option value="2">Test 2</option>
+                                                    <option value="3">Test 3</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label
+                                                    style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">Accessory</label>
+                                                <select id="accessorySelect"
+                                                    style="width: 100%; padding: 6px 8px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; outline: none;">
+                                                    <option value="0">No Accessory</option>
+                                                    <option value="1">Test 1</option>
+                                                    <option value="2">Test 2</option>
+                                                    <option value="3">Test 3</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
 
+                                    <div id="enterGame" class="menuButton primaryButton"
+                                        style="margin-top: 12px; flex-shrink: 0;"><span>Enter Game</span></div>
+                                </div>
+                            </div>
+
+
+
+                            <!-- Info Tab -->
+                            <div id="infoTab" class="tabContent">
+                                <div class="tabInner">
                                     <div class="contentSection">
                                         <div class="sectionTitle">
                                             <i class="material-icons">keyboard</i>
@@ -112,44 +159,11 @@
                                             <div class="controlItem"><span class="controlKey">Click / Space</span>
                                                 Gather/Attack</div>
                                             <div class="controlItem"><span class="controlKey">E</span> Auto Attack</div>
-                                            <div class="controlItem"><span class="controlKey">1-9</span> Select Item
-                                            </div>
                                             <div class="controlItem"><span class="controlKey">Q</span> Quick Select Food
                                             </div>
                                             <div class="controlItem"><span class="controlKey">X</span> Lock Rotation
                                             </div>
-                                            <div class="controlItem"><span class="controlKey">R</span> Ping Minimap
-                                            </div>
-                                            <div class="controlItem"><span class="controlKey">C</span> Add Map Marker
-                                            </div>
-                                            <div class="controlItem"><span class="controlKey">Enter</span> Chat</div>
-                                            <div class="controlItem"><span class="controlKey">ESC</span> Close Windows
-                                            </div>
                                         </div>
-                                        <div id="mobileInstructions" class="menuText">
-                                            Movement: Drag on left side of screen<br />
-                                            Gather/Attack: Drag on right side of screen<br />
-                                            Select Item: Touch item at bottom<br />
-                                            Ping Minimap: Touch map
-                                        </div>
-                                    </div>
-
-                                    <div class="contentFooter">
-                                        <div class="menuText">Created by <a href="" target="_blank"
-                                                class="menuLink">Yendis</a></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Customize Tab -->
-                            <div id="customizeTab" class="tabContent">
-                                <div class="tabInner">
-                                    <div class="contentSection">
-                                        <div class="sectionTitle">
-                                            <i class="material-icons">color_lens</i>
-                                            <span>Skin Color</span>
-                                        </div>
-                                        <div id="skinColorHolder"></div>
                                     </div>
 
                                     <div class="contentSection">
@@ -231,6 +245,31 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Split into two parts -->
+                <div class="menuColumn rightColumn">
+                    <div class="menuCard infoCard">
+                    </div>
+
+                    <div class="menuCard statsCard">
+                        <div class="sectionTitle">
+                            <i class="material-icons">info_outline</i>
+                            <span>Game Info</span>
+                        </div>
+                        <div class="menuText" style="margin-bottom: 12px;">
+                            Welcome to MooMoo.io! Build your village, gather resources, and defend against other
+                            players.
+                        </div>
+                        <div class="menuText" style="font-size: 14px; color: #888; margin-bottom: 12px;">
+                            <strong>Objective:</strong> Collect resources, build structures, and survive against
+                            enemies.
+                        </div>
+                        <div class="infoBox">
+                            <i class="material-icons">info</i>
+                            <span>Choose your name and start playing!</span>
                         </div>
                     </div>
                 </div>

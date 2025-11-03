@@ -1,10 +1,11 @@
-
-html, body {
+html,
+body {
 	background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
 	overflow: hidden;
 }
 
-html, body {
+html,
+body {
 	position: relative;
 	overflow: hidden;
 	width: 100%;
@@ -19,18 +20,21 @@ html, body {
 }
 
 ::-webkit-input-placeholder {
-	color:    #cecece;
+	color: #cecece;
 }
+
 :-moz-placeholder {
-	color:    #cecece;
-	opacity:  1;
+	color: #cecece;
+	opacity: 1;
 }
+
 ::-moz-placeholder {
-	color:    #cecece;
-	opacity:  1;
+	color: #cecece;
+	opacity: 1;
 }
+
 :-ms-input-placeholder {
-	color:    #cecece;
+	color: #cecece;
 }
 
 input[type=text] {
@@ -45,16 +49,20 @@ input[type=text] {
 .menuLink {
 	font-size: 20px;
 }
+
 a {
 	color: #a56dc8;
 	text-decoration: none;
 }
+
 a:active {
 	color: #795094;
 }
+
 a:visited {
 	color: #a56dc8;
 }
+
 a:hover {
 	color: #795094;
 }
@@ -124,7 +132,7 @@ span {
 }
 
 #mainMenu {
-	background-color: rgba(0,0,0,0.5);
+	background-color: rgba(0, 0, 0, 0.5);
 	position: absolute;
 	width: 100%;
 	height: 100%;
@@ -335,36 +343,91 @@ span {
 }
 
 #skinColorHolder {
-	width: 100%;
-	padding: 0px;
-	padding-top: 5px;
-	padding-bottom: 0px;
+	padding: 8px;
+	background: linear-gradient(135deg, #f8f8f8 0%, #f0f0f0 100%);
+	border-radius: 6px;
+	border: 1px solid #e0e0e0;
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 6px;
+	justify-items: center;
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .activeSkin {
 	border-color: #7ee559 !important;
-	border-width: 4px !important;
-	transform: scale(1.15) !important;
-	box-shadow: 0 0 12px rgba(126, 229, 89, 0.6) !important;
+	border-width: 1.5px !important;
+	transform: scale(1.2) rotate(0deg) !important;
+	box-shadow: 0 0 8px rgba(126, 229, 89, 0.7), 0 2px 4px rgba(0, 0, 0, 0.15) !important;
 }
 
 .skinColorItem {
 	cursor: pointer;
 	display: inline-block;
-	margin-right: 12px;
-	margin-bottom: 12px;
-	width: 36px;
-	height: 36px;
-	-webkit-border-radius: 50%;
-	-moz-border-radius: 50%;
-	border-radius: 50%;
-	border: 3px solid #ccc;
-	transition: all 0.2s ease;
+	width: 24px;
+	height: 24px;
+	border-radius: 8px;
+	border: 2px solid #d0d0d0;
+	transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+	position: relative;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .skinColorItem:hover {
-	transform: scale(1.1);
+	transform: scale(1.15) rotate(5deg);
 	border-color: #7ee559;
+	box-shadow: 0 4px 8px rgba(126, 229, 89, 0.4), 0 2px 4px rgba(0, 0, 0, 0.15);
+	z-index: 1;
+}
+
+.skinColorItem:active {
+	transform: scale(1.05);
+	transition: all 0.1s ease;
+}
+
+#skinColorPicker.show {
+	display: block !important;
+	animation: slideUpFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+#skinColorPicker.hide {
+	animation: slideUpFadeOut 0.3s ease forwards;
+}
+
+@keyframes slideUpFadeIn {
+	from {
+		opacity: 0;
+		transform: translateX(-50%) translateY(15px) scale(0.95);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0) scale(1);
+	}
+}
+
+@keyframes slideUpFadeOut {
+	from {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0) scale(1);
+	}
+
+	to {
+		opacity: 0;
+		transform: translateX(-50%) translateY(15px) scale(0.95);
+	}
+}
+
+#hatSelect:hover,
+#accessorySelect:hover {
+	border-color: #7ee559;
+	background: #f9fff7;
+}
+
+#hatSelect:focus,
+#accessorySelect:focus {
+	border-color: #7ee559;
+	box-shadow: 0 0 0 3px rgba(126, 229, 89, 0.2);
 }
 
 .settingRadio {
@@ -377,22 +440,22 @@ span {
 	font-size: 170px;
 	margin-bottom: -25px;
 	text-shadow:
-			0 1px 0 #c4c4c4,
-			0 2px 0 #c4c4c4,
-			0 3px 0 #c4c4c4,
-			0 4px 0 #c4c4c4,
-			0 5px 0 #c4c4c4,
-			0 6px 0 #c4c4c4,
-			0 7px 0 #c4c4c4,
-			0 8px 0 #c4c4c4,
-			0 9px 0 #c4c4c4;
+		0 1px 0 #c4c4c4,
+		0 2px 0 #c4c4c4,
+		0 3px 0 #c4c4c4,
+		0 4px 0 #c4c4c4,
+		0 5px 0 #c4c4c4,
+		0 6px 0 #c4c4c4,
+		0 7px 0 #c4c4c4,
+		0 8px 0 #c4c4c4,
+		0 9px 0 #c4c4c4;
 	color: #fff;
 }
 
 /* Menu Layout */
 #menuCardHolder {
 	display: inline-flex;
-	gap: 20px;
+	gap: 8px;
 	justify-content: center;
 	align-items: flex-start;
 	animation: menuFadeIn 0.5s ease-out;
@@ -405,6 +468,7 @@ span {
 		opacity: 0;
 		transform: translateY(20px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateY(0);
@@ -426,13 +490,13 @@ span {
 }
 
 .centerColumn {
-	width: 320px;
+	width: var(--menu-card-width);
 	animation: slideInCenter 0.6s ease-out;
-	height: 420px;
+	height: 440px;
 }
 
 .rightColumn {
-	width: var(--menu-card-width);
+	width: 280px;
 	animation: slideInRight 0.6s ease-out;
 	height: 420px;
 }
@@ -442,6 +506,7 @@ span {
 		opacity: 0;
 		transform: translateX(-30px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateX(0);
@@ -453,6 +518,7 @@ span {
 		opacity: 0;
 		transform: translateY(30px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateY(0);
@@ -464,6 +530,7 @@ span {
 		opacity: 0;
 		transform: translateX(30px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateX(0);
@@ -482,6 +549,8 @@ span {
 .mainCard {
 	padding: 20px !important;
 	width: 100%;
+	height: auto !important;
+	flex: 0 0 auto;
 }
 
 .cardSection {
@@ -495,6 +564,22 @@ span {
 .serverCard {
 	padding: 18px !important;
 	width: 100%;
+}
+
+.infoCard {
+	padding: 18px !important;
+	width: 100%;
+	height: 80px !important;
+	flex: 0 0 80px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.statsCard {
+	padding: 18px !important;
+	width: 100%;
+	flex: 1;
 }
 
 /* Section Titles */
@@ -519,12 +604,15 @@ span {
 .tabbedCard {
 	padding: 0 !important;
 	overflow: hidden;
-	height: 420px;
+	height: 420px !important;
 	display: flex;
 	flex-direction: column;
 	width: 100%;
 	box-sizing: border-box;
+	flex: 1;
 }
+
+
 
 .tabNavigation {
 	display: flex;
@@ -541,7 +629,7 @@ span {
 	align-items: center;
 	justify-content: center;
 	gap: 4px;
-	padding: 12px 8px;
+	padding: 10px 6px;
 	cursor: pointer;
 	transition: all 0.2s ease;
 	border-bottom: 3px solid transparent;
@@ -560,7 +648,7 @@ span {
 }
 
 .tabButton i {
-	font-size: 22px;
+	font-size: 20px;
 	color: #888;
 	transition: all 0.2s ease;
 }
@@ -571,7 +659,7 @@ span {
 }
 
 .tabButton span {
-	font-size: 12px;
+	font-size: 11px;
 	color: #666;
 	font-weight: 500;
 	transition: color 0.2s ease;
@@ -619,6 +707,13 @@ span {
 
 .tabInner {
 	padding: 20px;
+	height: 100%;
+	box-sizing: border-box;
+	overflow-y: auto;
+}
+
+#gameTab .tabInner {
+	overflow-y: hidden;
 }
 
 @keyframes fadeSlideIn {
@@ -626,6 +721,7 @@ span {
 		opacity: 0;
 		transform: translateY(10px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateY(0);
@@ -730,7 +826,7 @@ span {
 	align-items: center;
 	gap: 12px;
 	padding: 14px;
-	background: rgb(126 229 89 / 45%);
+	background: rgb(126 229 89 / 65%);
 	color: #ffffff;
 	border-radius: 8px;
 	font-size: 14px;
@@ -739,13 +835,18 @@ span {
 
 .infoBox i {
 	font-size: 20px;
-	color: #7ee559;
+	color: #60af44;
+	flex-shrink: 0;
+}
+
+.infoBox span {
+	font-size: 14px;
 }
 
 /* Account Tab */
 .centerContent {
 	text-align: center;
-	padding: 20px 0;
+	padding: 2px 0;
 }
 
 .accountIcon i {
@@ -760,7 +861,6 @@ span {
 	margin-top: 20px;
 }
 
-/* Mobile Instructions */
 #desktopInstructions {
 	display: flex;
 	flex-direction: column;
@@ -779,7 +879,33 @@ span {
 	display: block;
 }
 
-/* Legacy Support */
+.statsContent {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.statItem {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 10px 12px;
+	background: #f5f5f5;
+	border-radius: 6px;
+	border: 1px solid #e0e0e0;
+}
+
+.statLabel {
+	font-size: 14px;
+	color: #666;
+}
+
+.statValue {
+	font-size: 16px;
+	color: #7ee559;
+	font-weight: 600;
+}
+
 #guideCard #smallLinks {
 	display: none;
 }
@@ -888,6 +1014,7 @@ span {
 	pointer-events: all;
 	border: 0;
 }
+
 #chatBox:focus {
 	outline: none;
 }
@@ -948,7 +1075,8 @@ span {
 	font-size: 22px;
 }
 
-.uiElement, .resourceDisplay {
+.uiElement,
+.resourceDisplay {
 	background-color: rgba(0, 0, 0, 0.25);
 	-webkit-border-radius: 4px;
 	-moz-border-radius: 4px;
@@ -1071,7 +1199,7 @@ span {
 #leaderboardButton {
 	display: none;
 	-webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+	-webkit-touch-callout: none;
 }
 
 #leaderboardButton:focus {
@@ -1145,7 +1273,7 @@ span {
 	margin-top: 5px;
 	float: right;
 	display: inline-block;
-	color: rgba(255,255,255,0.5);
+	color: rgba(255, 255, 255, 0.5);
 	font-size: 24px;
 	padding-right: 5px;
 }
@@ -1431,13 +1559,13 @@ span {
 		--menu-card-width: 300px;
 	}
 
-  #pingDisplay {
-    right: 10px;
-    left: auto;
-    top: 50px;
-    text-align: right;
-    transform: none;
-  }
+	#pingDisplay {
+		right: 10px;
+		left: auto;
+		top: 50px;
+		text-align: right;
+		transform: none;
+	}
 
 	#actionBar {
 		max-width: calc(100% - 340px);
@@ -1470,11 +1598,11 @@ span {
 	#gameName {
 		font-size: 80px;
 		text-shadow:
-				0 1px 0 #c4c4c4,
-				0 2px 0 #c4c4c4,
-				0 3px 0 #c4c4c4,
-				0 4px 0 #c4c4c4,
-				0 5px 0 #c4c4c4;
+			0 1px 0 #c4c4c4,
+			0 2px 0 #c4c4c4,
+			0 3px 0 #c4c4c4,
+			0 4px 0 #c4c4c4,
+			0 5px 0 #c4c4c4;
 	}
 
 	#menuCardHolder {
@@ -1487,16 +1615,38 @@ span {
 		align-items: center;
 	}
 
-	.leftColumn, .centerColumn, .rightColumn {
+	.leftColumn,
+	.centerColumn,
+	.rightColumn {
 		width: var(--menu-card-width);
 	}
 
-	.mainCard, .serverCard {
+	.mainCard,
+	.serverCard,
+	.infoCard,
+	.statsCard {
 		width: 100%;
 	}
 
 	.tabbedCard {
-		height: 380px;
+		height: 420px !important;
+	}
+
+	.infoCard {
+		height: 70px !important;
+		flex: 0 0 70px;
+	}
+
+	.tabButton {
+		padding: 8px 4px;
+	}
+
+	.tabButton i {
+		font-size: 18px;
+	}
+
+	.tabButton span {
+		font-size: 10px;
 	}
 
 	.tabButton {
@@ -1573,7 +1723,10 @@ span {
 		margin-top: 0;
 	}
 
-	#linksContainer1, #linksContainer2, #youtubeFollow, #twitterFollow {
+	#linksContainer1,
+	#linksContainer2,
+	#youtubeFollow,
+	#twitterFollow {
 		display: none;
 	}
 
@@ -1598,15 +1751,21 @@ span {
 		font-size: 22px;
 	}
 
-	#itemInfoDesc, #itemInfoDesc, .itemInfoReq, .itemInfoLmt, .itemInfoReqVal {
+	#itemInfoDesc,
+	#itemInfoDesc,
+	.itemInfoReq,
+	.itemInfoLmt,
+	.itemInfoReqVal {
 		font-size: 12px;
 	}
 
-	.uiElement, .resourceDisplay {
+	.uiElement,
+	.resourceDisplay {
 		font-size: 20px;
 	}
 
-	.resourceDisplay, #scoreDisplay {
+	.resourceDisplay,
+	#scoreDisplay {
 		right: inherit;
 		left: 8px;
 		height: 25px;
@@ -1697,17 +1856,20 @@ span {
 		display: none;
 		width: 340px;
 		position: fixed;
-	    top: 50%;
-	    left: 50%;
-	    margin-left: -180px;
-	    margin-top: -100px
+		top: 50%;
+		left: 50%;
+		margin-left: -180px;
+		margin-top: -100px
 	}
 
 	#leaderboard.is-showing {
 		display: block;
 	}
 
-	#leaderboardData, .leaderHolder, .leaderboardItem, .leaderScore {
+	#leaderboardData,
+	.leaderHolder,
+	.leaderboardItem,
+	.leaderScore {
 		font-size: 18px;
 	}
 
@@ -1752,7 +1914,7 @@ span {
 		display: none;
 	}
 
-	#chatButton.hide { /* Hide if showing info box */
+	#chatButton.hide {
 		display: none;
 	}
 
@@ -1771,8 +1933,9 @@ span {
 		font-size: 34px !important;
 	}
 
-	/* GAME MENUS */
-	.allianceItem, #allianceInput, .allianceButtonM {
+	.allianceItem,
+	#allianceInput,
+	.allianceButtonM {
 		font-size: 18px;
 	}
 
@@ -1785,7 +1948,8 @@ span {
 		height: 35px;
 	}
 
-	.joinAlBtn, .itemPrice {
+	.joinAlBtn,
+	.itemPrice {
 		font-size: 18px;
 	}
 
@@ -1801,13 +1965,12 @@ span {
 	}
 }
 
-/* PORTRAIT */
-
 @media only screen and (max-width: 480px) {
 	#storeButton {
 		top: 8px;
 		left: 78px;
 	}
+
 	#allianceButton {
 		top: 8px;
 		left: 126px;
