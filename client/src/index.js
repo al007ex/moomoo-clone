@@ -369,17 +369,6 @@ function getSavedVal(name) {
     return null;
 }
 
-if (!getSavedVal("consent")) {
-    consentBlock.style.display = "block";
-}
-
-window.checkTerms = function (yes) {
-    if (yes) {
-        consentBlock.style.display = "none";
-        saveVal("consent", 1);
-    } else $("#consentShake").effect("shake");
-};
-
 var moofoll = getSavedVal("moofoll");
 
 function follmoo() {

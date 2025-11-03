@@ -17,19 +17,12 @@
     <link href="./css/material-icons.css" rel="stylesheet">
     <link href="./css/hammersmith-one.css" rel="stylesheet">
     <script type="module" crossorigin src="./assets/bundle.js"></script>
-    <script>
-        window.cpmstarAPI = window.cpmstarAPI || function () { };
-    </script>
 </head>
 
 <body>
 
-    <div id="ot-sdk-btn-floating" class="nodisplay"></div>
-    <div id="consentBlock" class="nodisplay"></div>
-
     <script src="./libs/jquery-3.2.1.min.js"></script>
     <script src="./libs/jquery-ui.js"></script>
-    <div id="pre-content-container" style="display:none"></div>
     <div id="errorNotification" class="menuCard" style="display:none">
         <div>It looks like MooMoo ran in to a problem. Please try <a target="_blank"
                 href="https://www.computerhope.com/issues/ch001411.htm">disabling all of your browser extensions</a> and
@@ -48,8 +41,6 @@
                     <div class="menuCard mainCard" id="setupCard">
                         <div class="cardSection">
                             <input id="nameInput" placeholder="Enter Name" maxlength="15">
-                            <altcha-widget id="altcha" challengeurl="https://api.moomoo.io/verify" hidefooter
-                                auto="onfocus"></altcha-widget>
                         </div>
                         <div id="enterGame" class="menuButton primaryButton"><span>Enter Game</span></div>
                     </div>
@@ -307,7 +298,6 @@
             <div id="allianceManager"></div>
         </div>
     </div><canvas id="gameCanvas"></canvas>
-    <div id="cdm-zone-end"></div>
 </body>
 
 </html>

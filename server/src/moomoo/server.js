@@ -117,6 +117,7 @@ export class Game {
                 projectile.update(delta);
 
             this.updateAnimals(delta);
+            this.updateTurrets(delta);
 
             /*for (const object of this.game_objects) 
                 object.update(delta);*/
@@ -275,22 +276,22 @@ export class Game {
         const map = config.mapScale;
         return [{
             index: 0,
-            desired: 6
+            desired: 12
         }, {
             index: 1,
-            desired: 4
+            desired: 10
         }, {
             index: 4,
-            desired: 3
+            desired: 8
         }, {
             index: 5,
-            desired: 2
+            desired: 6
         }, {
             index: 2,
-            desired: 2
+            desired: 8
         }, {
             index: 3,
-            desired: 1
+            desired: 6
         }, {
             index: 6,
             desired: 1,
@@ -405,6 +406,119 @@ export class Game {
         if (this.aiSpawnCheckTimer <= 0) {
             this.aiSpawnCheckTimer = 1000;
             this.ensureAnimals();
+        }
+    }
+
+    updateTurrets(delta) {
+        if (!this.object_manager || !this.projectile_manager) {
+            return;
+        }
+        const structures = this.object_manager.updateObjects;
+        if (!structures || structures.length === 0) {
+            return;
+        }
+        for (let i = 0; i < structures.length; i++) {
+            const structure = structures[i];
+            if (!structure || !structure.active) {
+                continue;
+            }
+
+            if (typeof structure.update === "function") {
+                structure.update(delta);
+            }
+
+            if (structure.projectile == null || !structure.shootRate || !structure.shootRange) {
+                continue;
+            }
+
+            if (typeof structure.shootCount !== "number") {
+                structure.shootCount = structure.shootRate;
+            }
+
+            structure.shootCount -= delta;
+            if (structure.shootCount > 0) {
+                continue;
+            }
+
+            const target = this.pickTurretTarget(structure);
+            if (!target) {
+                structure.shootCount = Math.min(structure.shootRate, 250);
+                continue;
+            }
+
+            const direction = UTILS.getDirection(target.x, target.y, structure.x, structure.y);
+            structure.dir = direction;
+
+            const projectileData = items.projectiles[structure.projectile];
+            if (!projectileData) {
+                structure.shootCount = structure.shootRate;
+                continue;
+            }
+            const projectileSpeed = projectileData.speed || 1.6;
+
+            const muzzleOffset = structure.scale + 45;
+            const spawnX = structure.x + Math.cos(direction) * muzzleOffset;
+            const spawnY = structure.y + Math.sin(direction) * muzzleOffset;
+
+            this.projectile_manager.addProjectile(
+                spawnX,
+                spawnY,
+                direction,
+                structure.shootRange,
+                projectileSpeed,
+                structure.projectile,
+                structure.owner,
+                structure.sid,
+                projectileData.layer
+            );
+
+            structure.shootCount = structure.shootRate;
+
+            this.broadcastTurretShot(structure, direction);
+        }
+    }
+
+    pickTurretTarget(structure) {
+        let bestTarget = null;
+        let bestDist = Infinity;
+        const owner = structure.owner;
+        const ownerTeam = owner && owner.team ? owner.team : null;
+
+        const consider = (candidate) => {
+            const distance = UTILS.getDistance(structure.x, structure.y, candidate.x, candidate.y);
+            if (distance > structure.shootRange + (candidate.scale || 0)) {
+                return;
+            }
+            if (!bestTarget || distance < bestDist) {
+                bestTarget = candidate;
+                bestDist = distance;
+            }
+        };
+
+        for (const player of this.players) {
+            if (!player.active || !player.alive) continue;
+            if (player === owner) continue;
+            if (player.skinIndex === 22) continue;
+            if (ownerTeam && player.team && player.team === ownerTeam) continue;
+            if (player.skin && player.skin.invisTimer && player.noMovTimer >= player.skin.invisTimer) continue;
+            consider(player);
+        }
+
+        for (const ai of this.ais) {
+            if (!ai.active || !ai.alive) continue;
+            consider(ai);
+        }
+
+        return bestTarget;
+    }
+
+    broadcastTurretShot(structure, direction) {
+        const fixedDir = UTILS.fixTo(direction, 2);
+        for (const player of this.players) {
+            if (!player.active) continue;
+            if (!structure.sentTo[player.id]) continue;
+            if (!player.canSee(structure)) continue;
+            player.send("sp", structure.sid, fixedDir);
         }
     }
 
