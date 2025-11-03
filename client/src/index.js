@@ -2829,6 +2829,8 @@ function getResSprite(obj) {
         tmpContext.rotate(UTILS.randFloat(0, Math.PI));
         tmpContext.strokeStyle = outlineColor;
         tmpContext.lineWidth = outlineWidth;
+        tmpContext.lineJoin = "round";
+        tmpContext.lineCap = "round";
         if (obj.type == 0) {
             var tmpScale;
             for (var i = 0; i < 2; ++i) {
@@ -2891,6 +2893,8 @@ function getItemSprite(obj, asIcon) {
         tmpContext.rotate(asIcon ? 0 : (Math.PI / 2));
         tmpContext.strokeStyle = outlineColor;
         tmpContext.lineWidth = outlineWidth * (asIcon ? (tmpCanvas.width / 81) : 1);
+        tmpContext.lineJoin = "round";
+        tmpContext.lineCap = "round";
         if (obj.name == "apple") {
             tmpContext.fillStyle = "#c15555";
             renderCircle(0, 0, obj.scale, tmpContext);
@@ -3069,6 +3073,17 @@ function renderStar(ctxt, spikes, outer, inner) {
     var x, y;
     var step = Math.PI / spikes;
     ctxt.beginPath();
+    if (Math.abs(inner - outer) < 0.001) {
+        ctxt.moveTo(Math.cos(rot) * outer, Math.sin(rot) * outer);
+        for (var i = 0; i < spikes * 2; i++) {
+            rot += step;
+            x = Math.cos(rot) * outer;
+            y = Math.sin(rot) * outer;
+            ctxt.lineTo(x, y);
+        }
+        ctxt.closePath();
+        return;
+    }
     ctxt.moveTo(0, -outer);
     for (var i = 0; i < spikes; i++) {
         x = Math.cos(rot) * outer;
