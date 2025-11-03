@@ -446,13 +446,20 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
                     worked = item.consume(this);
             } else {
                 worked = true;
-                if (item.group.limit) {
+                if (item.group && item.group.limit) {
                     this.changeItemCount(item.group.id, 1);
                 }
-                if (item.pps)
-                    this.pps += item.pps;
+                var placedItem = item;
+                if (item.pps) {
+                    var sandboxMultiplier = config.isSandbox ? 5 : 1;
+                    var ppsToAdd = item.pps * sandboxMultiplier;
+                    this.pps += ppsToAdd;
+                    placedItem = Object.assign({}, item, {
+                        pps: ppsToAdd
+                    });
+                }
                 objectManager.add(objectManager.objects.length, tmpX, tmpY, this.dir, item.scale,
-                    item.type, item, false, this);
+                    item.type, placedItem, false, this);
             }
             if (worked) {
                 this.useRes(item);
@@ -471,7 +478,7 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
     };
 
     this.useRes = function (item, mult) {
-        if (config.inSandbox)
+        if (config.isSandbox)
             return;
         for (var i = 0; i < item.req.length;) {
             this.addResource(config.resourceTypes.indexOf(item.req[i]), -Math.round(item.req[i + 1] * (mult || 1)));
@@ -480,9 +487,12 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
     };
 
     this.canBuild = function (item) {
-        if (config.inSandbox)
+        if (config.isSandbox) {
+            if (item.group && item.group.limit && this.itemCounts[item.group.id] >= 300)
+                return false;
             return true;
-        if (item.group.limit && this.itemCounts[item.group.id] >= item.group.limit)
+        }
+        if (item.group && item.group.limit && this.itemCounts[item.group.id] >= item.group.limit)
             return false;
         return this.hasRes(item);
     };
