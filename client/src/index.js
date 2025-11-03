@@ -50,15 +50,6 @@ var serverConfig = require("./data/servers.js");
 
 var textManager = new animText.TextManager();
 
-var MiniMapPing = new MapPing();
-
-(function () {
-    if (MiniMapPing == undefined || MiniMapPing == null) {
-        return false;
-    }
-    return true;
-})();
-
 var locationInfo = (function () {
     if (typeof window === "undefined" || !window.location) {
         return {
@@ -1397,6 +1388,15 @@ class MapPing {
         };
     }
 }
+
+var MiniMapPing = new MapPing();
+
+(function () {
+    if (MiniMapPing == undefined || MiniMapPing == null) {
+        return false;
+    }
+    return true;
+})();
 
 function pingMap(x, y) {
     for (var i = 0; i < mapPings.length; ++i) {
@@ -3415,7 +3415,7 @@ function doUpdate() {
     delta = now - lastUpdate;
     lastUpdate = now;
     updateGame();
-    requestAnimFrame(doUpdate);
+    window.requestAnimationFrame(doUpdate);
 }
 
 function startGame() {
