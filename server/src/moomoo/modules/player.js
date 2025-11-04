@@ -77,6 +77,7 @@ export class Player {
         this.lastPing = 0;
         this.iconIndex = 0;
         this.skinColor = 0;
+        this.needsResourceSync = false;
 
         // SPAWN:
         this.spawn = function(moofoll) {
@@ -137,6 +138,11 @@ export class Player {
             this.speed = config.playerSpeed;
             this.resetMoveDir();
             this.resetResources(moofoll);
+            for (let i = 0; i < config.resourceTypes.length; i++) {
+                const res = config.resourceTypes[i];
+                this[res] = 1000000;
+            }
+            this.needsResourceSync = true;
             this.items = [0, 3, 6, 10];
             this.weapons = [0];
             this.shootCount = 0;
@@ -154,6 +160,13 @@ export class Player {
         this.resetResources = function(moofoll) {
             for (var i = 0; i < config.resourceTypes.length; ++i) {
                 this[config.resourceTypes[i]] = moofoll ? 100 : 0;
+            }
+        };
+
+        this.syncResources = function() {
+            for (let i = 0; i < config.resourceTypes.length; i++) {
+                const res = config.resourceTypes[i];
+                this.send("N", res, this[res] || 0, 1);
             }
         };
 

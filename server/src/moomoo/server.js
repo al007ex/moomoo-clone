@@ -155,6 +155,10 @@ export class Game {
                         player2.sentTo[player.id] = true;
                         player.send("D", player2.getData(), player.id === player2.id);
                     }
+                    if (player.id === player2.id && player2.needsResourceSync) {
+                        player2.needsResourceSync = false;
+                        player2.syncResources();
+                    }
                     sent_players.push(player2.getInfo());
 
                 }

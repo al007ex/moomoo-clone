@@ -1503,7 +1503,7 @@ function renderMinimap(delta) {
         mapContext.fillStyle = "#fff";
         renderCircle((player.x / config.mapScale) * mapDisplay.width, (player.y / config.mapScale) * mapDisplay.height, 7, mapContext, true);
         mapContext.fillStyle = "rgba(255,255,255,0.35)";
-        if (player.team && minimapData) {
+        if ((player.team || config.isSandbox) && minimapData) {
             for (var i = 0; i < minimapData.length;) {
                 renderCircle((minimapData[i] / config.mapScale) * mapDisplay.width, (minimapData[i + 1] / config.mapScale) * mapDisplay.height, 7, mapContext, true);
                 i += 2;
