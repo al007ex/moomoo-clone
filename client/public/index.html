@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="/css/material-icons.css">
     <link rel="stylesheet" href="/css/main.css">
 
-
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Play MooMoo.io — Multiplayer Survival .io Game">
@@ -17,51 +16,59 @@
     <meta name="twitter:image" content="https://moomoo.al007ex.com/img/promotion/banner_4.png">
     <meta name="twitter:image:alt" content="MooMoo.io promotional artwork of a fortified base under attack">
 
-
     <!-- Structured Data: WebSite + Organization + VideoGame -->
     <script type="application/ld+json">
-{
-"@context": "https://schema.org",
-"@type": "WebSite",
-"name": "MooMoo.io",
-"url": "https://moomoo.al007ex.com/",
-"potentialAction": {
-"@type": "SearchAction",
-"target": "https://moomoo.al007ex.com/?q={search_term_string}",
-"query-input": "required name=search_term_string"
-}
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "MooMoo.io",
+            "url": "https://moomoo.al007ex.com/",
+            "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://moomoo.al007ex.com/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+</script>
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Yendis Entertainment",
+            "url": "https://moomoo.al007ex.com/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://moomoo.al007ex.com/img/favicon.png",
+            "width": 180,
+            "height": 180
+    }
 }
 </script>
     <script type="application/ld+json">
-{
-"@context": "https://schema.org",
-"@type": "Organization",
-"name": "Yendis Entertainment",
-"url": "https://moomoo.al007ex.com/",
-"logo": {
-"@type": "ImageObject",
-"url": "https://moomoo.al007ex.com/img/favicon.png",
-"width": 180,
-"height": 180
-}
-}
+    {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "MooMoo.io",
+        "url": "https://moomoo.al007ex.com/",
+        "image": "https://moomoo.al007ex.com/img/promotion/banner_4.png",
+        "description": "MooMoo.io is a free-to-play multiplayer survival .io game where players gather resources, craft weapons, and build bases to outlast opponents.",
+        "applicationCategory": "Game",
+        "operatingSystem": "Web Browser",
+            "genre": ["Multiplayer", "Survival", "Strategy"],
+            "publisher": {
+            "publisher": {
+                "@type": "Organization",
+                "name": "Yendis Entertainment"
+            },
+            "potentialAction": {
+                "@type": "PlayAction",
+                "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": "https://moomoo.al007ex.com/"
+                }
+            }
+        }
 </script>
-    <script type="application/ld+json">
-{
-"@context": "https://schema.org",
-"@type": "VideoGame",
-"name": "MooMoo.io",
-"url": "https://moomoo.al007ex.com/",
-"image": "https://moomoo.al007ex.com/img/promotion/banner_4.png",
-"description": "MooMoo.io is a free-to-play multiplayer survival .io game where players gather resources, craft weapons, and build bases to outlast opponents.",
-"applicationCategory": "Game",
-"operatingSystem": "Web Browser",
-"genre": ["Multiplayer","Survival","Strategy"],
-"publisher": {"@type": "Organization","name": "Yendis Entertainment"},
-"potentialAction": {"@type": "PlayAction","target": {"@type": "EntryPoint","urlTemplate": "https://moomoo.al007ex.com/"}}
-}
-</script>
-
 
     <!-- JS: type=module is deferred by default; also add nomodule fallback if you ship it. -->
     <script type="module" crossorigin src="/assets/bundle.js"></script>
@@ -75,7 +82,7 @@
         <div>It looks like MooMoo ran in to a problem. Please try <a target="_blank"
                 href="https://www.computerhope.com/issues/ch001411.htm">disabling all of your browser extensions</a> and
             reloading the page.</div>
-        <div style="text-align:center"><a onclick="errorNotification.style.display = 'none'"
+        <div style="text-align:center"><a onclick="errorNotification.style.display = 'none' "
                 style="cursor:pointer">Hide</a></div>
     </div>
     <div id="shutdownDisplay" hidden></div>
@@ -84,17 +91,71 @@
             <div id="gameName">MOOMOO.io</div>
             <div id="loadingText">Loading...</div>
             <div id="menuCardHolder" style="display:none">
-                <!-- Left Column - Servers -->
+                <!-- Left Column - Servers & Leaderboard -->
                 <div class="menuColumn leftColumn">
                     <div class="menuCard serverCard">
                         <div class="sectionTitle">
                             <i class="material-icons">dns</i>
                             <span>Server Selection</span>
                         </div>
-                        <div id="serverBrowser"></div>
                         <div id="altServer"></div>
-                        <div class="contentFooter" style="margin-top: 16px;">
-                            <div class="menuText">Created by <a href="" target="_blank" class="menuLink">Yendis</a>
+                        <div id="serverBrowser"></div>
+
+                        <div class="sectionTitle" style="margin-top: 16px; margin-bottom: 12px;">
+                            <i class="material-icons">leaderboard</i>
+                            <span>Top Players</span>
+                        </div>
+                        <div id="menuLeaderboard"
+                            style="display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 200px; padding-right: 4px;">
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">1</span>
+                                <span class="leaderName">Player 1</span>
+                                <span class="leaderScores">1250</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">2</span>
+                                <span class="leaderName">Player 2</span>
+                                <span class="leaderScores">980</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">3</span>
+                                <span class="leaderName">Player 3</span>
+                                <span class="leaderScores">750</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">4</span>
+                                <span class="leaderName">Player 4</span>
+                                <span class="leaderScores">620</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">5</span>
+                                <span class="leaderName">Player 5</span>
+                                <span class="leaderScores">500</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">6</span>
+                                <span class="leaderName">Player 6</span>
+                                <span class="leaderScores">450</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">7</span>
+                                <span class="leaderName">Player 7</span>
+                                <span class="leaderScores">380</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">8</span>
+                                <span class="leaderName">Player 8</span>
+                                <span class="leaderScores">320</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">9</span>
+                                <span class="leaderName">Player 9</span>
+                                <span class="leaderScores">280</span>
+                            </div>
+                            <div class="leaderboardEntry">
+                                <span class="leaderRank">10</span>
+                                <span class="leaderName">Player 10</span>
+                                <span class="leaderScores">250</span>
                             </div>
                         </div>
                     </div>
@@ -116,10 +177,6 @@
                                 <i class="material-icons">settings</i>
                                 <span>Settings</span>
                             </div>
-                            <div class="tabButton" data-tab="account">
-                                <i class="material-icons">account_circle</i>
-                                <span>Account</span>
-                            </div>
                         </div>
 
                         <div class="tabContentWrapper">
@@ -134,66 +191,118 @@
                                     <input id="nameInput" placeholder="Enter Name" maxlength="15"
                                         style="margin-bottom: 12px; flex-shrink: 0;">
                                     <div id="characterMainContainer"
-                                        style="position: relative; background: linear-gradient(135deg, #f8f8f8 0%, #f0f0f0 100%); border: 2px solid #e0e0e0; border-radius: 8px; min-height: 140px; padding: 12px; display: flex; gap: 12px; flex: 1;">
-                                        <div id="characterPreviewContainer"
-                                            style="position: relative; width: 75px; height: 75px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f8f8f8 0%, #f0f0f0 100%); border: 2px solid #e0e0e0; border-radius: 8px; flex-shrink: 0;">
-                                            <div id="characterPreview"
-                                                style="cursor: pointer; position: relative; z-index: 1;">
-                                                <canvas id="previewCanvas"
-                                                    style="border-radius: 10px; background: transparent; display: block;"></canvas>
-                                            </div>
+                                        style="position: relative; background: linear-gradient(135deg, #f8f8f8 0%, #f0f0f0 100%); border: 2px solid #e0e0e0; border-radius: 8px; min-height: 140px; padding: 12px; display: flex; flex-direction: column; gap: 12px; flex: 1;">
+                                        <div style="display: flex; gap: 12px; flex: 1;">
+                                            <div
+                                                style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                                <div id="characterPreviewContainer"
+                                                    style="position: relative; width: 75px; height: 75px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f8f8f8 0%, #f0f0f0 100%); border: 2px solid #e0e0e0; border-radius: 8px; flex-shrink: 0;">
+                                                    <div id="characterPreview"
+                                                        style="cursor: pointer; position: relative; z-index: 1;">
+                                                        <canvas id="previewCanvas"
+                                                            style="border-radius: 10px; background: transparent; display: block;"></canvas>
+                                                    </div>
 
-                                            <div id="skinColorPicker"
-                                                style="display: none; position: absolute; bottom: calc(100% - 10px); left: calc(100% + 110px); transform: translateX(-50%); background: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); border: 2px solid #e0e0e0; z-index: 10; min-width: 160px; opacity: 0; transition: 0.5s ease, transform 0.5s ease;">
-                                                <div
-                                                    style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
-                                                    <i class="material-icons"
-                                                        style="font-size: 18px; color: #7ee559;">color_lens</i>
-                                                    <span
-                                                        style="font-size: 14px; font-weight: 600; color: #292929;">Skin
-                                                        Color</span>
+                                                    <div id="skinColorPicker"
+                                                        style="display: none; position: absolute; bottom: calc(100% - 10px); left: calc(100% + 110px); transform: translateX(-50%); background: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); border: 2px solid #e0e0e0; z-index: 10; min-width: 160px; opacity: 0; transition: 0.5s ease, transform 0.5s ease;">
+                                                        <div
+                                                            style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
+                                                            <i class="material-icons"
+                                                                style="font-size: 18px; color: #7ee559;">color_lens</i>
+                                                            <span
+                                                                style="font-size: 14px; font-weight: 600; color: #292929;">Skin
+                                                                Color</span>
+                                                        </div>
+                                                        <div id="skinColorHolder"></div>
+                                                    </div>
                                                 </div>
-                                                <div id="skinColorHolder"></div>
+
+                                                <div id="enterGame" class="menuButton primaryButton"
+                                                    style="width: 75px; height: 34px; flex-shrink: 0;"><span
+                                                        style="position: relative; top: calc(100% - 12px); font-size: 14px;">Play</span>
+                                                </div>
+                                            </div>
+                                            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                                                <div
+                                                    style="background: #fff; border: 2px solid #e0e0e0; border-radius: 6px; padding: 12px; min-height: calc(100% - 26px);">
+                                                    <div
+                                                        style="font-size: 12px; font-weight: 600; color: #292929; margin-bottom: 8px; text-align: center;">
+                                                        Hats & Accessory & Weapon
+                                                    </div>
+                                                    <div
+                                                        style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 8px;">
+                                                        <div>
+                                                            <select id="hatSelect"
+                                                                style="width: 100%; padding: 6px 4px; border: 2px solid #e0e0e0; border-radius: 4px; font-size: 12px; background: #fff; cursor: pointer; outline: none; height: 32px; color: #333; font-weight: 500;">
+                                                                <option value="0">Hats</option>
+                                                                <option value="1">Hat 1</option>
+                                                                <option value="2">Hat 2</option>
+                                                                <option value="3">Hat 3</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <select id="accessorySelect"
+                                                                style="width: 100%; padding: 6px 4px; border: 2px solid #e0e0e0; border-radius: 4px; font-size: 12px; background: #fff; cursor: pointer; outline: none; height: 32px; color: #333; font-weight: 500;">
+                                                                <option value="0">Accs</option>
+                                                                <option value="1">Accs 1</option>
+                                                                <option value="2">Accs 2</option>
+                                                                <option value="3">Accs 3</option>
+                                                            </select>
+                                                        </div>
+                                                        <div style="grid-column: 1 / -1;">
+                                                            <select id="weaponSelect"
+                                                                style="width: 100%; padding: 6px 4px; border: 2px solid #e0e0e0; border-radius: 4px; font-size: 12px; background: #fff; cursor: pointer; outline: none; height: 32px; color: #333; font-weight: 500;">
+                                                                <option value="0">Weapons</option>
+                                                                <option value="1">Weapon 1</option>
+                                                                <option value="2">Weapon 2</option>
+                                                                <option value="3">Weapon 3</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                                            <div>
-                                                <label
-                                                    style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">Hat</label>
-                                                <select id="hatSelect"
-                                                    style="width: 100%; padding: 6px 8px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; outline: none;">
-                                                    <option value="0">No Hat</option>
-                                                    <option value="1">Test 1</option>
-                                                    <option value="2">Test 2</option>
-                                                    <option value="3">Test 3</option>
-                                                </select>
-                                            </div>
-
-                                            <div>
-                                                <label
-                                                    style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">Accessory</label>
-                                                <select id="accessorySelect"
-                                                    style="width: 100%; padding: 6px 8px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; outline: none;">
-                                                    <option value="0">No Accessory</option>
-                                                    <option value="1">Test 1</option>
-                                                    <option value="2">Test 2</option>
-                                                    <option value="3">Test 3</option>
-                                                </select>
-                                            </div>
+                                        <div id="weaponUpgradePanel"
+                                            style="background: #fff; border: 2px solid #e0e0e0; border-radius: 6px; padding: 10px;">
+                                            <label
+                                                style="font-size: 12px; color: #666; display: block; margin-bottom: 6px;">
+                                                Weapon Upgrade Level: <span id="weaponUpgradeValue"
+                                                    style="color: #7ee559; font-weight: 600; font-size: 13px;">0</span>
+                                            </label>
+                                            <input type="range" id="weaponUpgradeSlider" min="0" max="4" value="0"
+                                                step="1" style="width: 100%; cursor: pointer;">
                                         </div>
                                     </div>
-
-                                    <div id="enterGame" class="menuButton primaryButton"
-                                        style="margin-top: 12px; flex-shrink: 0;"><span>Enter Game</span></div>
                                 </div>
                             </div>
-
-
 
                             <!-- Info Tab -->
                             <div id="infoTab" class="tabContent">
                                 <div class="tabInner">
+
+                                    <div class="contentSection">
+                                        <div class="sectionTitle">
+                                            <i class="material-icons">waving_hand</i>
+                                            <span>Welcome</span>
+                                        </div>
+                                        <div class="menuText" style="margin-bottom: 12px;">
+                                            Welcome to MooMoo.io! Build your village, gather resources, and defend
+                                            against other
+                                            players.
+                                        </div>
+                                        <div class="menuText"
+                                            style="font-size: 14px; color: #888; margin-bottom: 12px;">
+                                            <strong>Objective:</strong> Collect resources, build structures, and survive
+                                            against
+                                            enemies.
+                                        </div>
+                                        <div class="infoBox" style="margin-bottom: 20px;">
+                                            <i class="material-icons">info</i>
+                                            <span>Choose your name and start playing!</span>
+                                        </div>
+                                    </div>
+
                                     <div class="contentSection">
                                         <div class="sectionTitle">
                                             <i class="material-icons">keyboard</i>
@@ -225,6 +334,11 @@
                                             <i class="material-icons">stars</i>
                                             <span>Play to unlock exclusive items!</span>
                                         </div>
+                                    </div>
+
+                                    <div class="contentSection">
+                                        <div class="menuText" style="text-align: center;">Created by <a href=""
+                                                target="_blank" class="menuLink">Yendis</a></div>
                                     </div>
                                 </div>
                             </div>
@@ -270,54 +384,34 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Account Tab -->
-                            <div id="accountTab" class="tabContent">
-                                <div class="tabInner">
-                                    <div class="contentSection centerContent">
-                                        <div class="accountIcon">
-                                            <i class="material-icons">account_circle</i>
-                                        </div>
-                                        <div class="menuHeader" style="text-align:center;margin-top:10px">Welcome to
-                                            MooMoo.io</div>
-                                        <div class="menuText" style="text-align:center">Sign in to save your progress,
-                                            track statistics, and unlock exclusive features.</div>
-                                        <div class="buttonGroup">
-                                            <div class="menuButton primaryButton"><span>Sign In</span></div>
-                                            <div class="menuButton secondaryButton"><span>Create Account</span></div>
-                                        </div>
-                                        <div class="infoBox" style="margin-top:16px">
-                                            <i class="material-icons">info</i>
-                                            <span>Guest mode: Play without an account</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column - Split into two parts -->
+                <!-- Right Column - Account -->
                 <div class="menuColumn rightColumn">
-                    <div class="menuCard infoCard">
-                    </div>
-
-                    <div class="menuCard statsCard">
-                        <div class="sectionTitle">
-                            <i class="material-icons">info_outline</i>
-                            <span>Game Info</span>
+                    <div class="menuCard"
+                        style="padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                        <div class="accountIcon" style="margin-bottom: 6px;">
+                            <i class="material-icons" style="font-size: 95px; color: #7ee559;">account_circle</i>
                         </div>
-                        <div class="menuText" style="margin-bottom: 12px;">
-                            Welcome to MooMoo.io! Build your village, gather resources, and defend against other
-                            players.
+                        <div class="menuHeader" style="text-align:center; margin-bottom: 6px; font-size: 22px;">Welcome
+                            to MooMoo.io</div>
+                        <div class="menuText"
+                            style="text-align:center; margin-bottom: 14px; font-size: 17px; line-height: 1.4;">Sign in
+                            to save your
+                            progress, track statistics, and unlock exclusive features.</div>
+                        <div class="buttonGroup" style="width: 100%; gap: 8px;">
+                            <div class="menuButton primaryButton" style="padding: 10px 16px; font-size: 16px;">
+                                <span>Sign In</span>
+                            </div>
+                            <div class="menuButton secondaryButton" style="padding: 10px 16px; font-size: 16px;">
+                                <span>Create Account</span>
+                            </div>
                         </div>
-                        <div class="menuText" style="font-size: 14px; color: #888; margin-bottom: 12px;">
-                            <strong>Objective:</strong> Collect resources, build structures, and survive against
-                            enemies.
-                        </div>
-                        <div class="infoBox">
-                            <i class="material-icons">info</i>
-                            <span>Choose your name and start playing!</span>
+                        <div class="infoBox" style="margin-top: 10px; padding: 10px;">
+                            <i class="material-icons" style="font-size: 16px;">info</i>
+                            <span style="font-size: 12px;">Guest mode: Play without an account</span>
                         </div>
                     </div>
                 </div>
@@ -380,6 +474,20 @@
                 style="font-size:40px;vertical-align:middle">&#xE8D1;</i></div>
         <div id="chatButton" class="uiElement gameButton"><i class="material-icons"
                 style="font-size:40px;vertical-align:middle">&#xE8AF;</i></div><canvas id="mapDisplay"></canvas>
+        <div id="performanceDisplay">
+            <div class="performanceItem">
+                <span class="performanceLabel">Ping:</span>
+                <span id="pingValue" class="performanceValue">0ms</span>
+            </div>
+            <div class="performanceItem">
+                <span class="performanceLabel">FPS:</span>
+                <span id="fpsValue" class="performanceValue">60</span>
+            </div>
+            <div class="performanceItem">
+                <span class="performanceLabel">Packet:</span>
+                <span id="packetValue" class="performanceValue">0</span>
+            </div>
+        </div>
         <div id="storeMenu">
             <div style="padding-bottom:15px">
                 <div class="storeTab" style="margin-right:10px" onclick="changeStoreIndex(0)">Hats</div>

@@ -433,7 +433,6 @@ var mainContext = gameCanvas.getContext("2d");
 var serverBrowser = document.getElementById("serverBrowser");
 var nativeResolutionCheckbox = document.getElementById("nativeResolution");
 var showPingCheckbox = document.getElementById("showPing");
-var pingDisplay = document.getElementById("pingDisplay");
 var shutdownDisplay = document.getElementById("shutdownDisplay");
 var menuCardHolder = document.getElementById("menuCardHolder");
 var guideCard = document.getElementById("guideCard");
@@ -628,83 +627,124 @@ function bindEvents() {
     var previewCanvas = document.getElementById('previewCanvas');
     var characterPreview = document.getElementById('characterPreview');
     var skinColorPicker = document.getElementById('skinColorPicker');
-    
+
     if (previewCanvas && characterPreview) {
         var previewCtx = previewCanvas.getContext('2d');
-        
+
         var canvasSize = 60;
         previewCanvas.width = canvasSize;
         previewCanvas.height = canvasSize;
-        
+
         function drawCharacterPreview() {
             var size = previewCanvas.width;
             var center = size / 2;
             var bodyRadius = size * 0.35;
             var armRadius = size * 0.12;
-            var armOffset = size * 0.23;
-            
+            var handAngle = Math.PI / 4;
+            var armDistance = bodyRadius * 1.0;
+
             previewCtx.clearRect(0, 0, size, size);
             previewCtx.save();
-            previewCtx.translate(center, center);
-            
+            previewCtx.translate(center - size * 0.05, center + size * 0.05);
+            previewCtx.rotate(-Math.PI / 4);
+
             previewCtx.fillStyle = config.skinColors[skinColor];
+            previewCtx.strokeStyle = "#525252";
+            previewCtx.lineWidth = size * 0.04;
+
+            // Левая рука
+            previewCtx.beginPath();
+            previewCtx.arc(armDistance * Math.cos(handAngle), armDistance * Math.sin(handAngle), armRadius, 0, Math.PI * 2);
+            previewCtx.fill();
+            previewCtx.stroke();
+
+            // Правая рука
+            previewCtx.beginPath();
+            previewCtx.arc(armDistance * Math.cos(-handAngle), armDistance * Math.sin(-handAngle), armRadius, 0, Math.PI * 2);
+            previewCtx.fill();
+            previewCtx.stroke();
+
+            // Тело
             previewCtx.beginPath();
             previewCtx.arc(0, 0, bodyRadius, 0, Math.PI * 2);
             previewCtx.fill();
-            previewCtx.strokeStyle = "#525252";
-            previewCtx.lineWidth = size * 0.04;
             previewCtx.stroke();
-            
-            previewCtx.beginPath();
-            previewCtx.arc(-armOffset, -bodyRadius * 0.5, armRadius, 0, Math.PI * 2);
-            previewCtx.arc(armOffset, -bodyRadius * 0.5, armRadius, 0, Math.PI * 2);
-            previewCtx.fill();
-            previewCtx.stroke();
-            
+
             previewCtx.restore();
         }
-        
+
         drawCharacterPreview();
-        
-        characterPreview.addEventListener('click', function(e) {
+
+        var Animate = false;
+        var hideTimeout = null;
+
+        function showPicker() {
+            if (Animate) {
+                return;
+            }
+            Animate = true;
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+                hideTimeout = null;
+            }
+            skinColorPicker.classList.remove('hide');
+            skinColorPicker.style.display = 'block';
+            requestAnimationFrame(function () {
+                skinColorPicker.classList.add('show');
+                setTimeout(function () {
+                    Animate = false;
+                }, 250);
+            });
+        }
+
+        function hidePicker() {
+            if (Animate) {
+                return;
+            }
+            Animate = true;
+            skinColorPicker.classList.remove('show');
+            skinColorPicker.classList.add('hide');
+            hideTimeout = setTimeout(function () {
+                skinColorPicker.style.display = 'none';
+                skinColorPicker.classList.remove('hide');
+                Animate = false;
+                hideTimeout = null;
+            }, 200);
+        }
+
+        characterPreview.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (!skinColorPicker.classList.contains('show')) {
-                skinColorPicker.style.display = 'block';
-                setTimeout(function() {
-                    skinColorPicker.classList.add('show');
-                    skinColorPicker.classList.remove('hide');
-                }, 10);
+            if (skinColorPicker.classList.contains('show')) {
+                hidePicker();
             } else {
-                skinColorPicker.classList.add('hide');
-                skinColorPicker.classList.remove('show');
-                setTimeout(function() {
-                    skinColorPicker.style.display = 'none';
-                }, 300);
+                showPicker();
             }
         });
-        
-        document.addEventListener('click', function(e) {
+
+        document.addEventListener('click', function (e) {
             if (skinColorPicker && skinColorPicker.classList.contains('show')) {
                 if (!skinColorPicker.contains(e.target) && !characterPreview.contains(e.target)) {
-                    skinColorPicker.classList.add('hide');
-                    skinColorPicker.classList.remove('show');
-                    setTimeout(function() {
-                        skinColorPicker.style.display = 'none';
-                    }, 300);
+                    hidePicker();
                 }
             }
         });
-        
+
         var originalSelectSkinColor = window.selectSkinColor;
-        window.selectSkinColor = function(index) {
+        window.selectSkinColor = function (index) {
             originalSelectSkinColor(index);
             drawCharacterPreview();
-            skinColorPicker.classList.add('hide');
-            skinColorPicker.classList.remove('show');
-            setTimeout(function() {
-                skinColorPicker.style.display = 'none';
-            }, 300);
+            hidePicker();
         };
+    }
+
+    // Weapon upgrade slider
+    var weaponUpgradeSlider = document.getElementById('weaponUpgradeSlider');
+    var weaponUpgradeValue = document.getElementById('weaponUpgradeValue');
+
+    if (weaponUpgradeSlider && weaponUpgradeValue) {
+        weaponUpgradeSlider.addEventListener('input', function () {
+            weaponUpgradeValue.textContent = this.value;
+        });
     }
 }
 
@@ -759,10 +799,10 @@ function setupServerStatus() {
 
     var currentMode = location.hostname == "sandbox.moomoo.io" ? "sandbox" : "default";
     var altServerHTML = "";
-    
+
     altServerHTML += "<div class='serverModeButton " + (currentMode === "default" ? "active" : "") + "' onclick='switchServerMode(\"default\")'>Default Server</div>";
     altServerHTML += "<div class='serverModeButton " + (currentMode === "sandbox" ? "active" : "") + "' onclick='switchServerMode(\"sandbox\")'>Sandbox Server</div>";
-    
+
     document.getElementById("altServer").innerHTML = altServerHTML;
 }
 
@@ -1681,7 +1721,7 @@ function prepareUI() {
     }
 
     showPing = getSavedVal("show_ping") == "true";
-    pingDisplay.hidden = !showPing;
+    updatePerformancePanelVisibility();
 
     setInterval(function () {
         if (window.cordova) {
@@ -1772,8 +1812,8 @@ function prepareUI() {
     showPingCheckbox.checked = showPing;
     showPingCheckbox.onchange = UTILS.checkTrusted(function (e) {
         showPing = showPingCheckbox.checked;
-        pingDisplay.hidden = !showPing;
         saveVal("show_ping", showPing ? "true" : "false");
+        updatePerformancePanelVisibility();
     });
 }
 
@@ -2310,7 +2350,7 @@ function updateUpgrades(points, age) {
         if (tmpList.length) {
             upgradeHolder.style.display = "block";
             upgradeCounter.style.display = "block";
-            upgradeCounter.innerHTML = "SELECT ITEMS (" + points + ")";
+            upgradeCounter.innerHTML = "Select Items (" + points + ")";
         } else {
             upgradeHolder.style.display = "none";
             upgradeCounter.style.display = "none";
@@ -3462,11 +3502,64 @@ function findObjectBySid(sid) {
 }
 
 var lastPing = -1;
+var fpsCounter = 0;
+var lastFpsTime = Date.now();
+var packetCounter = 0;
+var packetCounterDisplay = 0;
+var lastPacketTime = Date.now();
+var performanceDisplay = null;
+var pingValueElement = null;
+var fpsValueElement = null;
+var packetValueElement = null;
+
+function initPerformanceDisplay() {
+    performanceDisplay = document.getElementById("performanceDisplay");
+    pingValueElement = document.getElementById("pingValue");
+    fpsValueElement = document.getElementById("fpsValue");
+    packetValueElement = document.getElementById("packetValue");
+    updatePerformancePanelVisibility();
+}
+
+function updatePerformancePanelVisibility() {
+    if (performanceDisplay) {
+        performanceDisplay.style.display = showPing ? "flex" : "none";
+    }
+}
+
+function incrementPacketCounter() {
+    packetCounter++;
+}
+
+function updatePerformanceDisplay() {
+    if (!performanceDisplay) {
+        return;
+    }
+    // Update fps
+    fpsCounter++;
+    var currentTime = Date.now();
+    if (currentTime - lastFpsTime >= 1000) {
+        if (fpsValueElement) {
+            fpsValueElement.textContent = fpsCounter;
+        }
+        fpsCounter = 0;
+        lastFpsTime = currentTime;
+    }
+    if (currentTime - lastPacketTime >= 1000) {
+        packetCounterDisplay = packetCounter;
+        packetCounter = 0;
+        lastPacketTime = currentTime;
+        if (packetValueElement) {
+            packetValueElement.textContent = packetCounterDisplay + "/s";
+        }
+    }
+}
 
 function pingSocketResponse() {
     var pingTime = Date.now() - lastPing;
     window.pingTime = pingTime;
-    pingDisplay.innerText = "Ping: " + pingTime + " ms"
+    if (pingValueElement) {
+        pingValueElement.textContent = pingTime + "ms";
+    }
 }
 
 function pingSocket() {
@@ -3494,6 +3587,7 @@ function doUpdate() {
     delta = now - lastUpdate;
     lastUpdate = now;
     updateGame();
+    updatePerformanceDisplay();
     window.requestAnimationFrame(doUpdate);
 }
 
@@ -3504,6 +3598,7 @@ function startGame() {
     menuCardHolder.style.display = "flex";
     nameInput.value = getSavedVal("moo_name") || "";
     prepareUI();
+    initPerformanceDisplay();
 }
 
 prepareMenuBackground();
@@ -3534,4 +3629,5 @@ window.showItemInfo = showItemInfo;
 window.selectSkinColor = selectSkinColor;
 window.changeStoreIndex = changeStoreIndex;
 window.switchServerMode = switchServerMode;
+window.incrementPacketCounter = incrementPacketCounter;
 window.config = config;

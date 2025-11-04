@@ -56,6 +56,10 @@ module.exports = {
 
         var binary = msgpack.encode([type, data]);
         this.socket.send(binary);
+        
+        if (typeof window !== 'undefined' && window.incrementPacketCounter) {
+            window.incrementPacketCounter();
+        }
     },
     socketReady: function () {
         return (this.socket && this.connected);
