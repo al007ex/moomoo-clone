@@ -43,7 +43,7 @@ config.chatCountdown = 3000;
 config.chatCooldown = 500;
 
 // SANDBOX:
-config.isSandbox = false;
+config.isSandbox = true;
 
 // PLAYER:
 config.maxAge = 100;

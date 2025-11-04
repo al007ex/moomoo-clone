@@ -32,7 +32,7 @@ export class Clan {
         }
 
         player.team = this.title;
-        player.send("st", player.team, player.is_owner);
+        player.send("3", player.team, player.is_owner);
 
         this.teams.set(
             sid,
@@ -50,7 +50,7 @@ export class Clan {
         if (!player) return;
 
         player.team = null;
-        player.send("st", null, false);
+        player.send("3", null, false);
 
         if (this.teams.delete(sid)) this.update();
 
@@ -63,7 +63,7 @@ export class Clan {
         const player = this.players.find(x => x.sid === sid);
         if (!player) return;
 
-        this.owner.send("an", sid, player.name);
+        this.owner.send("2", sid, player.name);
         this.owner.notify.add(sid);
 
     }
@@ -78,7 +78,7 @@ export class Clan {
 
             if (!player) break;
 
-            player.send("sa", ext);
+            player.send("4", ext);
 
         }
 
@@ -107,7 +107,7 @@ export class ClanManager {
         const clan = new Clan(name, this.players, player);
 
         this.clans.set(name, clan);
-        this.server.broadcast("ac", {sid: name});
+        this.server.broadcast("g", {sid: name});
 
         return true;
 
@@ -127,14 +127,14 @@ export class ClanManager {
 
             player.team = null;
             player.is_owner = false;
-            player.send("st", null, false);
+            player.send("3", null, false);
 
         }
 
         clan.owner.notify.clear();
 
         this.clans.delete(name);
-        this.server.broadcast("ad", name);
+        this.server.broadcast("1", name);
 
         return true;
 

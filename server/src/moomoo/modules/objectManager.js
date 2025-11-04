@@ -63,10 +63,10 @@ export class ObjectManager {
                 if (players[p].active) {
                     if (tmpObj.sentTo[players[p].id]) {
                         if (!tmpObj.active) {
-                            players[p].send("12", tmpObj.sid);
+                            players[p].send("Q", tmpObj.sid);
                         } else {
                             if (players[p].canSee(tmpObj)) {
-                                players[p].send("8", UTILS.fixTo(tmpDir, 1), tmpObj.sid);
+                                players[p].send("L", UTILS.fixTo(tmpDir, 1), tmpObj.sid);
                             }
                         }
                     }
@@ -202,7 +202,7 @@ export class ObjectManager {
                 }
             }
             if (server) {
-                server.broadcast("13", sid);
+                server.broadcast("R", sid);
             }
         };
 
@@ -214,7 +214,7 @@ export class ObjectManager {
                 if (tmpObj.active && tmpObj.owner && tmpObj.owner.sid == sid && tmpObj.spawnPoint) {
                     tmpLoc = [tmpObj.x, tmpObj.y];
                     this.disableObj(tmpObj);
-                    server.broadcast("12", tmpObj.sid);
+                    server.broadcast("Q", tmpObj.sid);
                     if (tmpObj.owner) {
                         tmpObj.owner.changeItemCount(tmpObj.group.id, -1);
                     }

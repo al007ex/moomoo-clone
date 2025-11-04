@@ -43,7 +43,7 @@ export class Projectile {
                     for (var i = 0; i < players.length; ++i) {
                         if (!this.sentTo[players[i].id] && players[i].canSee(this)) {
                             this.sentTo[players[i].id] = 1;
-                            players[i].send("18", UTILS.fixTo(this.x, 1), UTILS.fixTo(this.y, 1), UTILS.fixTo(this.dir, 2), UTILS.fixTo(this.range, 1), this.speed, this.indx, this.layer, this.sid);
+                            players[i].send("X", UTILS.fixTo(this.x, 1), UTILS.fixTo(this.y, 1), UTILS.fixTo(this.dir, 2), UTILS.fixTo(this.range, 1), this.speed, this.indx, this.layer, this.sid);
                         }
                     }
                     objectsHit.length = 0;
@@ -94,10 +94,10 @@ export class Projectile {
                                     if (hitObj.sentTo[players[i].id]) {
                                         if (hitObj.active) {
                                             if (players[i].canSee(hitObj)) {
-                                                players[i].send("8", UTILS.fixTo(this.dir, 2), hitObj.sid);
+                                                players[i].send("L", UTILS.fixTo(this.dir, 2), hitObj.sid);
                                             }
                                         } else {
-                                            players[i].send("12", hitObj.sid);
+                                            players[i].send("Q", hitObj.sid);
                                         }
                                     }
                                     if (!hitObj.active && hitObj.owner == players[i]) {
@@ -109,7 +109,7 @@ export class Projectile {
                         this.active = false;
                         for (var i = 0; i < players.length; ++i) {
                             if (this.sentTo[players[i].id]) {
-                                players[i].send("19", this.sid, UTILS.fixTo(shortDist, 1));
+                                players[i].send("Y", this.sid, UTILS.fixTo(shortDist, 1));
                             }
                         }
                     }

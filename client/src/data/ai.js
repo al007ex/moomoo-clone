@@ -188,7 +188,7 @@ module.exports = function (sid, objectManager, players, items, UTILS, config, sc
                     }
                     for (var x = 0; x < players.length; ++x) {
                         if (players[x].canSee(this)) {
-                            server.send(players[x].id, "aa", this.sid);
+                            server.send(players[x].id, "J", this.sid);
                         }
                     }
                 }
@@ -309,7 +309,7 @@ module.exports = function (sid, objectManager, players, items, UTILS, config, sc
             }
             if (val < 0 && this.hitRange && UTILS.randInt(0, 1)) this.hitWait = 500;
             if (doer && doer.canSee(this) && val < 0) {
-                server.send(doer.id, "t", Math.round(this.x),
+                server.send(doer.id, "8", Math.round(this.x),
                     Math.round(this.y), Math.round(-val), 1);
             }
             if (this.health <= 0) {

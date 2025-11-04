@@ -125,15 +125,16 @@ export class Game {
             // leaderboard
             {
 
+                const metric = player => config.isSandbox ? player.kills : player.points;
                 const sort = this.players.filter(x => x.alive).sort((a, b) => {
-                    return b.points - a.points;
+                    return metric(b) - metric(a);
                 });
                 const sorts = [];
                 for (let i = 0; i < Math.min(10, sort.length); i++) {
                     sorts.push(sort[i]);
                 }
 
-                this.server.broadcast("5", sorts.flatMap(p => [p.sid, p.name, p.points]));
+                this.server.broadcast("G", sorts.flatMap(p => [p.sid, p.name, metric(p)]));
 
             }
 
@@ -152,7 +153,7 @@ export class Game {
 
                     if (!player2.sentTo[player.id]) {
                         player2.sentTo[player.id] = true;
-                        player.send("2", player2.getData(), player.id === player2.id);
+                        player.send("D", player2.getData(), player.id === player2.id);
                     }
                     sent_players.push(player2.getInfo());
 
@@ -169,7 +170,7 @@ export class Game {
 
                 }
 
-                player.send("33", sent_players.flatMap(data => data));
+                player.send("a", sent_players.flatMap(data => data));
 
                 // ais
                 const aiPayload = [];
@@ -188,10 +189,10 @@ export class Game {
                         ai.nameIndex ?? 0
                     );
                 }
-                player.send("a", aiPayload.length > 0 ? aiPayload : null);
+                player.send("I", aiPayload.length > 0 ? aiPayload : null);
 
                 if (sent_objects.length > 0) {
-                    player.send("6", sent_objects.flatMap(object => [
+                    player.send("H", sent_objects.flatMap(object => [
                         object.sid,
                         UTILS.fixTo(object.x, 1),
                         UTILS.fixTo(object.y, 1),
@@ -205,7 +206,7 @@ export class Game {
 
                 if (minimap_ext.length === 0) continue;
 
-                player.send("mm", minimap_ext.filter(x => x.sid !== player.sid).flatMap(x => [x.x, x.y]));
+                player.send("7", minimap_ext.filter(x => x.sid !== player.sid).flatMap(x => [x.x, x.y]));
 
             }
 
@@ -518,7 +519,7 @@ export class Game {
             if (!player.active) continue;
             if (!structure.sentTo[player.id]) continue;
             if (!player.canSee(structure)) continue;
-            player.send("sp", structure.sid, fixedDir);
+            player.send("M", structure.sid, fixedDir);
         }
     }
 
@@ -548,7 +549,7 @@ export class Game {
         );
 
         player.send("io-init", player.id);
-        player.send("id", {
+        player.send("A", {
             teams: this.clan_manager.ext()
         });
 
@@ -566,7 +567,7 @@ export class Game {
             const player = this.players[i];
 
             if (player.id === id) {
-                this.server.broadcast("4", player.id);
+                this.server.broadcast("E", player.id);
                 this.object_manager.removeAllItems(player.sid, this.server);
                 this.players.splice(i, 1);
                 this.id_storage[player.sid] = true;

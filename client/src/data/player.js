@@ -46,6 +46,7 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
     this.itemCounts = {};
     this.isPlayer = true;
     this.pps = 0;
+    this.sandboxMillCount = 0;
     this.moveDir = undefined;
     this.skinRot = 0;
     this.lastPing = 0;
@@ -77,6 +78,7 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
         this.kills = 0;
         this.upgrAge = 2;
         this.upgradePoints = 0;
+        this.sandboxMillCount = 0;
         this.x = 0;
         this.y = 0;
         this.zIndex = 0;
@@ -353,10 +355,10 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
                     this.XP = this.maxXP;
                 }
                 this.upgradePoints++;
-                server.send(this.id, "16", this.upgradePoints, this.upgrAge);
-                server.send(this.id, "15", this.XP, UTILS.fixTo(this.maxXP, 1), this.age);
+                server.send(this.id, "U", this.upgradePoints, this.upgrAge);
+                server.send(this.id, "T", this.XP, UTILS.fixTo(this.maxXP, 1), this.age);
             } else {
-                server.send(this.id, "15", this.XP);
+                server.send(this.id, "T", this.XP);
             }
         }
     };
@@ -379,10 +381,10 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
             this.kill(doer);
         for (var i = 0; i < players.length; ++i) {
             if (this.sentTo[players[i].id])
-                server.send(players[i].id, "h", this.sid, Math.round(this.health));
+                server.send(players[i].id, "O", this.sid, Math.round(this.health));
         }
         if (doer && doer.canSee(this) && !(doer == this && amount < 0)) {
-            server.send(doer.id, "t", Math.round(this.x),
+            server.send(doer.id, "8", Math.round(this.x),
                 Math.round(this.y), Math.round(-amount), 1);
         }
         return true;
@@ -393,10 +395,10 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
             doer.kills++;
             if (doer.skin && doer.skin.goldSteal) scoreCallback(doer, Math.round(this.points / 2));
             else scoreCallback(doer, Math.round(this.age * 100 * ((doer.skin && doer.skin.kScrM) ? doer.skin.kScrM : 1)));
-            server.send(doer.id, "9", "kills", doer.kills, 1);
+            server.send(doer.id, "N", "kills", doer.kills, 1);
         }
         this.alive = false;
-        server.send(this.id, "11");
+        server.send(this.id, "P");
         iconCallback();
     };
 
@@ -407,14 +409,18 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
             scoreCallback(this, amount, true);
         } else {
             this[config.resourceTypes[type]] += amount;
-            server.send(this.id, "9", config.resourceTypes[type], this[config.resourceTypes[type]], 1);
+            server.send(this.id, "N", config.resourceTypes[type], this[config.resourceTypes[type]], 1);
         }
     };
 
     this.changeItemCount = function (index, value) {
         this.itemCounts[index] = this.itemCounts[index] || 0;
         this.itemCounts[index] += value;
-        server.send(this.id, "14", index, this.itemCounts[index]);
+        if (this.itemCounts[index] < 0)
+            this.itemCounts[index] = 0;
+        if (config.isSandbox && index === 3)
+            this.sandboxMillCount = this.itemCounts[index];
+        server.send(this.id, "S", index, this.itemCounts[index]);
     };
 
     this.buildItem = function (item) {
@@ -451,8 +457,7 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
                 }
                 var placedItem = item;
                 if (item.pps) {
-                    var sandboxMultiplier = config.isSandbox ? 5 : 1;
-                    var ppsToAdd = item.pps * sandboxMultiplier;
+                    var ppsToAdd = item.pps * (config.isSandbox ? 5 : 1);
                     this.pps += ppsToAdd;
                     placedItem = Object.assign({}, item, {
                         pps: ppsToAdd
@@ -488,8 +493,13 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
 
     this.canBuild = function (item) {
         if (config.isSandbox) {
-            if (item.group && item.group.limit && this.itemCounts[item.group.id] >= 300)
-                return false;
+            if (item.group) {
+                var count = this.itemCounts[item.group.id] || 0;
+                if (item.group.id === 3 && count >= 1)
+                    return false;
+                if (item.group.limit && count >= 300)
+                    return false;
+            }
             return true;
         }
         if (item.group && item.group.limit && this.itemCounts[item.group.id] >= item.group.limit)
@@ -609,7 +619,7 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
     this.sendAnimation = function (hit) {
         for (var i = 0; i < players.length; ++i) {
             if (this.sentTo[players[i].id] && this.canSee(players[i])) {
-                server.send(players[i].id, "7", this.sid, hit ? 1 : 0, this.weaponIndex);
+                server.send(players[i].id, "K", this.sid, hit ? 1 : 0, this.weaponIndex);
             }
         }
     };

@@ -72,19 +72,68 @@ wss.on("connection", async (socket, req) => {
         socket.send(encode([type, data]));
     };
 
+    const handleInvalidPacket = reason => {
+
+        const identifier = typeof player.sid !== "undefined" ? player.sid : "unknown";
+        console.warn(`[server] Closing connection for player ${identifier} at ${addr}: ${reason}`);
+
+        if (player.socket) {
+            try {
+                player.socket.close(4002);
+            } catch (closeError) {
+                console.error("Failed to close socket after invalid packet:", closeError);
+            } finally {
+                player.socket = null;
+            }
+        }
+
+    };
+
     socket.on("message", async msg => {
 
         try {
 
-            const [
-                type,
-                data
-            ] = decode(new Uint8Array(msg));
+            const now = Date.now();
+            if (!player.packetWindowStart || (now - player.packetWindowStart) >= 1000) {
+                player.packetWindowStart = now;
+                player.packetCounter = 0;
+            }
+            player.packetCounter++;
+            if (player.packetCounter > 1000) {
+                handleInvalidPacket(`packet rate limit exceeded (${player.packetCounter} > 1000)`);
+                return;
+            }
 
-            const t = type?.toString();
+            const decoded = decode(new Uint8Array(msg));
+
+            if (!Array.isArray(decoded) || decoded.length < 2) {
+                handleInvalidPacket("malformed packet structure");
+                return;
+            }
+
+            const rawType = decoded[0];
+            const payload = decoded[1];
+
+            const t = typeof rawType === "string"
+                ? rawType
+                : (typeof rawType === "number" || typeof rawType === "bigint")
+                    ? rawType.toString()
+                    : null;
+
+            if (!t || t.length === 0 || t.length > 3) {
+                handleInvalidPacket("invalid packet identifier");
+                return;
+            }
+
+            if (!Array.isArray(payload)) {
+                handleInvalidPacket("packet payload is not an array");
+                return;
+            }
+
+            const data = payload;
 
             switch(t) {
-                case "sp": {
+                case "M": {
 
                     if (player.alive) {
                         break;
@@ -92,11 +141,11 @@ wss.on("connection", async (socket, req) => {
 
                     player.setUserData(data[0]);
                     player.spawn(data[0]?.moofoll);
-                    player.send("1", player.sid);
+                    player.send("C", player.sid);
 
                     break;
                 }
-                case "33": {
+                case "9": {
 
                     if (!player.alive) {
                         break;
@@ -108,7 +157,7 @@ wss.on("connection", async (socket, req) => {
                     break;
 
                 }
-                case "c": {
+                case "F": {
 
                     if (!player.alive) {
                         break;
@@ -145,7 +194,7 @@ wss.on("connection", async (socket, req) => {
                     break;
 
                 }
-                case "7": {
+                case "K": {
                     if (!player.alive) {
                         break;
                     }
@@ -156,7 +205,7 @@ wss.on("connection", async (socket, req) => {
                     break;
 
                 }
-                case "2": {
+                case "D": {
 
                     if (!player.alive) {
                         break;
@@ -168,7 +217,7 @@ wss.on("connection", async (socket, req) => {
                     break;
 
                 }
-                case "5": {
+                case "z": {
 
                     if (!player.alive) {
                         break;
@@ -212,7 +261,7 @@ wss.on("connection", async (socket, req) => {
                     break;
 
                 }
-                case "13c": {
+                case "c": {
 
                     if (!player.alive) {
                         break;
@@ -227,20 +276,20 @@ wss.on("connection", async (socket, req) => {
                             if (type) {
                                 if (!player.tails[id] && player.points >= tail.price) {
                                     player.tails[id] = 1;
-                                    emit("us", 0, id, 1);
+                                    emit("5", 0, id, 1);
                                 }
                             } else {
                                 if (player.tails[id]) {
                                     player.tail = tail;
                                     player.tailIndex = player.tail.id;
-                                    emit("us", 1, id, 1);
+                                    emit("5", 1, id, 1);
                                 }
                             }
                         } else {
                             if (id == 0) {
                                 player.tail = {};
                                 player.tailIndex = 0;
-                                emit("us", 1, 0, 1);
+                                emit("5", 1, 0, 1);
                             }
                         }
                     } else {
@@ -250,20 +299,20 @@ wss.on("connection", async (socket, req) => {
                             if (type) {
                                 if (!player.skins[id] && player.points >= hat.price) {
                                     player.skins[id] = 1;
-                                    emit("us", 0, id, 0);
+                                    emit("5", 0, id, 0);
                                 }
                             } else {
                                 if (player.skins[id]) {
                                     player.skin = hat;
                                     player.skinIndex = player.skin.id;
-                                    emit("us", 1, id, 0);
+                                    emit("5", 1, id, 0);
                                 }
                             }
                         } else {
                             if (id == 0) {
                                 player.skin = {};
                                 player.skinIndex = 0;
-                                emit("us", 1, 0, 0);
+                                emit("5", 1, 0, 0);
                             }
                         }
                     }
@@ -271,7 +320,7 @@ wss.on("connection", async (socket, req) => {
                     break;
 
                 }
-                case "6": {
+                case "H": {
 
                     if (!player.alive) {
                         break;
@@ -320,18 +369,18 @@ wss.on("connection", async (socket, req) => {
                     player.upgrAge++;
                     player.upgradePoints--;
 
-                    player.send("17", player.items, 0);
-                    player.send("17", player.weapons, 1);
+                    player.send("V", player.items, 0);
+                    player.send("V", player.weapons, 1);
 
                     if (player.age >= 0) {
-                        player.send("16", player.upgradePoints, player.upgrAge);
+                        player.send("U", player.upgradePoints, player.upgrAge);
                     } else {
-                        player.send("16", 0, 0);
+                        player.send("U", 0, 0);
                     }
 
                     break;
                 }
-                case "ch": {
+                case "6": {
 
                     if (!player.alive) {
                         break;
@@ -351,16 +400,16 @@ wss.on("connection", async (socket, req) => {
                         break;
                     }
 
-                    game.server.broadcast("ch", player.sid, chat);
+                    game.server.broadcast("6", player.sid, chat);
                     player.chat_cooldown = 300;
 
                     break;
                 }
-                case "pp": {
-                    emit("pp");
+                case "0": {
+                    emit("0");
                     break;
                 }
-                case "8": {
+                case "L": {
 
                     if (!player.alive) break;
 
@@ -376,7 +425,7 @@ wss.on("connection", async (socket, req) => {
 
                     break;
                 }
-                case "9": {
+                case "N": {
 
                     if (!player.alive) break;
 
@@ -395,7 +444,7 @@ wss.on("connection", async (socket, req) => {
                     break;
 
                 }
-                case "10": {
+                case "b": {
 
                     if (!player.alive) break;
 
@@ -409,7 +458,7 @@ wss.on("connection", async (socket, req) => {
                     break;
 
                 }
-                case "11": {
+                case "P": {
 
                     if (!player.alive) break;
 
@@ -417,30 +466,28 @@ wss.on("connection", async (socket, req) => {
 
                     if (player.clan_cooldown > 0) break;
 
-                    player.clan_cooldown = 200;
+                    const [targetSid, joinDecision] = data ?? [];
 
-                    game.clan_manager.confirm_join(player.team, data[0], data[1]);
-                    player.notify.delete(data[0]);
-                    break;
+                    if (typeof targetSid === "undefined") break;
 
-                }
-                case "12": {
+                    if (typeof joinDecision !== "undefined") {
 
-                    if (!player.alive) break;
+                        player.clan_cooldown = 200;
 
-                    if (!player.team) break;
+                        game.clan_manager.confirm_join(player.team, targetSid, joinDecision);
+                        player.notify.delete(targetSid);
+                        break;
+                    }
 
                     if (!player.is_owner) break;
 
-                    if (player.clan_cooldown > 0) break;
-
                     player.clan_cooldown = 200;
 
-                    game.clan_manager.kick(player.team, data[0]);
+                    game.clan_manager.kick(player.team, targetSid);
                     break;
 
                 }
-                case "14": {
+                case "S": {
 
                     if (!player.alive) break;
 
@@ -448,11 +495,11 @@ wss.on("connection", async (socket, req) => {
 
                     player.ping_cooldown = config.mapPingTime;
 
-                    game.server.broadcast("p", player.x, player.y);
+                    game.server.broadcast("9", player.x, player.y);
 
                     break;
                 }
-                case "rmd": {
+                case "e": {
 
                     if (!player.alive) break;
 
@@ -461,13 +508,15 @@ wss.on("connection", async (socket, req) => {
                     break;
                 }
                 default:
-                    break;
+                    handleInvalidPacket(`unknown packet type "${t}"`);
+                    return;
             }
 
         } catch(e) {
 
             // no need error handling i guess... but hmm
             console.error(e);
+            handleInvalidPacket(`exception while handling packet: ${e?.message ?? e}`);
 
             // so okok
             // socket.close();

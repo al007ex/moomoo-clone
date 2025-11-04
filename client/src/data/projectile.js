@@ -40,7 +40,7 @@ module.exports = function (players, ais, objectManager, items, config, UTILS, se
                 for (var i = 0; i < players.length; ++i) {
                     if (!this.sentTo[players[i].id] && players[i].canSee(this)) {
                         this.sentTo[players[i].id] = 1;
-                        server.send(players[i].id, "18", UTILS.fixTo(this.x, 1), UTILS.fixTo(this.y, 1),
+                        server.send(players[i].id, "X", UTILS.fixTo(this.x, 1), UTILS.fixTo(this.y, 1),
                             UTILS.fixTo(this.dir, 2), UTILS.fixTo(this.range, 1), this.speed, this.indx, this.layer, this.sid);
                     }
                 }
@@ -96,9 +96,9 @@ module.exports = function (players, ais, objectManager, items, config, UTILS, se
                                 if (hitObj.sentTo[players[i].id]) {
                                     if (hitObj.active) {
                                         if (players[i].canSee(hitObj))
-                                            server.send(players[i].id, "8", UTILS.fixTo(this.dir, 2), hitObj.sid);
+                                            server.send(players[i].id, "L", UTILS.fixTo(this.dir, 2), hitObj.sid);
                                     } else {
-                                        server.send(players[i].id, "12", hitObj.sid);
+                                        server.send(players[i].id, "Q", hitObj.sid);
                                     }
                                 }
                                 if (!hitObj.active && hitObj.owner == players[i])
@@ -110,7 +110,7 @@ module.exports = function (players, ais, objectManager, items, config, UTILS, se
                     this.active = false;
                     for (var i = 0; i < players.length; ++i) {
                         if (this.sentTo[players[i].id])
-                            server.send(players[i].id, "19", this.sid, UTILS.fixTo(shortDist, 1));
+                            server.send(players[i].id, "Y", this.sid, UTILS.fixTo(shortDist, 1));
                     }
                 }
             }

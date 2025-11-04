@@ -55,9 +55,9 @@ module.exports = function (GameObject, gameObjects, UTILS, config, players, serv
         for (var p = 0; p < players.length; ++p) {
             if (players[p].active) {
                 if (tmpObj.sentTo[players[p].id]) {
-                    if (!tmpObj.active) server.send(players[p].id, "12", tmpObj.sid);
+                    if (!tmpObj.active) server.send(players[p].id, "Q", tmpObj.sid);
                     else if (players[p].canSee(tmpObj))
-                        server.send(players[p].id, "8", UTILS.fixTo(tmpDir, 1), tmpObj.sid);
+                        server.send(players[p].id, "L", UTILS.fixTo(tmpDir, 1), tmpObj.sid);
                 }
                 if (!tmpObj.active && tmpObj.owner == players[p])
                     players[p].changeItemCount(tmpObj.group.id, -1);
@@ -155,7 +155,7 @@ module.exports = function (GameObject, gameObjects, UTILS, config, players, serv
             }
         }
         if (server) {
-            server.broadcast("13", sid);
+            server.broadcast("R", sid);
         }
     };
 
@@ -166,7 +166,7 @@ module.exports = function (GameObject, gameObjects, UTILS, config, players, serv
             if (tmpObj.active && tmpObj.owner && tmpObj.owner.sid == sid && tmpObj.spawnPoint) {
                 tmpLoc = [tmpObj.x, tmpObj.y];
                 this.disableObj(tmpObj);
-                server.broadcast("12", tmpObj.sid);
+                server.broadcast("Q", tmpObj.sid);
                 if (tmpObj.owner) {
                     tmpObj.owner.changeItemCount(tmpObj.group.id, -1);
                 }

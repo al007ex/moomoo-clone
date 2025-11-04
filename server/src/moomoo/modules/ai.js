@@ -211,7 +211,7 @@ export class AI {
                         }
                         for (var x = 0; x < players.length; ++x) {
                             if (players[x].canSee(this)) {
-                                server.send(players[x].id, "aa", this.sid);
+                                server.send(players[x].id, "J", this.sid);
                             }
                         }
                     }
@@ -357,7 +357,7 @@ export class AI {
                     this.hitWait = 500;
                 }
                 if (doer && doer.canSee(this) && val < 0) {
-                    server.send(doer.id, "t", Math.round(this.x), Math.round(this.y), Math.round(-val), 1);
+                    server.send(doer.id, "8", Math.round(this.x), Math.round(this.y), Math.round(-val), 1);
                 }
                 if (this.health <= 0) {
                     if (this.spawnDelay) {

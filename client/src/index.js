@@ -262,42 +262,42 @@ function connectSocket() {
             startGame();
         }
     }, {
-        "id": setInitData,
-        "d": disconnect,
-        "1": setupGame,
-        "2": addPlayer,
-        "4": removePlayer,
-        "33": updatePlayers,
-        "5": updateLeaderboard,
-        "6": loadGameObject,
-        "a": loadAI,
-        "aa": animateAI,
-        "7": gatherAnimation,
-        "8": wiggleGameObject,
-        "sp": shootTurret,
-        "9": updatePlayerValue,
-        "h": updateHealth,
-        "11": killPlayer,
-        "12": killObject,
-        "13": killObjects,
-        "14": updateItemCounts,
-        "15": updateAge,
-        "16": updateUpgrades,
-        "17": updateItems,
-        "18": addProjectile,
-        "19": remProjectile,
-        "20": serverShutdownNotice,
-        "ac": addAlliance,
-        "ad": deleteAlliance,
-        "an": allianceNotification,
-        "st": setPlayerTeam,
-        "sa": setAlliancePlayers,
-        "us": updateStoreItems,
-        "ch": receiveChat,
-        "mm": updateMinimap,
-        "t": showText,
-        "p": pingMap,
-        "pp": pingSocketResponse
+        "A": setInitData,
+        "B": disconnect,
+        "C": setupGame,
+        "D": addPlayer,
+        "E": removePlayer,
+        "a": updatePlayers,
+        "G": updateLeaderboard,
+        "H": loadGameObject,
+        "I": loadAI,
+        "J": animateAI,
+        "K": gatherAnimation,
+        "L": wiggleGameObject,
+        "M": shootTurret,
+        "N": updatePlayerValue,
+        "O": updateHealth,
+        "P": killPlayer,
+        "Q": killObject,
+        "R": killObjects,
+        "S": updateItemCounts,
+        "T": updateAge,
+        "U": updateUpgrades,
+        "V": updateItems,
+        "X": addProjectile,
+        "Y": remProjectile,
+        "Z": serverShutdownNotice,
+        "g": addAlliance,
+        "1": deleteAlliance,
+        "2": allianceNotification,
+        "3": setPlayerTeam,
+        "4": setAlliancePlayers,
+        "5": updateStoreItems,
+        "6": receiveChat,
+        "7": updateMinimap,
+        "8": showText,
+        "9": pingMap,
+        "0": pingSocketResponse
     });
 }
 
@@ -1400,27 +1400,27 @@ function showAllianceMenu() {
 }
 
 function aJoinReq(join) {
-    io.send("11", allianceNotifications[0].sid, join);
+    io.send("P", allianceNotifications[0].sid, join);
     allianceNotifications.splice(0, 1);
     updateNotifications();
 }
 
 function kickFromClan(sid) {
-    io.send("12", sid);
+    io.send("P", sid);
 }
 
 function sendJoin(index) {
-    io.send("10", alliances[index].sid);
+    io.send("b", alliances[index].sid);
 }
 
 function createAlliance() {
-    io.send("8", document.getElementById("allianceInput").value);
+    io.send("L", document.getElementById("allianceInput").value);
 }
 
 function leaveAlliance() {
     allianceNotifications = [];
     updateNotifications();
-    io.send("9");
+    io.send("N");
 }
 
 var lastDeath;
@@ -1659,11 +1659,11 @@ function generateStoreList() {
 }
 
 function storeEquip(id, index) {
-    io.send("13c", 0, id, index);
+    io.send("c", 0, id, index);
 }
 
 function storeBuy(id, index) {
-    io.send("13c", 1, id, index);
+    io.send("c", 1, id, index);
 }
 
 function hideAllWindows() {
@@ -1864,7 +1864,7 @@ function toggleChat() {
 }
 
 function sendChat(message) {
-    io.send("ch", message.slice(0, 30));
+    io.send("6", message.slice(0, 30));
 }
 
 function closeChat() {
@@ -2070,7 +2070,7 @@ var moveKeys = {
 
 function resetMoveDir() {
     keys = {};
-    io.send("rmd");
+    io.send("e");
 }
 
 function keysActive() {
@@ -2133,7 +2133,7 @@ window.addEventListener('keyup', UTILS.checkTrusted(keyUp));
 
 function sendAtckState() {
     if (player && player.alive) {
-        io.send("c", attackState, (player.buildIndex >= 0 ? getAttackDir() : null));
+        io.send("F", attackState, (player.buildIndex >= 0 ? getAttackDir() : null));
     }
 }
 
@@ -2142,26 +2142,26 @@ var lastMoveDir = undefined;
 function sendMoveDir() {
     var newMoveDir = getMoveDir();
     if (lastMoveDir == undefined || newMoveDir == undefined || Math.abs(newMoveDir - lastMoveDir) > 0.3) {
-        io.send("33", newMoveDir);
+        io.send("9", newMoveDir);
         lastMoveDir = newMoveDir;
     }
 }
 
 function sendLockDir() {
     player.lockDir = player.lockDir ? 0 : 1;
-    io.send("7", 0);
+    io.send("K", 0);
 }
 
 function sendMapPing() {
-    io.send("14", 1);
+    io.send("S", 1);
 }
 
 function sendAutoGather() {
-    io.send("7", 1);
+    io.send("K", 1);
 }
 
 function selectToBuild(index, wpn) {
-    io.send("5", index, wpn);
+    io.send("z", index, wpn);
 }
 
 function enterGame() {
@@ -2169,7 +2169,7 @@ function enterGame() {
     if (!inGame && socketReady()) {
         inGame = true;
         showLoadingText("Loading...");
-        io.send("sp", {
+        io.send("M", {
             name: nameInput.value,
             moofoll: moofoll,
             skin: skinColor
@@ -2302,7 +2302,7 @@ function updateUpgrades(points, age) {
                     }
                 };
                 tmpItem.onclick = UTILS.checkTrusted(function () {
-                    io.send("6", i);
+                    io.send("H", i);
                 });
                 UTILS.hookTouchEvents(tmpItem);
             })(tmpList[i]);
@@ -2372,7 +2372,7 @@ function updateGame() {
         if (player) {
             if (!lastSent || now - lastSent >= (1000 / config.clientSendRate)) {
                 lastSent = now;
-                io.send("2", getAttackDir());
+                io.send("D", getAttackDir());
             }
         }
         if (deathTextScale < 120) {
@@ -3471,7 +3471,7 @@ function pingSocketResponse() {
 
 function pingSocket() {
     lastPing = Date.now();
-    io.send("pp");
+    io.send("0");
 }
 
 function serverShutdownNotice(countdown) {

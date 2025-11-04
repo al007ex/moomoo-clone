@@ -69,6 +69,9 @@ export class Player {
         this.itemCounts = {};
         this.isPlayer = true;
         this.pps = 0;
+        this.sandboxMillCount = 0;
+        this.packetCounter = 0;
+        this.packetWindowStart = 0;
         this.moveDir = undefined;
         this.skinRot = 0;
         this.lastPing = 0;
@@ -101,6 +104,9 @@ export class Player {
             this.kills = 0;
             this.upgrAge = 2;
             this.upgradePoints = 0;
+            this.sandboxMillCount = 0;
+            this.packetCounter = 0;
+            this.packetWindowStart = Date.now();
 
             const spawn = objectManager.fetchSpawnObj(this.sid);
 
@@ -274,8 +280,12 @@ export class Player {
             if (timerCount <= 0) {
 
                 if (this.pps) {
-                    this.addResource(3, this.pps, true);
-                    this.earnXP(this.pps * 10);
+                    var goldTick = this.pps;
+                    if (config.isSandbox && this.sandboxMillCount > 0) {
+                        goldTick = 10000 * this.sandboxMillCount;
+                    }
+                    this.addResource(3, goldTick, true);
+                    this.earnXP(this.pps * 1000);
                 }
 
                 var regenAmount = (this.skin && this.skin.healthRegen ? this.skin.healthRegen : 0) + (this.tail && this.tail.healthRegen ? this.tail.healthRegen : 0);
@@ -504,10 +514,10 @@ export class Player {
                         this.XP = this.maxXP;
                     }
                     this.upgradePoints++;
-                    this.send("16", this.upgradePoints, this.upgrAge);
-                    this.send("15", this.XP, UTILS.fixTo(this.maxXP, 1), this.age);
+                    this.send("U", this.upgradePoints, this.upgrAge);
+                    this.send("T", this.XP, UTILS.fixTo(this.maxXP, 1), this.age);
                 } else {
-                    this.send("15", this.XP);
+                    this.send("T", this.XP);
                 }
             }
         };
@@ -536,11 +546,11 @@ export class Player {
             }
             for (var i = 0; i < players.length; ++i) {
                 if (this.sentTo[players[i].id]) {
-                    players[i].send("h", this.sid, Math.round(this.health));
+                    players[i].send("O", this.sid, Math.round(this.health));
                 }
             }
             if (doer && doer.canSee(this) && !(doer == this && amount < 0)) {
-                doer.send("t", Math.round(this.x), Math.round(this.y), Math.round(-amount), 1);
+                doer.send("8", Math.round(this.x), Math.round(this.y), Math.round(-amount), 1);
             }
             return true;
         };
@@ -554,10 +564,10 @@ export class Player {
                 } else {
                     scoreCallback(doer, Math.round(this.age * 100 * (doer.skin && doer.skin.kScrM ? doer.skin.kScrM : 1)));
                 }
-                doer.send("9", "kills", doer.kills, 1);
+                doer.send("N", "kills", doer.kills, 1);
             }
             this.alive = false;
-            this.send("11");
+            this.send("P");
             iconCallback();
         };
 
@@ -567,14 +577,20 @@ export class Player {
                 this.addWeaponXP(amount);
             }
                 this[config.resourceTypes[type]] += amount;
-                this.send("9", config.resourceTypes[type], this[config.resourceTypes[type]], 1);
+                this.send("N", config.resourceTypes[type], this[config.resourceTypes[type]], 1);
         };
 
         // CHANGE ITEM COUNT:
         this.changeItemCount = function(index, value) {
             this.itemCounts[index] = this.itemCounts[index] || 0;
             this.itemCounts[index] += value;
-            this.send("14", index, this.itemCounts[index]);
+            if (this.itemCounts[index] < 0) {
+                this.itemCounts[index] = 0;
+            }
+            if (config.isSandbox && index === 3) {
+                this.sandboxMillCount = this.itemCounts[index];
+            }
+            this.send("S", index, this.itemCounts[index]);
         };
 
         // BUILD:
@@ -611,8 +627,7 @@ export class Player {
                     }
                     var placedItem = item;
                     if (item.pps) {
-                        var sandboxMultiplier = config.isSandbox ? 5 : 1;
-                        var ppsToAdd = item.pps * sandboxMultiplier;
+                        var ppsToAdd = item.pps * (config.isSandbox ? 5 : 1);
                         this.pps += ppsToAdd;
                         placedItem = Object.assign({}, item, {
                             pps: ppsToAdd
@@ -652,8 +667,20 @@ export class Player {
         // CAN BUILD:
         this.canBuild = function(item) {
             if (config.isSandbox) {
-                if (item.group && item.group.limit && this.itemCounts[item.group.id] >= 300) {
-                    return false;
+                if (item.group) {
+                    var count = this.itemCounts[item.group.id] || 0;
+                    if (item.group.id === 3 && count >= 1) {
+                        return false;
+                    }
+                    if (item.group.id === 2 && count >= 200) {
+                        return false;
+                    }
+                    if (item.group.id === 5 && count >= 100) {
+                        return false;
+                    }
+                    if (item.group.limit && count >= 300) {
+                        return false;
+                    }
                 }
                 return true;
             }
@@ -784,7 +811,7 @@ export class Player {
         this.sendAnimation = function(hit) {
             for (var i = 0; i < players.length; ++i) {
                 if (this.sentTo[players[i].id] && this.canSee(players[i])) {
-                    players[i].send("7", this.sid, hit ? 1 : 0, this.weaponIndex);
+                    players[i].send("K", this.sid, hit ? 1 : 0, this.weaponIndex);
                 }
             }
         };
