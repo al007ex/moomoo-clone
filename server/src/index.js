@@ -16,7 +16,30 @@ import { fileURLToPath } from "node:url";
 
 const colimit = new ConnectionLimit(4);
 
+const allowedOrigins = (process.env.CORS_ORIGINS ?? "https://moomoo.al007ex.com,http://localhost:8080")
+    .split(",")
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
 const app = e();
+
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+
+    if (origin && allowedOrigins.includes(origin)) {
+        res.header("Access-Control-Allow-Origin", origin);
+        res.header("Vary", "Origin");
+        res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+        res.header("Access-Control-Allow-Headers", "Content-Type");
+    }
+
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(204);
+    }
+
+    next();
+});
+
 const server = createServer(app);
 const wss = new WebSocketServer({
     server

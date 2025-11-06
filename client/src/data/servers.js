@@ -1,20 +1,23 @@
 module.exports = [
     {
-        key: "0:0",
+        key: "LOCALHOST",
         name: "Local Lobby",
         host: "",
         port: "",
         gameIndex: 0,
         playerCount: 0,
-        region: "Local Environment"
+        region: "Local Environment",
+        isLocal: true
     },
     {
-        key: "public-eu-1",
-        name: "Public EU #1",
-        host: "your-vps-hostname.example.com",
+        key: "USA1",
+        ws: "648cfeaa70288a352513d8bc479f0891", // md5 of USA1
+        name: "Premium USA #1",
+        host: "moomoo.al007ex.com",
         port: 8080,
         gameIndex: 0,
         playerCount: 0,
-        region: "Public Servers"
-    }
+        region: "Premium Servers",
+        isLocal: false
+    },
 ];
