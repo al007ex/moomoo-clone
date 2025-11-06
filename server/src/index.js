@@ -20,13 +20,29 @@ const allowedOrigins = (process.env.CORS_ORIGINS ?? "https://moomoo.al007ex.com,
     .split(",")
     .map(origin => origin.trim())
     .filter(Boolean);
+const corsDomain = (process.env.CORS_DOMAIN ?? "al007ex.com").replace(/^\./, "");
+
+const isAllowedOrigin = origin => {
+    if (!origin) return false;
+
+    try {
+        const url = new URL(origin);
+        const hostname = url.hostname;
+
+        if (!hostname) return false;
+
+        return hostname === corsDomain || hostname.endsWith(`.${corsDomain}`);
+    } catch {
+        return false;
+    }
+};
 
 const app = e();
 
 app.use((req, res, next) => {
     const origin = req.headers.origin;
 
-    if (origin && allowedOrigins.includes(origin)) {
+    if (origin && (allowedOrigins.includes(origin) || isAllowedOrigin(origin))) {
         res.header("Access-Control-Allow-Origin", origin);
         res.header("Vary", "Origin");
         res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
