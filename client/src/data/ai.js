@@ -3,7 +3,6 @@ module.exports = function (sid, objectManager, players, items, UTILS, config, sc
     this.sid = sid;
     this.isAI = true;
     this.nameIndex = UTILS.randInt(0, config.cowNames.length - 1);
-
     this.init = function (x, y, dir, index, data) {
         this.x = x;
         this.y = y;
@@ -16,7 +15,9 @@ module.exports = function (sid, objectManager, players, items, UTILS, config, sc
         this.dirPlus = 0;
         this.index = index;
         this.src = data.src;
-        if (data.name) this.name = data.name;
+        if (data.name) {
+            this.name = data.name;
+        }
         this.weightM = data.weightM;
         this.speed = data.speed;
         this.killScore = data.killScore;

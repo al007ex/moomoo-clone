@@ -1665,7 +1665,7 @@ span {
 	pointer-events: all;
 	height: 200px;
 	max-height: calc(100vh - 260px);
-	overflow-y: scroll;
+	overflow-y: hidden;
 	-webkit-overflow-scrolling: touch;
 	width: 350px;
 	display: inline-block;

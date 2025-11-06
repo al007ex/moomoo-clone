@@ -52,10 +52,6 @@ var textManager = new animText.TextManager();
 
 /*
 
-Сделать чтобы при chatHolder можно было передвигаться
-
-Также сделать это для allianceButton -> allianceMenu
-
 Сделать macro по типу trap, spike и прочей фигни, а также сделать Nuro чтобы он сделал серверную часть, чтобы я мог создать панель, где будут эти все macro и хотя-бы AutoHeal
 
 */
@@ -347,6 +343,23 @@ function follmoo() {
     if (!moofoll) {
         moofoll = true;
         saveVal("moofoll", 1);
+    }
+}
+
+// AutoHealth:
+var autoHealEnabled = getSavedVal("autoHeal") === "true";
+console.log("AutoHeal enabled:", autoHealEnabled);
+
+function toggleAutoHeal() {
+    autoHealEnabled = !autoHealEnabled;
+    saveVal("autoHeal", autoHealEnabled.toString());
+    updateAutoHealUI();
+}
+
+function updateAutoHealUI() {
+    var checkbox = document.getElementById("autoHealCheckbox");
+    if (checkbox) {
+        checkbox.checked = autoHealEnabled;
     }
 }
 
@@ -1319,8 +1332,8 @@ function deleteAlliance(sid) {
     }
 }
 
+// Ограничение для allianceMenu, чтобы двигаться
 function toggleAllianceMenu() {
-    resetMoveDir();
     if (allianceMenu.style.display != "block") {
         showAllianceMenu();
     } else {
@@ -1802,6 +1815,15 @@ function prepareUI() {
         saveVal("show_ping", showPing ? "true" : "false");
         updatePerformancePanelVisibility();
     });
+
+    // AutoHeal checkbox
+    var autoHealCheckbox = document.getElementById("autoHealCheckbox");
+    if (autoHealCheckbox) {
+        autoHealCheckbox.checked = autoHealEnabled;
+        autoHealCheckbox.onchange = UTILS.checkTrusted(function () {
+            toggleAutoHeal();
+        });
+    }
 }
 
 function updateItems(data, wpn) {
@@ -1878,6 +1900,7 @@ function toggleChat() {
             chatHolder.style.display = "block";
             chatBox.focus();
             resetMoveDir();
+            // И нужно ещё убрать это для чата
         }
     } else {
         setTimeout(function () { // Timeout lets the `hookTouchEvents` function exit
@@ -2100,8 +2123,9 @@ function resetMoveDir() {
     io.send("e");
 }
 
+// Тут можно убрать чтобы человек двигался при открытом чате
 function keysActive() {
-    return (allianceMenu.style.display != "block" && chatHolder.style.display != "block");
+    return (chatHolder.style.display != "block");
 }
 
 function keyDown(event) {
@@ -2396,6 +2420,14 @@ function updateLeaderboard(data) {
 
 function updateGame() {
     if (true) {
+        // AutoHeal Ticks:
+        game.tick++;
+        if (game.tickQueue[game.tick]) {
+            game.tickQueue[game.tick].forEach(function (callback) {
+                callback();
+            });
+            delete game.tickQueue[game.tick];
+        }
         if (player) {
             if (!lastSent || now - lastSent >= (1000 / config.clientSendRate)) {
                 lastSent = now;
@@ -3412,10 +3444,74 @@ function updatePlayerValue(index, value, updateView) {
     }
 }
 
+// Game tick system для AutoHeal
+let game = {
+    tick: 0,
+    tickQueue: [],
+    tickBase: function (set, tick) {
+        const targetTick = this.tick + tick;
+        if (!this.tickQueue[targetTick]) {
+            this.tickQueue[targetTick] = [];
+        }
+        this.tickQueue[targetTick].push(set);
+    },
+    tickRate: 1000 / config.serverUpdateRate,
+    tickSpeed: 0,
+    lastTick: performance.now(),
+    lastTickUpdate: Date.now()
+};
+
+let lastHealTime = 0;
+let healCooldown = 0;
 function updateHealth(sid, value) {
     tmpObj = findPlayerBySID(sid);
     if (tmpObj) {
         tmpObj.health = value;
+        if (tmpObj === player && autoHealEnabled && player && player.alive) {
+            var currentTime = Date.now();
+            var healthPercent = (player.health / player.maxHealth) * 100;
+            if (healthPercent < 100 && (currentTime - lastHealTime >= healCooldown)) {
+                var foodId = null;
+                var missingHealth = player.maxHealth - player.health;
+                var foodHealing = {
+                    0: 20,
+                    1: 40,
+                    2: 30
+                };
+                var foodPriority = [0, 2, 1];
+                for (var j = 0; j < foodPriority.length; j++) {
+                    var foodItemId = foodPriority[j];
+                    var healAmount = foodHealing[foodItemId];
+                    if (player.items.indexOf(foodItemId) >= 0 && missingHealth >= healAmount * 0.5) {
+                        foodId = foodItemId;
+                        break;
+                    }
+                }
+                if (foodId === null) {
+                    for (var i = 0; i < items.list.length; i++) {
+                        var item = items.list[i];
+                        if (item.group && (item.group.id === 0 || item.group.name === "food")) {
+                            if (player.items.indexOf(item.id) >= 0) {
+                                foodId = item.id;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (foodId !== null) {
+                    lastHealTime = currentTime;
+                    io.send("z", foodId, false);
+                    setTimeout(function () {
+                        if (player && player.alive) {
+                            io.send("F", 1, null);
+                            setTimeout(function () {
+                                io.send("F", 0, null);
+                            }, 100);
+                        }
+                    }, 100);
+                }
+            }
+        }
     }
 }
 
