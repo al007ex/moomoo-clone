@@ -72,13 +72,14 @@ var locationInfo = (function () {
 })();
 
 var defaultPort = (function () {
-    var parsed = coercePort(locationInfo.port);
+    var parsed = parsePortValue(locationInfo.port);
     if (parsed !== null) return parsed;
     return locationInfo.protocol === "https:" ? 443 : 80;
 })();
 
-var serverRegistry = buildServerRegistry(serverConfig);
-var selectedServer = resolveSelectedServer(serverRegistry);
+var servers = initialiseServers(serverConfig);
+var selectedServer = null;
+syncSelectedServerFromLocation();
 
 if (typeof window !== "undefined" && typeof fetch === "function") {
     setInterval(function () {
@@ -86,7 +87,81 @@ if (typeof window !== "undefined" && typeof fetch === "function") {
     }, 50000);
 }
 
-function coercePort(value) {
+function initialiseServers(list) {
+    var result = [];
+    if (!Array.isArray(list)) {
+        return result;
+    }
+
+    for (var i = 0; i < list.length; i++) {
+        var source = list[i] || {};
+        result.push({
+            key: typeof source.key === "string" && source.key.length ? source.key : ("server-" + (i + 1)),
+            name: typeof source.name === "string" && source.name.length ? source.name : ("Server " + (i + 1)),
+            host: typeof source.host === "string" ? source.host.trim() : "",
+            port: parsePortValue(source.port),
+            gameIndex: typeof source.gameIndex === "number" ? source.gameIndex : 0,
+            playerCount: typeof source.playerCount === "number" ? source.playerCount : 0,
+            region: typeof source.region === "string" && source.region.length ? source.region : "Servers"
+        });
+    }
+
+    if (!result.length) {
+        result.push({
+            key: "local-default",
+            name: "Local Lobby",
+            host: "",
+            port: null,
+            gameIndex: 0,
+            playerCount: 0,
+            region: "Local"
+        });
+    }
+
+    return result;
+}
+
+function getServerByKey(key) {
+    if (!key) return null;
+    for (var i = 0; i < servers.length; i++) {
+        if (servers[i].key === key) {
+            return servers[i];
+        }
+    }
+    return null;
+}
+
+function syncSelectedServerFromLocation() {
+    if (typeof window === "undefined") {
+        if (!selectedServer && servers.length) {
+            selectedServer = servers[0];
+        }
+        return;
+    }
+
+    var search = window.location.search || "";
+    var key = null;
+
+    if (search) {
+        var match = search.match(/[?&]server=([^&]+)/);
+        if (match) {
+            try {
+                key = decodeURIComponent(match[1].replace(/\+/g, " "));
+            } catch (err) {
+                key = match[1];
+            }
+        }
+    }
+
+    var found = getServerByKey(key);
+    if (found) {
+        selectedServer = found;
+    } else if (!selectedServer && servers.length) {
+        selectedServer = servers[0];
+    }
+}
+
+function parsePortValue(value) {
     if (typeof value === "number" && !isNaN(value)) {
         return value;
     }
@@ -99,125 +174,9 @@ function coercePort(value) {
     return null;
 }
 
-function resolvePort(portValue, protocol, fallbackPort) {
-    var direct = coercePort(portValue);
-    if (direct !== null) {
-        return direct;
-    }
-
-    var fallbackParsed = coercePort(fallbackPort);
-    if (fallbackParsed !== null) {
-        return fallbackParsed;
-    }
-
-    if (protocol === "https:" || protocol === "wss") {
-        return 443;
-    }
-
-    return 80;
-}
-
-function buildServerRegistry(rawList) {
-    var list = Array.isArray(rawList) ? rawList : [];
-    var regions = [];
-    var lookup = {};
-    var defaultServer = null;
-
-    for (var regionIndex = 0; regionIndex < list.length; regionIndex++) {
-        var region = list[regionIndex] || {};
-        var regionName = typeof region.region === "string" && region.region.length ? region.region : ("Region " + (regionIndex + 1));
-        var servers = Array.isArray(region.servers) ? region.servers : [];
-        var normalised = [];
-
-        for (var serverIndex = 0; serverIndex < servers.length; serverIndex++) {
-            var server = servers[serverIndex] || {};
-            var key = typeof server.key === "string" && server.key.length ? server.key : (regionName.toLowerCase().replace(/\s+/g, "-") + "-" + (serverIndex + 1));
-            var name = typeof server.name === "string" && server.name.length ? server.name : ("Server " + (serverIndex + 1));
-            var host = typeof server.host === "string" ? server.host.trim() : "";
-            var resolvedHost = host || locationInfo.hostname || "127.0.0.1";
-            var resolvedPort = resolvePort(server.port, locationInfo.protocol, defaultPort);
-            var gameIndex = typeof server.gameIndex === "number" ? server.gameIndex : 0;
-            var playerCount = typeof server.playerCount === "number" ? server.playerCount : 0;
-
-            var entry = {
-                key: key,
-                name: name,
-                host: host,
-                port: server.port,
-                resolvedHost: resolvedHost,
-                resolvedPort: resolvedPort,
-                gameIndex: gameIndex,
-                playerCount: playerCount,
-                regionName: regionName
-            };
-
-            lookup[key] = entry;
-            normalised.push(entry);
-            if (!defaultServer) {
-                defaultServer = entry;
-            }
-        }
-
-        if (normalised.length) {
-            regions.push({
-                name: regionName,
-                servers: normalised
-            });
-        }
-    }
-
-    if (!defaultServer) {
-        var fallback = {
-            key: "local-default",
-            name: "Local Lobby",
-            host: "",
-            port: "",
-            resolvedHost: locationInfo.hostname || "127.0.0.1",
-            resolvedPort: defaultPort,
-            gameIndex: 0,
-            playerCount: 0,
-            regionName: "Local"
-        };
-        lookup[fallback.key] = fallback;
-        regions.push({
-            name: "Local",
-            servers: [fallback]
-        });
-        defaultServer = fallback;
-    }
-
-    return {
-        regions: regions,
-        lookup: lookup,
-        defaultServer: defaultServer
-    };
-}
-
-function getSelectedServerKeyFromQuery() {
-    if (typeof window === "undefined") {
-        return null;
-    }
-    var search = window.location.search || "";
-    var match = search.match(/[?&]server=([^&]+)/);
-    if (!match) return null;
-    try {
-        return decodeURIComponent(match[1].replace(/\+/g, " "));
-    } catch (err) {
-        return match[1];
-    }
-}
-
-function resolveSelectedServer(registry) {
-    var key = getSelectedServerKeyFromQuery();
-    if (key && registry.lookup[key]) {
-        return registry.lookup[key];
-    }
-    return registry.defaultServer;
-}
-
 function navigateToServer(key) {
     if (typeof window === "undefined" || !key) return;
-    if (!serverRegistry.lookup[key]) {
+    if (!getServerByKey(key)) {
         alert("Unknown server key. Update client/src/data/servers.js to add it first.");
         return;
     }
@@ -243,7 +202,7 @@ function connectSocketIfReady() {
 
 function connectSocket() {
 
-    selectedServer = resolveSelectedServer(serverRegistry);
+    syncSelectedServerFromLocation();
     if (!selectedServer) {
         console.error("No servers configured. Update client/src/data/servers.js.");
         showLoadingText("No servers configured.");
@@ -254,12 +213,15 @@ function connectSocket() {
 
     var loc = locationInfo;
     var protocol = loc.protocol === "https:" ? "wss" : "ws";
-    var resolvedHost = selectedServer.resolvedHost;
-    var resolvedPort = selectedServer.resolvedPort;
-    var isStandardPort = (protocol === "wss" && resolvedPort === 443) || (protocol === "ws" && resolvedPort === 80);
-    var portSegment = isStandardPort ? "" : ":" + resolvedPort;
+    var host = selectedServer.host || loc.hostname || "127.0.0.1";
+    var port = parsePortValue(selectedServer.port);
+    if (port === null) {
+        port = defaultPort;
+    }
+    var isStandardPort = (protocol === "wss" && port === 443) || (protocol === "ws" && port === 80);
+    var portSegment = isStandardPort ? "" : ":" + port;
     var gameIndex = typeof selectedServer.gameIndex === "number" ? selectedServer.gameIndex : 0;
-    var wsAddress = protocol + "://" + resolvedHost + portSegment + "/?gameIndex=" + gameIndex;
+    var wsAddress = protocol + "://" + host + portSegment + "/?gameIndex=" + gameIndex;
 
     io.connect(wsAddress, function (error) {
         pingSocket();
@@ -767,34 +729,49 @@ function setupServerStatus() {
         partySpan.innerText = selectedServer ? selectedServer.key : "";
     }
 
-    var regions = serverRegistry.regions;
+    var regionsInOrder = [];
+    var serversByRegion = {};
+    var regionTotals = {};
 
-    for (var regionIndex = 0; regionIndex < regions.length; regionIndex++) {
-        var region = regions[regionIndex];
-        var serverList = region.servers;
+    for (var i = 0; i < servers.length; i++) {
+        var server = servers[i];
+        var regionName = server.region || "Servers";
+        if (!serversByRegion[regionName]) {
+            serversByRegion[regionName] = [];
+            regionsInOrder.push(regionName);
+            regionTotals[regionName] = 0;
+        }
+        serversByRegion[regionName].push(server);
+        regionTotals[regionName] += Math.max(0, server.playerCount || 0);
+    }
+
+    for (var regionIndex = 0; regionIndex < regionsInOrder.length; regionIndex++) {
+        var regionName = regionsInOrder[regionIndex];
+        var serverList = serversByRegion[regionName];
         if (!serverList.length) continue;
 
-        var totalPlayers = 0;
-        for (var i = 0; i < serverList.length; i++) {
-            totalPlayers += Math.max(0, serverList[i].playerCount || 0);
-        }
+        var totalPlayers = regionTotals[regionName];
         overallTotal += totalPlayers;
 
-        tmpHTML += "<option disabled>" + region.name + " - " + totalPlayers + " players</option>";
+        tmpHTML += "<option disabled>" + regionName + " - " + totalPlayers + " players</option>";
 
         for (var serverIndex = 0; serverIndex < serverList.length; serverIndex++) {
-            var server = serverList[serverIndex];
-            var playerCount = Math.min(server.playerCount || 0, config.maxPlayers);
-            var serverLabel = server.name + " [" + playerCount + "/" + config.maxPlayers + "]";
-            var isSelected = selectedServer && server.key === selectedServer.key;
+            var currentServer = serverList[serverIndex];
+            var playerCount = Math.min(currentServer.playerCount || 0, config.maxPlayers);
+            var serverLabel = currentServer.name + " [" + playerCount + "/" + config.maxPlayers + "]";
+            var isSelected = selectedServer && currentServer.key === selectedServer.key;
             if (isSelected && partySpan) {
-                partySpan.innerText = server.key;
+                partySpan.innerText = currentServer.key;
             }
             var selectedAttr = isSelected ? "selected" : "";
-            tmpHTML += "<option value='" + server.key + "' " + selectedAttr + ">" + serverLabel + "</option>";
+            tmpHTML += "<option value='" + currentServer.key + "' " + selectedAttr + ">" + serverLabel + "</option>";
         }
 
         tmpHTML += "<option disabled></option>";
+    }
+
+    if (!regionsInOrder.length) {
+        tmpHTML += "<option disabled>No servers configured</option>";
     }
 
     tmpHTML += "<option disabled>All Servers - " + overallTotal + " players</option>";
@@ -817,7 +794,7 @@ function setupServerStatus() {
 }
 
 function updateServerList() {
-    selectedServer = resolveSelectedServer(serverRegistry);
+    syncSelectedServerFromLocation();
     setupServerStatus();
 }
 
