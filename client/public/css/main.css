@@ -103,8 +103,8 @@ span {
 
 #youtuberOf {
 	position: absolute;
-	top: 10px;
-	left: 10px;
+	bottom: 20px;
+	left: 2cqmin;
 	color: #fff;
 	font-size: 24px;
 }
@@ -153,19 +153,11 @@ span {
 }
 
 #partyButton {
-	position: absolute;
-	color: white;
-	top: 20px;
-	right: 20px;
-	font-size: 24px;
-	text-decoration: none;
+	display: none;
 }
 
 #joinPartyButton {
-	position: absolute;
-	top: 54px;
-	right: 20px;
-	cursor: pointer;
+	display: none;
 }
 
 #pingDisplay {
@@ -712,7 +704,7 @@ span {
 }
 
 #gameName {
-	font-size: 170px;
+	font-size: 150px;
 	margin-bottom: -25px;
 	text-shadow:
 		0 1px 0 #c4c4c4,

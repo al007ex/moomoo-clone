@@ -50,6 +50,16 @@ var serverConfig = require("./data/servers.js");
 
 var textManager = new animText.TextManager();
 
+/*
+
+Сделать чтобы при chatHolder можно было передвигаться
+
+Также сделать это для allianceButton -> allianceMenu
+
+Сделать macro по типу trap, spike и прочей фигни, а также сделать Nuro чтобы он сделал серверную часть, чтобы я мог создать панель, где будут эти все macro и хотя-бы AutoHeal
+
+*/
+
 var locationInfo = (function () {
     if (typeof window === "undefined" || !window.location) {
         return {
