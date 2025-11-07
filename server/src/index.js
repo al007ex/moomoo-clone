@@ -17,16 +17,7 @@ import cors from "cors";
 
 const app = e();
 
-const corsOptions = {
-    origin: (_origin, cb) => cb(null, true),
-    methods: "*",
-    allowedHeaders: "*",
-    credentials: true,
-    optionsSuccessStatus: 204
-};
-
-app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
+app.use(cors()); 
 
 const colimit = new ConnectionLimit(4);
 
