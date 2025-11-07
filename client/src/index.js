@@ -132,13 +132,11 @@ async function loadServerConfigStuffIdk() {
 function pingServer(server) {
     return new Promise((resolve, reject) => {
         let start = Date.now();
-        // ping URL ${ws}.${host}
-        fetch(`https://${server.ws}.${server.host}`, { cache: "no-store" }).then(() => {
-            let ping = Date.now() - start;
-            resolve(ping);
-        }).catch((err) => {
-            reject(err);
-        });
+        fetch(`https://${server.ws}.${server.host}/ping`, { cache: "no-store" }).then(() => {
+            let end = Date.now();
+            resolve(end - start);
+        }).catch(reject);
+        
     });
 }
 window.onload = function () {
