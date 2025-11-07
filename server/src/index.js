@@ -17,45 +17,12 @@ import cors from "cors";
 
 const app = e();
 
-const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const baseOriginAllowlist = [
-  /^https?:\/\/moomoo\.al007ex(:\d+)?$/i,
-  /^https?:\/\/([a-z0-9-]+\.)+moomoo\.al007ex(:\d+)?$/i, // subdomains
-  /^https?:\/\/localhost(:\d+)?$/i,
-  /^https?:\/\/127\.0\.0\.1(:\d+)?$/i,
-  /^https?:\/\/0\.0\.0\.0(:\d+)?$/i
-];
-
-const envOrigins = (process.env.CORS_ALLOW_ORIGINS ?? "")
-    .split(",")
-    .map(origin => origin.trim())
-    .filter(Boolean);
-
-const allowAllOrigins = envOrigins.some(origin => origin === "*");
-
-const envAllowlist = envOrigins
-    .filter(origin => origin !== "*")
-    .map(origin => {
-        if (/^https?:\/\//i.test(origin)) {
-            return new RegExp(`^${escapeRegex(origin)}$`, "i");
-        }
-
-        return new RegExp(`^https?:\/\/${escapeRegex(origin)}(:\\d+)?$`, "i");
-    });
-
-const originAllowlist = [...baseOriginAllowlist, ...envAllowlist];
-
 const corsOptions = {
-  origin(origin, cb) {
-    if (!origin || allowAllOrigins) return cb(null, true);
-    const ok = originAllowlist.some(rx => rx.test(origin));
-    cb(ok ? null : new Error("Not allowed by CORS"), ok);
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,
-  optionsSuccessStatus: 204
+    origin: (_origin, cb) => cb(null, true),
+    methods: "*",
+    allowedHeaders: "*",
+    credentials: true,
+    optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
