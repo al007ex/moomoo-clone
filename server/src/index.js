@@ -21,19 +21,20 @@ const originAllowlist = [
   /^https?:\/\/([a-z0-9-]+\.)+moomoo\.al007ex(:\d+)?$/i, // subdomains
 ];
 
-app.use(cors({
+const corsOptions = {
   origin(origin, cb) {
     if (!origin) return cb(null, true);
     const ok = originAllowlist.some(rx => rx.test(origin));
-    cb(ok ? null : new Error('Not allowed by CORS'), ok);
+    cb(ok ? null : new Error("Not allowed by CORS"), ok);
   },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true, 
-  optionsSuccessStatus: 204,
-}));
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true,
+  optionsSuccessStatus: 204
+};
 
-app.options('*', cors());
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 const colimit = new ConnectionLimit(4);
 
