@@ -13,53 +13,18 @@ import { filter_chat } from "./moomoo/libs/filterchat.js";
 import { config } from "./moomoo/config.js";
 import { ConnectionLimit } from "./moomoo/libs/limit.js";
 import { fileURLToPath } from "node:url";
-
-const colimit = new ConnectionLimit(4);
-
-const allowedOrigins = (process.env.CORS_ORIGINS ?? "https://moomoo.al007ex.com,http://localhost:8080")
-    .split(",")
-    .map(origin => origin.trim())
-    .filter(Boolean);
-const corsDomain = (process.env.CORS_DOMAIN ?? "al007ex.com").replace(/^\./, "");
-
-const isAllowedOrigin = origin => {
-    if (!origin) return false;
-
-    try {
-        const url = new URL(origin);
-        const hostname = url.hostname;
-
-        if (!hostname) return false;
-
-        return hostname === corsDomain || hostname.endsWith(`.${corsDomain}`);
-    } catch {
-        return false;
-    }
-};
+import cors from "cors";
 
 const app = e();
+app.use(cors());
 
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-
-    if (origin && (allowedOrigins.includes(origin) || isAllowedOrigin(origin))) {
-        res.header("Access-Control-Allow-Origin", origin);
-        res.header("Vary", "Origin");
-        res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-        res.header("Access-Control-Allow-Headers", "Content-Type");
-    }
-
-    if (req.method === "OPTIONS") {
-        return res.sendStatus(204);
-    }
-
-    next();
-});
+const colimit = new ConnectionLimit(4);
 
 const server = createServer(app);
 const wss = new WebSocketServer({
     server
 });
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

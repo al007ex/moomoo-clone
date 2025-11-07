@@ -13,5 +13,8 @@
   "workspaces": [
     "client",
     "server"
-  ]
+  ],
+  "dependencies": {
+    "cors": "^2.8.5"
+  }
 }
