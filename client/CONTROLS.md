@@ -6,11 +6,7 @@
 - **Click / Space** - Gather resources / Attack
 
 ## Actions
-- **E** - Auto Attack (toggle)
-- **Q** - Quick select food
-- **X** - Lock rotation
-- **R** - Send map ping
-- **C** - Update map marker
+- None. No have
 
 ## Menus
 - **Insert** - Open/Close UI Settings Menu (Auto Heal and other settings)
