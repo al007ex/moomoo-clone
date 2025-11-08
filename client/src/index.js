@@ -1,6 +1,7 @@
 'use strict';
 
 // Ensure a minimal `process` shim exists before loading modules that depend on it.
+
 (function ensureProcessShim() {
     var globalObject = typeof globalThis !== "undefined" ? globalThis : window;
     var proc = globalObject.process || {};
@@ -47,9 +48,11 @@ var Projectile = require("./data/projectile.js");
 var ProjectileManager = require("./data/projectileManager.js");
 
 var textManager = new animText.TextManager();
+
 var serverConfig = require("./data/servers.js");
 
-
+// Import UI Manager
+var uiManager = require('./ui/index.js');
 
 /*
 
@@ -136,7 +139,6 @@ function pingServer(server) {
             let end = Date.now();
             resolve(end - start);
         }).catch(reject);
-        
     });
 }
 window.onload = function () {
@@ -282,20 +284,11 @@ function follmoo() {
 }
 
 // AutoHealth:
-var autoHealEnabled = getSavedVal("autoHeal") === "true";
-console.log("AutoHeal enabled:", autoHealEnabled);
-
-function toggleAutoHeal() {
-    autoHealEnabled = !autoHealEnabled;
-    saveVal("autoHeal", autoHealEnabled.toString());
-    updateAutoHealUI();
-}
-
-function updateAutoHealUI() {
-    var checkbox = document.getElementById("autoHealCheckbox");
-    if (checkbox) {
-        checkbox.checked = autoHealEnabled;
+function getAutoHealEnabled() {
+    if (uiManager && uiManager.getAutoHealEnabled) {
+        return uiManager.getAutoHealEnabled();
     }
+    return getSavedVal("autoHeal") === "true";
 }
 
 var useNativeResolution;
@@ -991,85 +984,6 @@ if (document.readyState === 'loading') {
     bootstrap();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function showItemInfo(item, isWeapon, isStoreItem) {
     if (player && item) {
         UTILS.removeAllChildren(itemInfoHolder);
@@ -1676,15 +1590,6 @@ function prepareUI() {
         saveVal("show_ping", showPing ? "true" : "false");
         updatePerformancePanelVisibility();
     });
-
-    // AutoHeal checkbox
-    var autoHealCheckbox = document.getElementById("autoHealCheckbox");
-    if (autoHealCheckbox) {
-        autoHealCheckbox.checked = autoHealEnabled;
-        autoHealCheckbox.onchange = UTILS.checkTrusted(function () {
-            toggleAutoHeal();
-        });
-    }
 }
 
 function updateItems(data, wpn) {
@@ -1989,10 +1894,15 @@ function keysActive() {
     return (chatHolder.style.display != "block");
 }
 
+// Open menu
 function keyDown(event) {
     var keyNum = event.which || event.keyCode || 0;
     if (keyNum == 27) {
         hideAllWindows();
+    } else if (keyNum == 45) {
+        if (uiManager) {
+            uiManager.toggleSettingsMenu();
+        }
     } else if (player && player.alive && keysActive()) {
         if (!keys[keyNum]) {
             keys[keyNum] = 1;
@@ -2282,12 +2192,15 @@ function updateLeaderboard(data) {
 function updateGame() {
     if (true) {
         // AutoHeal Ticks:
-        game.tick++;
-        if (game.tickQueue[game.tick]) {
-            game.tickQueue[game.tick].forEach(function (callback) {
+        Ticks.tick++;
+        if (Ticks.tickQueue[Ticks.tick]) {
+            Ticks.tickQueue[Ticks.tick].forEach(function (callback) {
                 callback();
             });
-            delete game.tickQueue[game.tick];
+            delete Ticks.tickQueue[Ticks.tick];
+        }
+        if (player && player.alive && getAutoHealEnabled()) {
+            updateNearbyEnemies();
         }
         if (player) {
             if (!lastSent || now - lastSent >= (1000 / config.clientSendRate)) {
@@ -3269,6 +3182,11 @@ function addPlayer(data, isYou) {
     tmpPlayer.x2 = undefined;
     tmpPlayer.y2 = undefined;
     tmpPlayer.setData(data);
+    if (!tmpPlayer.shameCount || !tmpPlayer.shameTimer || !tmpPlayer.hitTime) {
+        tmpPlayer.shameCount = tmpPlayer.shameCount || 0;
+        tmpPlayer.shameTimer = tmpPlayer.shameTimer || 0;
+        tmpPlayer.hitTime = tmpPlayer.hitTime || 0;
+    }
     if (isYou) {
         player = tmpPlayer;
         camX = player.x;
@@ -3305,72 +3223,379 @@ function updatePlayerValue(index, value, updateView) {
     }
 }
 
-// Game tick system для AutoHeal
-let game = {
-    tick: 0,
-    tickQueue: [],
-    tickBase: function (set, tick) {
-        const targetTick = this.tick + tick;
-        if (!this.tickQueue[targetTick]) {
-            this.tickQueue[targetTick] = [];
-        }
-        this.tickQueue[targetTick].push(set);
+var gameLogic = {
+    pendingActions: [],
+    nearbyPlayers: [],
+    combatState: {
+        active: false,
+        preventHealing: false
     },
-    tickRate: 1000 / config.serverUpdateRate,
-    tickSpeed: 0,
-    lastTick: performance.now(),
-    lastTickUpdate: Date.now()
-};
+    preventHealing: false,
+    settings: {
+        combat: {
+            soldierModeOnly: false
+        }
+    },
+    healTimer: 0,
+    damageHistory: [],
+    threats: {
+        nearby: []
+    },
+    nearbyObjects: [],
+    healingCapacity: 0,
+    lastHealAttempt: 0,
+    healInterval: 3000,
+    healDelay: 0,
+    nears: [],
+    enemies: {
+        near: []
+    },
+    doNextTick: [],
+    healingDelay: 0,
+    minHealDelay: 100,
+    healCooldown: 1000,
+    lastHealTime: 0,
+    force: {
+        soldierRelated: {
+            onlySoldier: false
+        }
+    },
+    damages: [],
 
-let lastHealTime = 0;
-let healCooldown = 0;
-function updateHealth(sid, value) {
-    tmpObj = findPlayerBySID(sid);
-    if (tmpObj) {
-        tmpObj.health = value;
-        if (tmpObj === player && autoHealEnabled && player && player.alive) {
-            var currentTime = Date.now();
-            var healthPercent = (player.health / player.maxHealth) * 100;
-            if (healthPercent < 100 && (currentTime - lastHealTime >= healCooldown)) {
-                var foodId = null;
-                var missingHealth = player.maxHealth - player.health;
-                var foodHealing = {
-                    0: 20,
-                    1: 40,
-                    2: 30
-                };
-                var foodPriority = [0, 2, 1];
-                for (var j = 0; j < foodPriority.length; j++) {
-                    var foodItemId = foodPriority[j];
-                    var healAmount = foodHealing[foodItemId];
-                    if (player.items.indexOf(foodItemId) >= 0 && missingHealth >= healAmount * 0.5) {
-                        foodId = foodItemId;
-                        break;
+    scheduleAction: function (action) {
+        if (typeof action == "function") {
+            this.pendingActions.push(action);
+        }
+    },
+
+    isAlly: function (playerId) {
+        if (!player || !player.team) return false;
+        var targetPlayer = findPlayerBySID(playerId);
+        return targetPlayer && targetPlayer.team === player.team;
+    },
+
+    canPerformHeal: function () {
+        var now = Date.now();
+        return now - this.lastHealAttempt >= this.healInterval;
+    },
+
+    canHealNow: function () {
+        if (!player || !player.alive || player.health >= 100) return false;
+        var now = Date.now();
+        return now - this.lastHealTime >= this.healCooldown;
+    },
+
+    calculateOptimalHealAmount: function () {
+        if (!player || !player.alive) return 0;
+        var health = player.health;
+        var maxHealth = 100;
+        var missingHealth = maxHealth - health;
+
+        if (missingHealth <= 0) return 0;
+
+        var threatLevel = this.assessThreatLevel();
+
+        if (this.enemies.near.length === 0) {
+            return missingHealth;
+        }
+
+        var potentialDamage = this.calculatePotentialDamage();
+        var safeHealAmount = Math.min(missingHealth, this.calculateSafeHealAmount(potentialDamage));
+
+        return safeHealAmount;
+    },
+
+    assessThreatLevel: function () {
+        return this.enemies.near.length;
+    },
+    calculatePotentialDamage: function () {
+        var totalDamage = 0;
+        for (var i = 0; i < this.enemies.near.length; i++) {
+            var enemy = this.enemies.near[i];
+            if (enemy && enemy.weaponIndex !== undefined) {
+                var weapon = items.weapons[enemy.weaponIndex];
+                if (weapon && weapon.dmg) {
+                    var distance = UTILS.getDistance(player.x, player.y, enemy.x, enemy.y);
+                    var weaponRange = weapon.range || 100;
+
+                    if (distance <= weaponRange + 50) {
+                        totalDamage += weapon.dmg;
                     }
                 }
-                if (foodId === null) {
-                    for (var i = 0; i < items.list.length; i++) {
-                        var item = items.list[i];
-                        if (item.group && (item.group.id === 0 || item.group.name === "food")) {
+            }
+        }
+
+        if (player.skinIndex == 7) {
+            totalDamage += 5;
+        }
+
+        return totalDamage;
+    },
+
+    calculateSafeHealAmount: function (potentialDamage) {
+        var currentHealth = player.health;
+        var safeThreshold = potentialDamage + 20;
+
+        if (currentHealth > safeThreshold) {
+            return Math.min(30, 100 - currentHealth);
+        }
+
+        var targetHealth = Math.min(100, safeThreshold + 10);
+        return targetHealth - currentHealth;
+    },
+
+    nextTick: function (callback) {
+        this.doNextTick.push(callback);
+    },
+
+    isFriendly: function (sid) {
+        return this.isAlly(sid);
+    },
+    start0ShameHeal: function (e, t) {
+        if (!this.canHealNow()) return;
+        if (e == 2) {
+            if (this.closeObjects && this.closeObjects.find(function (obj) {
+                return obj.active && obj.dmg && !gameLogic.isFriendly(obj.owner.sid) && UTILS.getDistance(obj, player) <= obj.scale + 60;
+            })) {
+                this.nextTick(function () {
+                    setTimeout(function () {
+                        gameLogic.heal(t);
+                    }, gameLogic.minHealDelay);
+                });
+            } else {
+                this.healingDelay = Math.ceil(this.healCooldown / 100);
+            }
+        } else {
+            this.nextTick(function () {
+                setTimeout(function () {
+                    gameLogic.heal(t);
+                }, gameLogic.minHealDelay);
+            });
+        }
+    },
+
+    interpretDamage: function () {
+        var damages = [];
+        for (var i = 0; i < this.enemies.near.length; i++) {
+            var enemy = this.enemies.near[i];
+            if (enemy && enemy.weaponIndex !== undefined) {
+                var weapon = items.weapons[enemy.weaponIndex];
+                if (weapon && weapon.dmg) {
+                    damages.push({
+                        potDamage: weapon.dmg,
+                        canEMP: weapon.projectile !== undefined,
+                        spike: weapon.name && weapon.name.indexOf("spike") >= 0
+                    });
+                }
+            }
+        }
+        return damages;
+    },
+
+    validateAnti: function (type, damage, spike) {
+        if (type === "soldier") {
+            return player.health - damage >= 0 && (!spike || player.skinIndex !== 7);
+        } else if (type === "emp") {
+            return player.health - damage >= 0;
+        }
+        return false;
+    },
+
+    heal: function (amount) {
+        if (!player || !player.alive || player.health >= 100 || !this.canHealNow()) {
+            return;
+        }
+
+        var foodId = null;
+        var foodItems = [0, 1, 2];
+        var i = 0;
+        while (foodId === null && i < foodItems.length) {
+            var foodItemId = foodItems[i];
+            if (player.items && player.items.indexOf(foodItemId) >= 0) {
+                foodId = foodItemId;
+            } else {
+                i++;
+                if (i >= foodItems.length && player.items) {
+                    for (var j = 0; j < items.list.length; j++) {
+                        var item = items.list[j];
+                        if (item.group && item.group.id === 0) {
                             if (player.items.indexOf(item.id) >= 0) {
                                 foodId = item.id;
                                 break;
                             }
                         }
                     }
+                    break;
                 }
-                if (foodId !== null) {
-                    lastHealTime = currentTime;
-                    io.send("z", foodId, false);
+            }
+        }
+
+        if (foodId !== null) {
+            this.lastHealTime = Date.now();
+            io.send("z", foodId, false);
+            setTimeout(function () {
+                if (player && player.alive) {
+                    io.send("F", 1, null);
                     setTimeout(function () {
-                        if (player && player.alive) {
-                            io.send("F", 1, null);
-                            setTimeout(function () {
-                                io.send("F", 0, null);
-                            }, 100);
-                        }
-                    }, 100);
+                        io.send("F", 0, null);
+                    }, 150);
                 }
+            }, 200);
+        }
+    },
+
+    healing: function () {
+        if (!player || !player.alive || !this.canHealNow()) return;
+
+        var optimalHealAmount = this.calculateOptimalHealAmount();
+
+        if (optimalHealAmount <= 0) return;
+
+        if (this.enemies.near.length) {
+            var t = this.interpretDamage();
+            var potentialDamage = this.calculatePotentialDamage();
+            var s = t.every(function (e) { return e.canEMP; });
+            var n = t.some(function (e) { return e.spike; });
+
+            if (player.health - potentialDamage <= 20) {
+                if (s && this.validateAnti("emp", potentialDamage)) {
+                    setTimeout(function () {
+                        gameLogic.heal(optimalHealAmount);
+                    }, this.minHealDelay);
+                } else if (this.validateAnti("soldier", potentialDamage * 0.75, n)) {
+                    this.force.soldierRelated.onlySoldier = true;
+                    io.send("c", 0, 6, 0);
+                    setTimeout(function () {
+                        gameLogic.force.soldierRelated.onlySoldier = false;
+                        setTimeout(function () {
+                            gameLogic.heal(optimalHealAmount);
+                        }, gameLogic.minHealDelay);
+                    }, 200);
+                } else if (player.shameCount < 7) {
+                    setTimeout(function () {
+                        gameLogic.heal(optimalHealAmount);
+                    }, this.minHealDelay);
+                } else {
+                    this.start0ShameHeal(true, optimalHealAmount);
+                }
+            } else {
+                this.start0ShameHeal(2, optimalHealAmount);
+            }
+        } else {
+            setTimeout(function () {
+                gameLogic.heal(optimalHealAmount);
+            }, this.minHealDelay);
+        }
+        this.autoHealing();
+    },
+
+    autoHealing: function () {
+        if (this.healingDelay > 0) {
+            this.healingDelay--;
+            if (this.healingDelay === 0 && this.canHealNow()) {
+                var healAmount = this.calculateOptimalHealAmount();
+                if (healAmount > 0) {
+                    setTimeout(function () {
+                        gameLogic.heal(healAmount);
+                    }, this.minHealDelay);
+                }
+            }
+        }
+    },
+
+    updateNearbyEnemies: function () {
+        if (!player || !player.alive) {
+            this.nears = [];
+            this.enemies.near = [];
+            return;
+        }
+        this.nears = [];
+        this.enemies.near = [];
+        for (var i = 0; i < players.length; i++) {
+            var tmpPlayer = players[i];
+            if (tmpPlayer && tmpPlayer.visible && tmpPlayer.sid !== player.sid) {
+                if (!tmpPlayer.team || tmpPlayer.team !== player.team) {
+                    var distance = UTILS.getDistance(player.x, player.y, tmpPlayer.x, tmpPlayer.y);
+                    if (distance <= 300) {
+                        this.nears.push(tmpPlayer);
+                        this.enemies.near.push(tmpPlayer);
+                    }
+                }
+            }
+        }
+    },
+
+    processNextTick: function () {
+        while (this.doNextTick.length > 0) {
+            var callback = this.doNextTick.shift();
+            callback();
+        }
+    }
+};
+
+var game = gameLogic;
+
+var Ticks = {
+    tick: 0,
+    tickQueue: {},
+    schedule: function (callback, delay) {
+        var targetTick = this.tick + delay;
+        if (!this.tickQueue[targetTick]) {
+            this.tickQueue[targetTick] = [];
+        }
+        this.tickQueue[targetTick].push(callback);
+    },
+    interval: 1000 / config.serverUpdateRate,
+    speed: 0,
+    lastUpdate: performance.now(),
+    lastSync: Date.now()
+};
+
+function updateNearbyEnemies() {
+    game.updateNearbyEnemies();
+}
+
+function updateHealth(sid, value) {
+    tmpObj = findPlayerBySID(sid);
+    if (tmpObj) {
+        var oldHealth = tmpObj.health;
+        tmpObj.health = value;
+        if (tmpObj === player && value < oldHealth) {
+            player.hitTime = Date.now();
+            game.damages.push({
+                damage: oldHealth - value,
+                time: Date.now()
+            });
+        }
+        if (tmpObj === player && getAutoHealEnabled() && player && player.alive) {
+            if (player.hitTime) {
+                var timeSinceHit = Date.now() - player.hitTime;
+                if (timeSinceHit <= 120) {
+                    player.shameCount = (player.shameCount || 0) + 1;
+                    if (player.shameCount >= 8) {
+                        player.shameTimer = 30000;
+                        player.shameCount = 0;
+                        if (!player.skins) {
+                            player.skins = {};
+                        }
+                        player.skins[45] = 1;
+                        player.realSkinIndex = player.skinIndex;
+                        player.skinIndex = 45;
+                        io.send("c", 0, 45, 0);
+                    }
+                } else {
+                    player.shameCount = Math.max(0, (player.shameCount || 0) - 2);
+                }
+                player.hitTime = 0;
+            }
+            if (player.shameTimer && player.shameTimer > 0) {
+                return;
+            }
+
+            if (player.health < 100) {
+                setTimeout(function () {
+                    game.healing();
+                }, Math.max(game.minHealDelay + 400, game.healCooldown - (Date.now() - game.lastHealTime)));
             }
         }
     }
@@ -3455,12 +3680,14 @@ var performanceDisplay = null;
 var pingValueElement = null;
 var fpsValueElement = null;
 var packetValueElement = null;
+var shameValueElement = null;
 
 function initPerformanceDisplay() {
     performanceDisplay = document.getElementById("performanceDisplay");
     pingValueElement = document.getElementById("pingValue");
     fpsValueElement = document.getElementById("fpsValue");
     packetValueElement = document.getElementById("packetValue");
+    shameValueElement = document.getElementById("shameValue");
     updatePerformancePanelVisibility();
 }
 
@@ -3494,6 +3721,32 @@ function updatePerformanceDisplay() {
         lastPacketTime = currentTime;
         if (packetValueElement) {
             packetValueElement.textContent = packetCounterDisplay + "/s";
+        }
+    }
+
+    // Update shame count and timer
+    if (player && player.alive) {
+        // Decrease shame timer
+        if (player.shameTimer && player.shameTimer > 0) {
+            player.shameTimer -= delta;
+            if (player.shameTimer <= 0) {
+                player.shameTimer = 0;
+                player.shameCount = 0;
+
+                // Remove Shame hat when timer expires
+                if (player.skinIndex === 45) {
+                    io.send("c", 0, 0, 0); // Unequip shame hat
+                }
+            }
+        }
+
+        // Display shame count
+        if (shameValueElement) {
+            var shameText = (player.shameCount || 0).toString();
+            if (player.shameTimer && player.shameTimer > 0) {
+                shameText += " (" + Math.ceil(player.shameTimer / 1000) + "s)";
+            }
+            shameValueElement.textContent = shameText;
         }
     }
 }

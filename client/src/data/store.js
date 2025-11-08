@@ -1,7 +1,7 @@
 module.exports.hats = [{
     id: 45,
     name: "Shame!",
-    dontSell: true,
+    dontSell: false,
     price: 0,
     scale: 120,
     desc: "hacks are for losers"

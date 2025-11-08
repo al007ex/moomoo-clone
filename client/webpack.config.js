@@ -21,6 +21,10 @@ module.exports = {
       {
         from: path.resolve(__dirname, "public"),
         to: path.resolve(__dirname, "../dist/client")
+      },
+      {
+        from: path.resolve(__dirname, "src/ui"),
+        to: path.resolve(__dirname, "../dist/client/src/ui")
       }
     ])
   ],
