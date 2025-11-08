@@ -13,14 +13,19 @@ import { filter_chat } from "./moomoo/libs/filterchat.js";
 import { config } from "./moomoo/config.js";
 import { ConnectionLimit } from "./moomoo/libs/limit.js";
 import { fileURLToPath } from "node:url";
+import cors from "cors";
+
+const app = e();
+
+app.use(cors()); 
 
 const colimit = new ConnectionLimit(4);
 
-const app = e();
 const server = createServer(app);
 const wss = new WebSocketServer({
     server
 });
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

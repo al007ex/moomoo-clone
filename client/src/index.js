@@ -46,9 +46,10 @@ var Projectile = require("./data/projectile.js");
 
 var ProjectileManager = require("./data/projectileManager.js");
 
+var textManager = new animText.TextManager();
 var serverConfig = require("./data/servers.js");
 
-var textManager = new animText.TextManager();
+
 
 /*
 
@@ -56,168 +57,107 @@ var textManager = new animText.TextManager();
 
 */
 
-var locationInfo = (function () {
-    if (typeof window === "undefined" || !window.location) {
-        return {
-            protocol: "http:",
-            hostname: "127.0.0.1",
-            port: ""
-        };
-    }
-    return window.location;
-})();
-
-var defaultPort = (function () {
-    var parsed = parsePortValue(locationInfo.port);
-    if (parsed !== null) return parsed;
-    return locationInfo.protocol === "https:" ? 443 : 80;
-})();
-
-var servers = initialiseServers(serverConfig);
-var selectedServer = null;
-syncSelectedServerFromLocation();
-
 if (typeof window !== "undefined" && typeof fetch === "function") {
     setInterval(function () {
         fetch("/ping", { cache: "no-store" }).catch(function () { });
     }, 50000);
 }
 
-function initialiseServers(list) {
-    var result = [];
-    if (!Array.isArray(list)) {
-        return result;
-    }
 
-    for (var i = 0; i < list.length; i++) {
-        var source = list[i] || {};
-        result.push({
-            key: typeof source.key === "string" && source.key.length ? source.key : ("server-" + (i + 1)),
-            name: typeof source.name === "string" && source.name.length ? source.name : ("Server " + (i + 1)),
-            host: typeof source.host === "string" ? source.host.trim() : "",
-            port: parsePortValue(source.port),
-            gameIndex: typeof source.gameIndex === "number" ? source.gameIndex : 0,
-            playerCount: typeof source.playerCount === "number" ? source.playerCount : 0,
-            region: typeof source.region === "string" && source.region.length ? source.region : "Servers"
-        });
-    }
+async function loadServerConfigStuffIdk() {
+    let href = window.location.href;
+    // example 
+    let serverParam = new URLSearchParams(window.location.search).get("server");
+    let server = null; // md5 has of server adress
+    let servers = await loadServers();
+    if (typeof document !== "undefined") {
+        var browserEl = document.getElementById("serverBrowser");
+        if (browserEl) {
+            var selectEl = document.createElement("select");
+            selectEl.id = "serverSelect";
 
-    if (!result.length) {
-        result.push({
-            key: "local-default",
-            name: "Local Lobby",
-            host: "",
-            port: null,
-            gameIndex: 0,
-            playerCount: 0,
-            region: "Local"
-        });
-    }
+            servers.forEach(function (entry, index) {
+                var optionEl = document.createElement("option");
+                optionEl.value = entry.key;
+                optionEl.textContent = entry.name
+                if (serverParam) {
+                    optionEl.selected = optionEl.value === serverParam;
+                } else if (index === 0) {
+                    optionEl.selected = true;
+                }
+                selectEl.appendChild(optionEl);
+            });
 
-    return result;
-}
-
-function getServerByKey(key) {
-    if (!key) return null;
-    for (var i = 0; i < servers.length; i++) {
-        if (servers[i].key === key) {
-            return servers[i];
+            selectEl.addEventListener("change", function (event) {
+                var newUrl = new URL(window.location.href);
+                var selectedValue = event.target.value;
+                if (selectedValue) {
+                    newUrl.searchParams.set("server", selectedValue);
+                } else {
+                    newUrl.searchParams.delete("server");
+                }
+                window.location.href = newUrl.toString();
+            });
+            browserEl.innerHTML = "";
+            browserEl.appendChild(selectEl);
         }
     }
-    return null;
-}
-
-function syncSelectedServerFromLocation() {
-    if (typeof window === "undefined") {
-        if (!selectedServer && servers.length) {
-            selectedServer = servers[0];
-        }
-        return;
-    }
-
-    var search = window.location.search || "";
-    var key = null;
-
-    if (search) {
-        var match = search.match(/[?&]server=([^&]+)/);
-        if (match) {
+    showLoadingText("Finding server...");
+    if (serverParam) {
+        console.log('Connecting to server:', serverParam);
+    } else {
+        console.log('No server specified, using default.');
+        // ping servers
+        let bestServer = null;
+        let bestPing = Infinity;
+        for (let srv of servers) {
+            if (srv.isLocal) continue;
             try {
-                key = decodeURIComponent(match[1].replace(/\+/g, " "));
+                let ping = await pingServer(srv);
+                console.log(`Ping to ${srv.name}: ${ping}ms`);
+                if (ping < bestPing) {
+                    bestPing = ping;
+                    bestServer = srv;
+                }
             } catch (err) {
-                key = match[1];
+                console.log(`Failed to ping ${srv.name}:`, err);
             }
         }
-    }
 
-    var found = getServerByKey(key);
-    if (found) {
-        selectedServer = found;
-    } else if (!selectedServer && servers.length) {
-        selectedServer = servers[0];
+        console.log(servers)
     }
+    connectSocketIfReady();
 }
 
-function parsePortValue(value) {
-    if (typeof value === "number" && !isNaN(value)) {
-        return value;
-    }
-    if (typeof value === "string" && value !== "") {
-        var parsed = parseInt(value, 10);
-        if (!isNaN(parsed)) {
-            return parsed;
-        }
-    }
-    return null;
+function pingServer(server) {
+    return new Promise((resolve, reject) => {
+        let start = Date.now();
+        fetch(`https://${server.ws}.${server.host}/ping`, { cache: "no-store" }).then(() => {
+            let end = Date.now();
+            resolve(end - start);
+        }).catch(reject);
+        
+    });
+}
+window.onload = function () {
+    console.log("Window loaded");
+    loadServerConfigStuffIdk()
 }
 
-function navigateToServer(key) {
-    if (typeof window === "undefined" || !key) return;
-    if (!getServerByKey(key)) {
-        alert("Unknown server key. Update client/src/data/servers.js to add it first.");
-        return;
-    }
-    var url;
-    try {
-        url = new URL(window.location.href);
-    } catch (err) {
-        window.location.href = "/?server=" + encodeURIComponent(key);
-        return;
-    }
-    url.searchParams.set("server", key);
-    window.location.href = url.toString();
+async function loadServers() {
+    // placeholder for loading servers (for now)
+    return serverConfig;
 }
-
 var connected = false;
 var startedConnecting = false;
 
 function connectSocketIfReady() {
-    if (!didLoad) return;
     startedConnecting = true;
     connectSocket();
 }
 
 function connectSocket() {
-
-    syncSelectedServerFromLocation();
-    if (!selectedServer) {
-        console.error("No servers configured. Update client/src/data/servers.js.");
-        showLoadingText("No servers configured.");
-        return;
-    }
-
-    updateServerList();
-
-    var loc = locationInfo;
-    var protocol = loc.protocol === "https:" ? "wss" : "ws";
-    var host = selectedServer.host || loc.hostname || "127.0.0.1";
-    var port = parsePortValue(selectedServer.port);
-    if (port === null) {
-        port = defaultPort;
-    }
-    var isStandardPort = (protocol === "wss" && port === 443) || (protocol === "ws" && port === 80);
-    var portSegment = isStandardPort ? "" : ":" + port;
-    var gameIndex = typeof selectedServer.gameIndex === "number" ? selectedServer.gameIndex : 0;
-    var wsAddress = protocol + "://" + host + portSegment + "/?gameIndex=" + gameIndex;
+    let wsAddress = window.location.href.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
 
     io.connect(wsAddress, function (error) {
         pingSocket();
@@ -274,12 +214,7 @@ function socketReady() {
 }
 
 function joinParty() {
-    var selectEl = serverBrowser.querySelector("select");
-    var currentKey = selectedServer ? selectedServer.key : (selectEl ? selectEl.value : "");
-    var key = prompt("party key", currentKey || "");
-    if (!key) return;
-    window.onbeforeunload = undefined;
-    navigateToServer(key.trim());
+    alert("Party joining is not available in this build.");
 }
 
 var mathPI = Math.PI;
@@ -411,11 +346,28 @@ var joinPartyButton = document.getElementById("joinPartyButton");
 var settingsButton = document.getElementById("settingsButton");
 var settingsButtonTitle = settingsButton.getElementsByTagName("span")[0];
 var allianceButton = document.getElementById("allianceButton");
+if (partyButton) {
+    var partySpan = partyButton.getElementsByTagName("span")[0];
+    if (partySpan) {
+        if (typeof window !== "undefined" && window.location) {
+            partySpan.innerText = window.location.host;
+        } else {
+            partySpan.innerText = "";
+        }
+    }
+}
 var storeButton = document.getElementById("storeButton");
 var chatButton = document.getElementById("chatButton");
 var gameCanvas = document.getElementById("gameCanvas");
 var mainContext = gameCanvas.getContext("2d");
 var serverBrowser = document.getElementById("serverBrowser");
+if (serverBrowser) {
+    var serverLabel = "current host";
+    if (typeof window !== "undefined" && window.location) {
+        serverLabel = window.location.host || window.location.href;
+    }
+    serverBrowser.innerHTML = "<div class='serverStatus'>Connected to " + serverLabel + "</div>";
+}
 var nativeResolutionCheckbox = document.getElementById("nativeResolution");
 var showPingCheckbox = document.getElementById("showPing");
 var shutdownDisplay = document.getElementById("shutdownDisplay");
@@ -517,7 +469,6 @@ var tmpYoutuber = youtuberList[UTILS.randInt(0, youtuberList.length - 1)];
 featuredYoutuber.innerHTML = "<a target='_blank' class='ytLink' href='" + tmpYoutuber.link + "'><i class='material-icons' style='vertical-align: top;'>&#xE064;</i> " + tmpYoutuber.name + "</a>";
 
 var inWindow = true;
-var didLoad = false;
 window.onblur = function () {
     inWindow = false;
 };
@@ -526,10 +477,6 @@ window.onfocus = function () {
     if (player && player.alive) {
         resetMoveDir();
     }
-};
-window.onload = function () {
-    didLoad = true;
-    connectSocketIfReady();
 };
 gameCanvas.oncontextmenu = function () {
     return false;
@@ -732,92 +679,6 @@ function bindEvents() {
         });
     }
 }
-
-function setupServerStatus() {
-    var tmpHTML = "<select>";
-
-    var overallTotal = 0;
-    var partySpan = partyButton.getElementsByTagName("span")[0];
-    if (partySpan) {
-        partySpan.innerText = selectedServer ? selectedServer.key : "";
-    }
-
-    var regionsInOrder = [];
-    var serversByRegion = {};
-    var regionTotals = {};
-
-    for (var i = 0; i < servers.length; i++) {
-        var server = servers[i];
-        var regionName = server.region || "Servers";
-        if (!serversByRegion[regionName]) {
-            serversByRegion[regionName] = [];
-            regionsInOrder.push(regionName);
-            regionTotals[regionName] = 0;
-        }
-        serversByRegion[regionName].push(server);
-        regionTotals[regionName] += Math.max(0, server.playerCount || 0);
-    }
-
-    for (var regionIndex = 0; regionIndex < regionsInOrder.length; regionIndex++) {
-        var regionName = regionsInOrder[regionIndex];
-        var serverList = serversByRegion[regionName];
-        if (!serverList.length) continue;
-
-        var totalPlayers = regionTotals[regionName];
-        overallTotal += totalPlayers;
-
-        tmpHTML += "<option disabled>" + regionName + " - " + totalPlayers + " players</option>";
-
-        for (var serverIndex = 0; serverIndex < serverList.length; serverIndex++) {
-            var currentServer = serverList[serverIndex];
-            var playerCount = Math.min(currentServer.playerCount || 0, config.maxPlayers);
-            var serverLabel = currentServer.name + " [" + playerCount + "/" + config.maxPlayers + "]";
-            var isSelected = selectedServer && currentServer.key === selectedServer.key;
-            if (isSelected && partySpan) {
-                partySpan.innerText = currentServer.key;
-            }
-            var selectedAttr = isSelected ? "selected" : "";
-            tmpHTML += "<option value='" + currentServer.key + "' " + selectedAttr + ">" + serverLabel + "</option>";
-        }
-
-        tmpHTML += "<option disabled></option>";
-    }
-
-    if (!regionsInOrder.length) {
-        tmpHTML += "<option disabled>No servers configured</option>";
-    }
-
-    tmpHTML += "<option disabled>All Servers - " + overallTotal + " players</option>";
-    tmpHTML += "</select>";
-
-    serverBrowser.innerHTML = tmpHTML;
-
-    var selectEl = serverBrowser.querySelector("select");
-    if (selectEl && selectedServer) {
-        selectEl.value = selectedServer.key;
-    }
-
-    var currentMode = location.hostname == "sandbox.moomoo.io" ? "sandbox" : "default";
-    var altServerHTML = "";
-
-    altServerHTML += "<div class='serverModeButton " + (currentMode === "default" ? "active" : "") + "' onclick='switchServerMode(\"default\")'>Default Server</div>";
-    altServerHTML += "<div class='serverModeButton " + (currentMode === "sandbox" ? "active" : "") + "' onclick='switchServerMode(\"sandbox\")'>Sandbox Server</div>";
-
-    document.getElementById("altServer").innerHTML = altServerHTML;
-}
-
-function updateServerList() {
-    syncSelectedServerFromLocation();
-    setupServerStatus();
-}
-
-serverBrowser.addEventListener("change", UTILS.checkTrusted(function (e) {
-    if (e.target.tagName === "SELECT") {
-        var key = e.target.value;
-        if (!key) return;
-        navigateToServer(key);
-    }
-}));
 
 let panelState = false;
 
