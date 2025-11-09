@@ -17,7 +17,8 @@ import cors from "cors";
 
 const app = e();
 
-app.use(cors()); 
+app.use(cors());
+app.use(e.json()); // Add JSON body parser for API requests 
 
 const colimit = new ConnectionLimit(4);
 
@@ -31,7 +32,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const CLIENT_DIST_DIR = path.resolve(__dirname, "../../dist/client");
-const INDEX = path.join(CLIENT_DIST_DIR, "index.html");
+const INDEX = path.join(CLIENT_DIST_DIR, "html/play.html");
 const PORT = Number(process.env.PORT ?? 8080);
 const HOST = process.env.HOST ?? "0.0.0.0";
 
@@ -40,11 +41,15 @@ if (!fs.existsSync(INDEX)) {
 }
 
 app.get("/", (req, res) => {
-    res.sendFile(INDEX);
+    res.sendFile(INDEX)
 });
 
 app.get("/ping", (_req, res) => {
     res.send("Ok");
+});
+
+app.get("/play", (req, res) => {
+    res.sendFile(INDEX);
 });
 
 app.use(e.static(CLIENT_DIST_DIR));
@@ -518,14 +523,10 @@ wss.on("connection", async (socket, req) => {
             }
 
         } catch(e) {
+            console.error("Error processing message from player:", e);
+            handleInvalidPacket("exception during packet processing");
 
-            // no need error handling i guess... but hmm
-            console.error(e);
-            handleInvalidPacket(`exception while handling packet: ${e?.message ?? e}`);
-
-            // so okok
-            // socket.close();
-
+            
         }
 
     });

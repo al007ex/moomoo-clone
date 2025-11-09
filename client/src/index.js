@@ -46,16 +46,24 @@ var Projectile = require("./data/projectile.js");
 
 var ProjectileManager = require("./data/projectileManager.js");
 
+var Filter = require("bad-words");
+
 var textManager = new animText.TextManager();
 var serverConfig = require("./data/servers.js");
+var LOG_PREFIX = "[client]";
 
-
-
-/*
-
-Сделать macro по типу trap, spike и прочей фигни, а также сделать Nuro чтобы он сделал серверную часть, чтобы я мог создать панель, где будут эти все macro и хотя-бы AutoHeal
-
-*/
+function logInfo() {
+    if (typeof console === "undefined" || typeof console.info !== "function") {
+        return;
+    }
+    var args = Array.prototype.slice.call(arguments);
+    if (args.length > 0 && typeof args[0] === "string") {
+        args[0] = LOG_PREFIX + " " + args[0];
+    } else {
+        args.unshift(LOG_PREFIX);
+    }
+    console.info.apply(console, args);
+}
 
 if (typeof window !== "undefined" && typeof fetch === "function") {
     setInterval(function () {
@@ -64,12 +72,9 @@ if (typeof window !== "undefined" && typeof fetch === "function") {
 }
 
 
-async function loadServerConfigStuffIdk() {
-    let href = window.location.href;
-    // example 
-    let serverParam = new URLSearchParams(window.location.search).get("server");
-    let server = null; // md5 has of server adress
-    let servers = await loadServers();
+async function initializeServerSelection() {
+    var serverParam = new URLSearchParams(window.location.search).get("server");
+    var servers = await loadServers();
     if (typeof document !== "undefined") {
         var browserEl = document.getElementById("serverBrowser");
         if (browserEl) {
@@ -104,27 +109,32 @@ async function loadServerConfigStuffIdk() {
     }
     showLoadingText("Finding server...");
     if (serverParam) {
-        console.log('Connecting to server:', serverParam);
+        logInfo("Connecting to requested server:", serverParam);
     } else {
-        console.log('No server specified, using default.');
-        // ping servers
-        let bestServer = null;
-        let bestPing = Infinity;
-        for (let srv of servers) {
-            if (srv.isLocal) continue;
+        logInfo("No server specified, evaluating available servers.");
+        var bestServer = null;
+        var bestPing = Infinity;
+        for (var i = 0; i < servers.length; i++) {
+            var candidate = servers[i];
+            if (candidate.isLocal) {
+                continue;
+            }
             try {
-                let ping = await pingServer(srv);
-                console.log(`Ping to ${srv.name}: ${ping}ms`);
+                var ping = await pingServer(candidate);
+                logInfo("Ping to " + candidate.name + ": " + ping + "ms");
                 if (ping < bestPing) {
                     bestPing = ping;
-                    bestServer = srv;
+                    bestServer = candidate;
                 }
             } catch (err) {
-                console.log(`Failed to ping ${srv.name}:`, err);
+                logInfo("Failed to ping " + candidate.name + ":", err);
             }
         }
-
-        console.log(servers)
+        if (bestServer) {
+            logInfo("Best latency server identified: " + bestServer.name + " (" + bestPing + "ms)");
+        } else {
+            logInfo("No remote servers responded to ping requests.");
+        }
     }
     connectSocketIfReady();
 }
@@ -140,12 +150,11 @@ function pingServer(server) {
     });
 }
 window.onload = function () {
-    console.log("Window loaded");
-    loadServerConfigStuffIdk()
-}
+    initializeServerSelection();
+};
 
 async function loadServers() {
-    // placeholder for loading servers (for now)
+    // Load bundled server definitions; swap with remote fetch when backend is ready.
     return serverConfig;
 }
 var connected = false;
@@ -161,7 +170,7 @@ function connectSocket() {
 
     io.connect(wsAddress, function (error) {
         pingSocket();
-        setInterval(() => pingSocket(), 2500);
+        setInterval(pingSocket, 2500);
 
         if (error) {
             disconnect(error);
@@ -283,7 +292,9 @@ function follmoo() {
 
 // AutoHealth:
 var autoHealEnabled = getSavedVal("autoHeal") === "true";
-console.log("AutoHeal enabled:", autoHealEnabled);
+if (autoHealEnabled) {
+    logInfo("Auto-heal preference restored.");
+}
 
 function toggleAutoHeal() {
     autoHealEnabled = !autoHealEnabled;
@@ -314,6 +325,11 @@ var AiManager = require("./data/aiManager.js");
 var AI = require("./data/ai.js");
 var aiManager = new AiManager(ais, AI, players, items, null, config, UTILS);
 var player, playerSID, tmpObj;
+var objectRenderBuckets = Object.create(null);
+var objectRenderLayers = [-1, 0, 1, 2, 3];
+objectRenderLayers.forEach(function (layer) {
+    objectRenderBuckets[layer] = [];
+});
 var waterMult = 1;
 var waterPlus = 0;
 var mouseX = 0;
@@ -399,7 +415,7 @@ mapDisplay.width = 300;
 mapDisplay.height = 300;
 var storeMenu = document.getElementById("storeMenu");
 var storeHolder = document.getElementById("storeHolder");
-var noticationDisplay = document.getElementById("noticationDisplay");
+var notificationDisplay = document.getElementById("notificationDisplay");
 var hats = store.hats;
 var accessories = store.accessories;
 var objectManager = new ObjectManager(GameObject, gameObjects, UTILS, config);
@@ -1129,17 +1145,17 @@ function allianceNotification(sid, name) {
 function updateNotifications() {
     if (allianceNotifications[0]) {
         var tmpN = allianceNotifications[0];
-        UTILS.removeAllChildren(noticationDisplay);
-        noticationDisplay.style.display = "block";
+        UTILS.removeAllChildren(notificationDisplay);
+        notificationDisplay.style.display = "block";
         UTILS.generateElement({
             class: "notificationText",
             text: tmpN.name,
-            parent: noticationDisplay
+            parent: notificationDisplay
         });
         UTILS.generateElement({
             class: "notifButton",
             html: "<i class='material-icons' style='font-size:28px;color:#cc5151;'>&#xE14C;</i>",
-            parent: noticationDisplay,
+            parent: notificationDisplay,
             onclick: function () {
                 aJoinReq(0);
             },
@@ -1148,14 +1164,14 @@ function updateNotifications() {
         UTILS.generateElement({
             class: "notifButton",
             html: "<i class='material-icons' style='font-size:28px;color:#8ecc51;'>&#xE876;</i>",
-            parent: noticationDisplay,
+            parent: notificationDisplay,
             onclick: function () {
                 aJoinReq(1);
             },
             hookTouch: true
         });
     } else {
-        noticationDisplay.style.display = "none";
+        notificationDisplay.style.display = "none";
     }
 }
 
@@ -1747,6 +1763,7 @@ function selectSkinColor(index) {
 
 var chatBox = document.getElementById("chatBox");
 var chatHolder = document.getElementById("chatHolder");
+var chatFilter = new Filter();
 
 function toggleChat() {
     if (!usingTouch) {
@@ -1783,26 +1800,34 @@ function closeChat() {
     chatHolder.style.display = "none";
 }
 
-var profanityList = [
-    "cunt", "whore", "fuck", "shit", "faggot", "nigger",
-    "nigga", "dick", "vagina", "minge", "cock", "rape", "cum", "sex",
-    "tits", "penis", "clit", "pussy", "meatcurtain", "jizz", "prune",
-    "douche", "wanker", "damn", "bitch", "dick", "fag", "bastard"
-];
-
 function checkProfanityString(text) {
-    var tmpString;
-    for (var i = 0; i < profanityList.length; ++i) {
-        if (text.indexOf(profanityList[i]) > -1) {
-            tmpString = "";
-            for (var y = 0; y < profanityList[i].length; ++y) {
-                tmpString += tmpString.length ? "o" : "M";
-            }
-            var re = new RegExp(profanityList[i], 'g');
-            text = text.replace(re, tmpString);
+    var result = text;
+    for (var i = 0; i < chatFilter.list.length; ++i) {
+        var term = chatFilter.list[i];
+        if (!term) {
+            continue;
         }
+        var mask = buildProfanityMask(term.length);
+        var escapedTerm = escapeRegExp(term);
+        var re = new RegExp(escapedTerm, "gi");
+        result = result.replace(re, mask);
     }
-    return text;
+    return result;
+}
+
+function buildProfanityMask(length) {
+    if (!length) {
+        return "";
+    }
+    var mask = "M";
+    for (var i = 1; i < length; i++) {
+        mask += "o";
+    }
+    return mask;
+}
+
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function receiveChat(sid, message) {
@@ -2279,6 +2304,38 @@ function updateLeaderboard(data) {
     }
 }
 
+function prepareObjectRenderLists(xOffset, yOffset, delta) {
+    for (var layer in objectRenderBuckets) {
+        if (Object.prototype.hasOwnProperty.call(objectRenderBuckets, layer)) {
+            objectRenderBuckets[layer].length = 0;
+        }
+    }
+    for (var i = 0; i < gameObjects.length; ++i) {
+        tmpObj = gameObjects[i];
+        if (!tmpObj || !tmpObj.active) {
+            continue;
+        }
+        var layerId = tmpObj.layer;
+        if (layerId === undefined) {
+            continue;
+        }
+        if (!objectRenderBuckets[layerId]) {
+            objectRenderBuckets[layerId] = [];
+        }
+        tmpObj.update(delta);
+        var tmpX = tmpObj.x + tmpObj.xWiggle - xOffset;
+        var tmpY = tmpObj.y + tmpObj.yWiggle - yOffset;
+        if (!isOnScreen(tmpX, tmpY, tmpObj.scale + (tmpObj.blocker || 0))) {
+            continue;
+        }
+        objectRenderBuckets[layerId].push({
+            obj: tmpObj,
+            x: tmpX,
+            y: tmpY
+        });
+    }
+}
+
 function updateGame() {
     if (true) {
         // AutoHeal Ticks:
@@ -2341,6 +2398,8 @@ function updateGame() {
 
         var xOffset = camX - (maxScreenWidth / 2);
         var yOffset = camY - (maxScreenHeight / 2);
+
+        prepareObjectRenderLists(xOffset, yOffset, delta);
 
         if (config.snowBiomeTop - yOffset <= 0 && config.mapScale - config.snowBiomeTop - yOffset >= maxScreenHeight) {
             mainContext.fillStyle = "#b6db66";
@@ -2606,35 +2665,33 @@ function renderWaterBodies(xOffset, yOffset, ctxt, padding) {
 }
 
 function renderGameObjects(layer, xOffset, yOffset) {
-    var tmpSprite, tmpX, tmpY;
-    for (var i = 0; i < gameObjects.length; ++i) {
-        tmpObj = gameObjects[i];
-        if (tmpObj.active) {
-            tmpX = tmpObj.x + tmpObj.xWiggle - xOffset;
-            tmpY = tmpObj.y + tmpObj.yWiggle - yOffset;
-            if (layer == 0) {
-                tmpObj.update(delta);
+    var tmpSprite;
+    var bucket = objectRenderBuckets[layer];
+    if (!bucket || !bucket.length) {
+        return;
+    }
+    for (var i = 0; i < bucket.length; ++i) {
+        var entry = bucket[i];
+        tmpObj = entry.obj;
+        var tmpX = entry.x;
+        var tmpY = entry.y;
+        mainContext.globalAlpha = tmpObj.hideFromEnemy ? 0.6 : 1;
+        if (tmpObj.isItem) {
+            tmpSprite = getItemSprite(tmpObj);
+            mainContext.save();
+            mainContext.translate(tmpX, tmpY);
+            mainContext.rotate(tmpObj.dir);
+            mainContext.drawImage(tmpSprite, -(tmpSprite.width / 2), -(tmpSprite.height / 2));
+            if (tmpObj.blocker) {
+                mainContext.strokeStyle = "#db6e6e";
+                mainContext.globalAlpha = 0.3;
+                mainContext.lineWidth = 6;
+                renderCircle(0, 0, tmpObj.blocker, mainContext, false, true);
             }
-            if (tmpObj.layer == layer && isOnScreen(tmpX, tmpY, tmpObj.scale + (tmpObj.blocker || 0))) {
-                mainContext.globalAlpha = tmpObj.hideFromEnemy ? 0.6 : 1;
-                if (tmpObj.isItem) {
-                    tmpSprite = getItemSprite(tmpObj);
-                    mainContext.save();
-                    mainContext.translate(tmpX, tmpY);
-                    mainContext.rotate(tmpObj.dir);
-                    mainContext.drawImage(tmpSprite, -(tmpSprite.width / 2), -(tmpSprite.height / 2));
-                    if (tmpObj.blocker) {
-                        mainContext.strokeStyle = "#db6e6e";
-                        mainContext.globalAlpha = 0.3;
-                        mainContext.lineWidth = 6;
-                        renderCircle(0, 0, tmpObj.blocker, mainContext, false, true);
-                    }
-                    mainContext.restore();
-                } else {
-                    tmpSprite = getResSprite(tmpObj);
-                    mainContext.drawImage(tmpSprite, tmpX - (tmpSprite.width / 2), tmpY - (tmpSprite.height / 2));
-                }
-            }
+            mainContext.restore();
+        } else {
+            tmpSprite = getResSprite(tmpObj);
+            mainContext.drawImage(tmpSprite, tmpX - (tmpSprite.width / 2), tmpY - (tmpSprite.height / 2));
         }
     }
 }
