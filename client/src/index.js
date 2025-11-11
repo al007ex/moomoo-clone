@@ -151,6 +151,7 @@ function pingServer(server) {
         }).catch(reject);
     });
 }
+
 window.onload = function () {
     initializeServerSelection()
 }
