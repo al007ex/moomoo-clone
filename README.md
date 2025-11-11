@@ -1,4 +1,4 @@
-# MooMoo.io Clone
+# MooMoo.io Clone Dev
 
 Fully working MooMoo.io private server
 
