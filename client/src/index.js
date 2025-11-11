@@ -146,7 +146,7 @@ function pingServer(server) {
             let end = Date.now();
             resolve(end - start);
         }).catch(reject);
-        
+
     });
 }
 window.onload = function () {
@@ -696,6 +696,8 @@ function bindEvents() {
     }
 }
 
+// Заменить эти Js коды и прочее на main.css и play.html это будет лучше и качетвенее
+
 let panelState = false;
 
 function injectHiddenStyles() {
@@ -724,10 +726,10 @@ function replaceLinksContainer() {
     const actionButton = document.createElement('div');
     actionButton.id = 'infoPanelToggle';
     actionButton.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
-            </svg>
-        `;
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+        </svg>
+    `;
     originalContainer.parentElement.appendChild(actionButton);
 
     const panelOverlay = document.createElement('div');
@@ -782,7 +784,8 @@ function replaceLinksContainer() {
         });
     }
 
-    actionButton.addEventListener('click', () => {
+    actionButton.addEventListener('click', (event) => {
+        event.stopPropagation();
         panelState = !panelState;
         if (panelState) {
             panelOverlay.classList.remove('hidden');
@@ -990,12 +993,208 @@ function injectStylesheet() {
     document.head.appendChild(stylesheet);
 }
 
+}
+let youtuberPanelState = false;
+
+function replaceYoutuberOf() {
+    const originalContainer = document.getElementById('youtuberOf');
+    if (!originalContainer) {
+        setTimeout(replaceYoutuberOf, 100);
+        return;
+    }
+
+    originalContainer.style.display = 'none';
+    originalContainer.style.visibility = 'hidden';
+    originalContainer.style.opacity = '0';
+
+    const actionButton = document.createElement('div');
+    actionButton.id = 'youtuberPanelToggle';
+    actionButton.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+        </svg>
+    `;
+    originalContainer.parentElement.appendChild(actionButton);
+
+    const panelOverlay = document.createElement('div');
+    panelOverlay.id = 'youtuberExpandedPanel';
+    panelOverlay.className = 'hidden';
+
+    let youtubersHTML = '';
+    for (let i = 0; i < youtuberList.length; i++) {
+        youtubersHTML += `
+            <a href="${youtuberList[i].link}" target="_blank" class="menuLink expandedPanelLink">
+                <svg class="expandedPanelIcon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+                </svg>
+                ${youtuberList[i].name}
+            </a>
+        `;
+    }
+
+    panelOverlay.innerHTML = `
+        <div class="expandedPanelHeader">
+            <span style="color: #666;">Featured</span> <span style="color: #a56dc8;">Mootubers</span>
+        </div>
+        <div class="expandedPanelSection">
+            <div class="expandedPanelSectionTitle">CONTENT CREATORS</div>
+            ${youtubersHTML}
+        </div>
+    `;
+    originalContainer.parentElement.appendChild(panelOverlay);
+
+    actionButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        youtuberPanelState = !youtuberPanelState;
+        if (youtuberPanelState) {
+            panelOverlay.classList.remove('hidden');
+            panelOverlay.classList.add('visible');
+            actionButton.style.opacity = '1';
+        } else {
+            panelOverlay.classList.remove('visible');
+            panelOverlay.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (youtuberPanelState && !panelOverlay.contains(event.target) && !actionButton.contains(event.target)) {
+            youtuberPanelState = false;
+            panelOverlay.classList.remove('visible');
+            panelOverlay.classList.add('hidden');
+        }
+    });
+}
+
+function handleYoutuberProximityFade(cursorX, cursorY) {
+    const actionButton = document.getElementById('youtuberPanelToggle');
+
+    if (!actionButton) {
+        return;
+    }
+
+    if (youtuberPanelState) {
+        actionButton.style.opacity = '1';
+        return;
+    }
+
+    const buttonBounds = actionButton.getBoundingClientRect();
+    const buttonCenterX = buttonBounds.left + buttonBounds.width / 2;
+    const buttonCenterY = buttonBounds.top + buttonBounds.height / 2;
+    const proximityDistance = Math.sqrt(Math.pow(cursorX - buttonCenterX, 2) + Math.pow(cursorY - buttonCenterY, 2));
+
+    if (proximityDistance > 100) {
+        actionButton.style.opacity = '0.3';
+    } else {
+        actionButton.style.opacity = '1';
+    }
+}
+
+function injectYoutuberStyles() {
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = `
+            #youtuberOf {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+            }
+
+            #youtuberPanelToggle {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                width: 40px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                transition: all 0.3s ease;
+                z-index: 9999;
+                opacity: 0.3;
+                pointer-events: all;
+                transform: scale(1);
+            }
+
+            #youtuberPanelToggle:hover {
+                background: #fff;
+                transform: scale(1.1);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+                opacity: 1 !important;
+            }
+
+            #youtuberPanelToggle svg {
+                width: 24px;
+                height: 24px;
+                color: #a56dc8;
+            }
+
+            #youtuberExpandedPanel {
+                position: fixed;
+                bottom: 75px;
+                left: 20px;
+                width: 320px;
+                max-height: 500px;
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                padding: 20px;
+                padding-right: 12px;
+                font-family: 'Hammersmith One', sans-serif;
+                z-index: 10000;
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            #youtuberExpandedPanel::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            #youtuberExpandedPanel::-webkit-scrollbar-track {
+                background: transparent;
+                margin: 8px 0;
+            }
+
+            #youtuberExpandedPanel::-webkit-scrollbar-thumb {
+                background: #a56dc8;
+                border-radius: 3px;
+            }
+
+            #youtuberExpandedPanel::-webkit-scrollbar-thumb:hover {
+                background: #795094;
+            }
+            
+            #youtuberExpandedPanel .expandedPanelSection {
+                padding-right: 8px;
+            }
+
+            #youtuberExpandedPanel.hidden {
+                opacity: 0;
+                transform: translateX(-100%);
+                pointer-events: none;
+            }
+
+            #youtuberExpandedPanel.visible {
+                opacity: 1;
+                transform: translateX(0);
+                pointer-events: all;
+            }
+        `;
+    document.head.appendChild(stylesheet);
+}
+
 function bootstrap() {
     injectHiddenStyles();
     injectStylesheet();
+    injectYoutuberStyles();
     replaceLinksContainer();
+    replaceYoutuberOf();
     document.addEventListener('mousemove', (event) => {
         handleProximityFade(event.clientX, event.clientY);
+        handleYoutuberProximityFade(event.clientX, event.clientY);
     });
 }
 
@@ -1006,85 +1205,6 @@ if (document.readyState === 'loading') {
 } else {
     bootstrap();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function showItemInfo(item, isWeapon, isStoreItem) {
     if (player && item) {
@@ -1101,8 +1221,12 @@ function showItemInfo(item, isWeapon, isStoreItem) {
             text: item.desc,
             parent: itemInfoHolder
         });
-        if (isStoreItem) {
-
+        if (isStoreItem && item.price) {
+            UTILS.generateElement({
+                class: "itemInfoReq",
+                text: "Price: " + item.price + " coins",
+                parent: itemInfoHolder
+            });
         } else if (isWeapon) {
             UTILS.generateElement({
                 class: "itemInfoReq",
@@ -1127,7 +1251,6 @@ function showItemInfo(item, isWeapon, isStoreItem) {
         }
     } else {
         itemInfoHolder.classList.remove("visible");
-
     }
 }
 
