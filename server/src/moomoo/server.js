@@ -130,7 +130,8 @@ export class Game {
                     return metric(b) - metric(a);
                 });
                 const sorts = [];
-                for (let i = 0; i < Math.min(10, sort.length); i++) {
+                const maxEntries = Math.min(config.leaderboardMaxPlayers || 10, sort.length);
+                for (let i = 0; i < maxEntries; i++) {
                     sorts.push(sort[i]);
                 }
 
@@ -218,10 +219,17 @@ export class Game {
 
         const init_objects = () => {
 
-            let treesPerArea = config.treesPerArea;
-            let bushesPerArea = config.bushesPerArea;
-            let totalRocks = config.totalRocks;
-            let goldOres = config.goldOres;
+            const spawnCounts = config.spawnCounts || {
+                treesPerArea: config.treesPerArea,
+                bushesPerArea: config.bushesPerArea,
+                totalRocks: config.totalRocks,
+                goldOres: config.goldOres
+            };
+
+            let treesPerArea = spawnCounts.treesPerArea;
+            let bushesPerArea = spawnCounts.bushesPerArea;
+            let totalRocks = spawnCounts.totalRocks;
+            let goldOres = spawnCounts.goldOres;
             let treeScales = config.treeScales;
             let bushScales = config.bushScales;
             let rockScales = config.rockScales;
@@ -279,7 +287,7 @@ export class Game {
 
     buildAiSpawnPlan() {
         const map = config.mapScale;
-        return [{
+        const fallbackPlan = [{
             index: 0,
             desired: 12
         }, {
@@ -301,27 +309,60 @@ export class Game {
             index: 6,
             desired: 1,
             positions: [{
-                x: Math.round(map * 0.42),
-                y: Math.round(map * 0.72)
+                xRatio: 0.42,
+                yRatio: 0.72
             }]
         }, {
             index: 7,
             desired: 1,
             positions: [{
-                x: Math.round(map * 0.18),
-                y: Math.round(map * 0.22)
+                xRatio: 0.18,
+                yRatio: 0.22
             }]
         }, {
             index: 8,
             desired: 1,
             positions: [{
-                x: Math.round(map * 0.78),
-                y: Math.round(map * 0.64)
+                xRatio: 0.78,
+                yRatio: 0.64
             }]
-        }].map(plan => ({
-            ...plan,
-            nextPosition: 0
-        }));
+        }];
+
+        const planSource = Array.isArray(config.animalSpawnPlan) && config.animalSpawnPlan.length ? config.animalSpawnPlan : fallbackPlan;
+
+        return planSource.map(plan => {
+            if (!Number.isInteger(plan.index)) {
+                return null;
+            }
+            const desired = typeof plan.desired === "number" ? plan.desired : 0;
+            if (desired <= 0) {
+                return null;
+            }
+            const rawPositions = Array.isArray(plan.positions) ? plan.positions : [];
+            const resolvedPositions = rawPositions.map(pos => {
+                if (typeof pos.x === "number" && typeof pos.y === "number") {
+                    return {
+                        x: pos.x,
+                        y: pos.y
+                    };
+                }
+                if (typeof pos.xRatio === "number" && typeof pos.yRatio === "number") {
+                    const xRatio = Math.min(Math.max(pos.xRatio, 0), 1);
+                    const yRatio = Math.min(Math.max(pos.yRatio, 0), 1);
+                    return {
+                        x: Math.round(map * xRatio),
+                        y: Math.round(map * yRatio)
+                    };
+                }
+                return null;
+            }).filter(Boolean);
+            return {
+                index: plan.index,
+                desired: desired,
+                positions: resolvedPositions.length ? resolvedPositions : undefined,
+                nextPosition: 0
+            };
+        }).filter(Boolean);
     }
 
     ensureAnimals() {

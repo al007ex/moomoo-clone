@@ -1,31 +1,39 @@
-const profanityList = ["cunt", "whore", "fuck", "shit", "faggot", "nigger",
-    "nigga", "dick", "vagina", "minge", "cock", "rape", "cum", "sex",
-    "tits", "penis", "clit", "pussy", "meatcurtain", "jizz", "prune",
-    "douche", "wanker", "damn", "bitch", "dick", "fag", "bastard"];
-    
-export const filter_chat = (c) => {
+import { Filter } from "bad-words";
 
-    const chat = c.slice(0, 30);
-    
-    let result = "";
-    for (let i = 0; i < chat.length; i++) {
-        const point = chat.charCodeAt(i);
+const chatFilter = new Filter();
 
-        if (point < 0 || point > 126) {
-            continue;
-        }
+export const filter_chat = (chat) => {
+    let result = sanitizeMessage(chat);
 
-        result += chat.charAt(i);
-    }
-
-    for (const profanity of profanityList) {
-        const cow = "o".repeat(profanity.length - 1);
-        const regex = new RegExp(profanity, "gi");
-
-        result = result.replaceAll(regex, "M" + cow);
+    for (const term of chatFilter.list) {
+        if (!term) continue;
+        const regex = new RegExp(escapeRegExp(term), "gi");
+        result = result.replace(regex, buildReplacement(term.length));
     }
 
     return result;
-
 };
-    
+
+function sanitizeMessage(input) {
+    const truncated = input.slice(0, 30);
+    let sanitized = "";
+
+    for (let i = 0; i < truncated.length; i++) {
+        const codePoint = truncated.charCodeAt(i);
+        if (codePoint < 0 || codePoint > 126) {
+            continue;
+        }
+        sanitized += truncated.charAt(i);
+    }
+
+    return sanitized;
+}
+
+function buildReplacement(length) {
+    if (!length) return "";
+    return "M" + "o".repeat(Math.max(length - 1, 0));
+}
+
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

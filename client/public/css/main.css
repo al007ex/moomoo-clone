@@ -1718,7 +1718,7 @@ span {
 	background-color: rgba(50, 50, 50, 0.25);
 }
 
-#noticationDisplay {
+#notificationDisplay {
 	vertical-align: top;
 	position: absolute;
 	right: 270px;
@@ -2363,7 +2363,7 @@ span {
 		margin-left: 0;
 	}
 
-	#noticationDisplay {
+	#notificationDisplay {
 		top: inherit;
 		right: inherit;
 		left: 50%;

@@ -1,13 +1,7 @@
-import {
-    Filter
-} from "bad-words";
-import {
-    encode
-} from "msgpack-lite";
+import { Filter } from "bad-words";
+import { encode } from "msgpack-lite";
 
 var langFilter = new Filter();
-var newProfane = ['jew', 'black', 'baby', 'child', 'white', 'porn', 'pedo', 'trump', 'clinton', 'hitler', 'nazi', 'gay', 'pride', 'sex', 'pleasure', 'touch', 'poo', 'kids', 'rape', 'white power', 'nigga', 'nig nog', 'doggy', 'rapist', 'boner', 'nigger', 'nigg', 'finger', 'nogger', 'nagger', 'nig', 'fag', 'gai', 'pole', 'stripper', "penis", 'vagina', 'pussy', 'nazi', 'hitler', 'stalin', 'burn', 'chamber', 'cock', 'peen', 'dick', 'spick', 'nieger', 'die', 'satan', 'n|ig', 'nlg', 'cunt', 'c0ck', 'fag', 'lick', 'condom', 'anal', 'shit', 'phile', 'little', 'kids', 'free KR', 'tiny', 'sidney', 'ass', 'kill', '.io', '(dot)', '[dot]', 'mini', 'whiore', 'whore', 'faggot', 'github', '1337', '666', 'satan', 'senpa', 'discord', 'd1scord', 'mistik', '.io', 'senpa.io', 'sidney', 'sid', 'senpaio', 'vries', 'asa'];
-langFilter.addWords(...newProfane);
 var mathABS = Math.abs;
 var mathCOS = Math.cos;
 var mathSIN = Math.sin;
@@ -99,7 +93,7 @@ export class Player {
             this.weaponIndex = 0;
             this.dmgOverTime = {};
             this.noMovTimer = 0;
-            this.maxXP = 300;
+            this.maxXP = config.experience ? config.experience.initialXP : 300;
             this.XP = 0;
             this.age = 1;
             this.kills = 0;
@@ -132,19 +126,18 @@ export class Player {
             this.dirPlus = 0;
             this.targetDir = 0;
             this.targetAngle = 0;
-            this.maxHealth = 100;
+            var baseHealth = (typeof config.baseHealth === "number") ? config.baseHealth : 100;
+            this.maxHealth = baseHealth;
             this.health = this.maxHealth;
             this.scale = config.playerScale;
             this.speed = config.playerSpeed;
             this.resetMoveDir();
             this.resetResources(moofoll);
-            for (let i = 0; i < config.resourceTypes.length; i++) {
-                const res = config.resourceTypes[i];
-                this[res] = 1000000;
-            }
             this.needsResourceSync = true;
-            this.items = [0, 3, 6, 10];
-            this.weapons = [0];
+            var startItems = Array.isArray(config.startItems) ? config.startItems.slice() : [0, 3, 6, 10];
+            var startWeapons = Array.isArray(config.startWeapons) ? config.startWeapons.slice() : [0];
+            this.items = startItems;
+            this.weapons = startWeapons;
             this.shootCount = 0;
             this.weaponXP = [];
             this.reloads = {};
@@ -158,8 +151,13 @@ export class Player {
 
         // RESET RESOURCES:
         this.resetResources = function(moofoll) {
+            var startRes = config.startResources || {};
+            var baseAmount = moofoll ? startRes.moofoll : startRes.normal;
+            if (typeof baseAmount !== "number") {
+                baseAmount = moofoll ? 100 : 0;
+            }
             for (var i = 0; i < config.resourceTypes.length; ++i) {
-                this[config.resourceTypes[i]] = moofoll ? 100 : 0;
+                this[config.resourceTypes[i]] = baseAmount;
             }
         };
 
@@ -327,7 +325,7 @@ export class Player {
 
             // SLOWER:
             if (this.slowMult < 1) {
-                this.slowMult += 0.0008 * delta;
+                this.slowMult += (config.combat ? config.combat.slowRecoveryRate : 0.0008) * delta;
                 if (this.slowMult > 1) {
                     this.slowMult = 1;
                 }
@@ -342,14 +340,15 @@ export class Player {
                 this.xVel = 0;
                 this.yVel = 0;
             } else {
-                var spdMult = (this.buildIndex >= 0 ? 0.5 : 1) * (items.weapons[this.weaponIndex].spdMult || 1) * (this.skin ? this.skin.spdMult || 1 : 1) * (this.tail ? this.tail.spdMult || 1 : 1) * (this.y <= config.snowBiomeTop ? this.skin && this.skin.coldM ? 1 : config.snowSpeed : 1) * this.slowMult;
+                var buildPenalty = (this.buildIndex >= 0) ? (config.physics ? config.physics.buildingSpeedPenalty : 0.5) : 1;
+                var spdMult = buildPenalty * (items.weapons[this.weaponIndex].spdMult || 1) * (this.skin ? this.skin.spdMult || 1 : 1) * (this.tail ? this.tail.spdMult || 1 : 1) * (this.y <= config.snowBiomeTop ? this.skin && this.skin.coldM ? 1 : config.snowSpeed : 1) * this.slowMult;
                 if (!this.zIndex && this.y >= config.mapScale / 2 - config.riverWidth / 2 && this.y <= config.mapScale / 2 + config.riverWidth / 2) {
                     if (this.skin && this.skin.watrImm) {
-                        spdMult *= 0.75;
-                        this.xVel += config.waterCurrent * 0.4 * delta;
+                        spdMult *= (config.water ? config.water.immunitySpeedMultiplier : 0.75);
+                        this.xVel += config.waterCurrent * (config.water ? config.water.immunityCurrentEffect : 0.4) * delta;
                     } else {
-                        spdMult *= 0.33;
-                        this.xVel += config.waterCurrent * delta;
+                        spdMult *= (config.water ? config.water.normalSpeedMultiplier : 0.33);
+                        this.xVel += config.waterCurrent * (config.water ? config.water.normalCurrentEffect : 1.0) * delta;
                     }
                 }
                 var xVel = this.moveDir != undefined ? mathCOS(this.moveDir) : 0;
@@ -420,15 +419,16 @@ export class Player {
             }
 
             // DECEL:
+            var velThreshold = config.physics ? config.physics.velocityStopThreshold : 0.01;
             if (this.xVel) {
                 this.xVel *= mathPOW(config.playerDecel, delta);
-                if (this.xVel <= 0.01 && this.xVel >= -0.01) {
+                if (this.xVel <= velThreshold && this.xVel >= -velThreshold) {
                     this.xVel = 0;
                 }
             }
             if (this.yVel) {
                 this.yVel *= mathPOW(config.playerDecel, delta);
-                if (this.yVel <= 0.01 && this.yVel >= -0.01) {
+                if (this.yVel <= velThreshold && this.yVel >= -velThreshold) {
                     this.yVel = 0;
                 }
             }
@@ -522,7 +522,7 @@ export class Player {
                     if (this.age < config.maxAge) {
                         this.age++;
                         this.XP = 0;
-                        this.maxXP *= 1.2;
+                        this.maxXP *= (config.experience ? config.experience.levelMultiplier : 1.2);
                     } else {
                         this.XP = this.maxXP;
                     }
@@ -572,10 +572,12 @@ export class Player {
         this.kill = function(doer) {
             if (doer && doer.alive) {
                 doer.kills++;
+                var goldStealPct = config.combat ? config.combat.goldStealPercent : 0.5;
+                var killScoreMult = config.combat ? config.combat.killScoreMultiplier : 100;
                 if (doer.skin && doer.skin.goldSteal) {
-                    scoreCallback(doer, Math.round(this.points / 2));
+                    scoreCallback(doer, Math.round(this.points * goldStealPct));
                 } else {
-                    scoreCallback(doer, Math.round(this.age * 100 * (doer.skin && doer.skin.kScrM ? doer.skin.kScrM : 1)));
+                    scoreCallback(doer, Math.round(this.age * killScoreMult * (doer.skin && doer.skin.kScrM ? doer.skin.kScrM : 1)));
                 }
                 doer.send("N", "kills", doer.kills, 1);
             }
@@ -640,7 +642,8 @@ export class Player {
                     }
                     var placedItem = item;
                     if (item.pps) {
-                        var ppsToAdd = item.pps * (config.isSandbox ? 5 : 1);
+                        var sandboxMultiplier = config.isSandbox ? (config.millPpsMultiplier || 1) : 1;
+                        var ppsToAdd = item.pps * sandboxMultiplier;
                         this.pps += ppsToAdd;
                         placedItem = Object.assign({}, item, {
                             pps: ppsToAdd
@@ -682,16 +685,21 @@ export class Player {
             if (config.isSandbox) {
                 if (item.group) {
                     var count = this.itemCounts[item.group.id] || 0;
-                    if (item.group.id === 3 && count >= 1) {
+                    var sandboxLimits = config.sandboxBuildLimits || {};
+                    var millLimit = typeof sandboxLimits.mill === "number" ? sandboxLimits.mill : 1;
+                    var spikeLimit = typeof sandboxLimits.spikes === "number" ? sandboxLimits.spikes : 200;
+                    var trapLimit = typeof sandboxLimits.traps === "number" ? sandboxLimits.traps : 100;
+                    var generalLimit = typeof sandboxLimits.general === "number" ? sandboxLimits.general : 300;
+                    if (item.group.id === 3 && count >= millLimit) {
                         return false;
                     }
-                    if (item.group.id === 2 && count >= 200) {
+                    if (item.group.id === 2 && count >= spikeLimit) {
                         return false;
                     }
-                    if (item.group.id === 5 && count >= 100) {
+                    if (item.group.id === 5 && count >= trapLimit) {
                         return false;
                     }
-                    if (item.group.limit && count >= 300) {
+                    if (item.group.limit && count >= generalLimit) {
                         return false;
                     }
                 }
@@ -744,8 +752,10 @@ export class Player {
                                         objectManager.disableObj(tmpObj);
                                     }
                                 } else {
-                                    this.earnXP(4 * items.weapons[this.weaponIndex].gather);
-                                    var count = items.weapons[this.weaponIndex].gather + (tmpObj.type == 3 ? 4 : 0);
+                                    var gatherXPMult = config.experience ? config.experience.gatheringMultiplier : 4;
+                                    var goldBonus = config.experience ? config.experience.goldBonusResources : 4;
+                                    this.earnXP(gatherXPMult * items.weapons[this.weaponIndex].gather);
+                                    var count = items.weapons[this.weaponIndex].gather + (tmpObj.type == 3 ? goldBonus : 0);
                                     if (this.skin && this.skin.extraGold) {
                                         this.addResource(3, 1);
                                     }

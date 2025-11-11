@@ -16,5 +16,8 @@
   ],
   "dependencies": {
     "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.29.1"
   }
 }
