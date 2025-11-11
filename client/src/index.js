@@ -993,7 +993,6 @@ function injectStylesheet() {
     document.head.appendChild(stylesheet);
 }
 
-}
 let youtuberPanelState = false;
 
 function replaceYoutuberOf() {
