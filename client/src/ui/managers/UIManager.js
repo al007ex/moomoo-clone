@@ -10,7 +10,9 @@ class UIManager {
     init() {
         this.createSettingsMenu();
         this.updateAutoHealUI();
-        console.log("UI Manager initialized. AutoHeal enabled:", this.autoHealEnabled);
+        if (typeof console !== 'undefined' && console.info) {
+            console.info("[UI Manager] initialized. AutoHeal enabled:", this.autoHealEnabled);
+        }
     }
 
     loadSetting(key) {
@@ -260,7 +262,9 @@ class UIManager {
         this.autoHealEnabled = !this.autoHealEnabled;
         this.saveSetting("autoHeal", this.autoHealEnabled.toString());
         this.updateAutoHealUI();
-        console.log("AutoHeal toggled:", this.autoHealEnabled);
+        if (typeof console !== 'undefined' && console.info) {
+            console.info("[UI Manager] AutoHeal toggled:", this.autoHealEnabled);
+        }
     }
 
     updateAutoHealUI() {
@@ -275,4 +279,6 @@ class UIManager {
     }
 }
 
-export default UIManager;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = UIManager;
+}

@@ -1,6 +1,6 @@
 // require UiManager
 
-const UIManager = require('./managers/UIManager.js').default;
+const UIManager = require('./managers/UIManager.js');
 const uiManagerInstance = new UIManager();
 
 if (typeof window !== 'undefined') {

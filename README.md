@@ -1,6 +1,4 @@
-# MooMoo.io Clone Dev
-
-### I'll be making a game clone here and upgrading my base.
+# MooMoo.io Clone
 
 Fully working MooMoo.io private server
 
@@ -24,10 +22,6 @@ Fully working MooMoo.io private server
    ```
 
 Use `npm run build:dev` while iterating on the client for an auto-rebuilt bundle, or `npm run dev` to run the server in development mode.
-
-### Configuring CORS
-
-By default the server accepts requests from `moomoo.al007ex` (and its subdomains) as well as local development hosts such as `localhost`, `127.0.0.1`, and `0.0.0.0`. To allow additional origins, set the `CORS_ALLOW_ORIGINS` environment variable to a comma-separated list of origins (e.g. `https://example.com,http://localhost:3000`). Use `*` to allow every origin, but only do that when you fully trust the environment in front of the server.
 
 ## Disclaimer
 
