@@ -290,25 +290,6 @@ function follmoo() {
     }
 }
 
-// AutoHealth:
-var autoHealEnabled = getSavedVal("autoHeal") === "true";
-if (autoHealEnabled) {
-    logInfo("Auto-heal preference restored.");
-}
-
-function toggleAutoHeal() {
-    autoHealEnabled = !autoHealEnabled;
-    saveVal("autoHeal", autoHealEnabled.toString());
-    updateAutoHealUI();
-}
-
-function updateAutoHealUI() {
-    var checkbox = document.getElementById("autoHealCheckbox");
-    if (checkbox) {
-        checkbox.checked = autoHealEnabled;
-    }
-}
-
 var useNativeResolution;
 var showPing;
 var pixelDensity = 1;
@@ -1209,7 +1190,6 @@ function showItemInfo(item, isWeapon, isStoreItem) {
     if (player && item) {
         UTILS.removeAllChildren(itemInfoHolder);
         itemInfoHolder.classList.add("visible");
-
         UTILS.generateElement({
             id: "itemInfoName",
             text: UTILS.capitalizeFirst(item.name),
@@ -1814,15 +1794,6 @@ function prepareUI() {
         saveVal("show_ping", showPing ? "true" : "false");
         updatePerformancePanelVisibility();
     });
-
-    // AutoHeal checkbox
-    var autoHealCheckbox = document.getElementById("autoHealCheckbox");
-    if (autoHealCheckbox) {
-        autoHealCheckbox.checked = autoHealEnabled;
-        autoHealCheckbox.onchange = UTILS.checkTrusted(function () {
-            toggleAutoHeal();
-        });
-    }
 }
 
 function updateItems(data, wpn) {
@@ -2460,14 +2431,6 @@ function prepareObjectRenderLists(xOffset, yOffset, delta) {
 
 function updateGame() {
     if (true) {
-        // AutoHeal Ticks:
-        game.tick++;
-        if (game.tickQueue[game.tick]) {
-            game.tickQueue[game.tick].forEach(function (callback) {
-                callback();
-            });
-            delete game.tickQueue[game.tick];
-        }
         if (player) {
             if (!lastSent || now - lastSent >= (1000 / config.clientSendRate)) {
                 lastSent = now;
@@ -3484,74 +3447,10 @@ function updatePlayerValue(index, value, updateView) {
     }
 }
 
-// Game tick system для AutoHeal
-let game = {
-    tick: 0,
-    tickQueue: [],
-    tickBase: function (set, tick) {
-        const targetTick = this.tick + tick;
-        if (!this.tickQueue[targetTick]) {
-            this.tickQueue[targetTick] = [];
-        }
-        this.tickQueue[targetTick].push(set);
-    },
-    tickRate: 1000 / config.serverUpdateRate,
-    tickSpeed: 0,
-    lastTick: performance.now(),
-    lastTickUpdate: Date.now()
-};
-
-let lastHealTime = 0;
-let healCooldown = 0;
 function updateHealth(sid, value) {
     tmpObj = findPlayerBySID(sid);
     if (tmpObj) {
         tmpObj.health = value;
-        if (tmpObj === player && autoHealEnabled && player && player.alive) {
-            var currentTime = Date.now();
-            var healthPercent = (player.health / player.maxHealth) * 100;
-            if (healthPercent < 100 && (currentTime - lastHealTime >= healCooldown)) {
-                var foodId = null;
-                var missingHealth = player.maxHealth - player.health;
-                var foodHealing = {
-                    0: 20,
-                    1: 40,
-                    2: 30
-                };
-                var foodPriority = [0, 2, 1];
-                for (var j = 0; j < foodPriority.length; j++) {
-                    var foodItemId = foodPriority[j];
-                    var healAmount = foodHealing[foodItemId];
-                    if (player.items.indexOf(foodItemId) >= 0 && missingHealth >= healAmount * 0.5) {
-                        foodId = foodItemId;
-                        break;
-                    }
-                }
-                if (foodId === null) {
-                    for (var i = 0; i < items.list.length; i++) {
-                        var item = items.list[i];
-                        if (item.group && (item.group.id === 0 || item.group.name === "food")) {
-                            if (player.items.indexOf(item.id) >= 0) {
-                                foodId = item.id;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (foodId !== null) {
-                    lastHealTime = currentTime;
-                    io.send("z", foodId, false);
-                    setTimeout(function () {
-                        if (player && player.alive) {
-                            io.send("F", 1, null);
-                            setTimeout(function () {
-                                io.send("F", 0, null);
-                            }, 100);
-                        }
-                    }, 100);
-                }
-            }
-        }
     }
 }
 
