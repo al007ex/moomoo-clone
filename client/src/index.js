@@ -677,182 +677,137 @@ function bindEvents() {
     }
 }
 
-let panelState = false;
+const PanelUI = (() => {
+    const fadeRadius = 100;
+    const keys = ["info", "youtuber"];
+    const state = {
+        info: false,
+        youtuber: false
+    };
+    const dom = {};
 
-function setupInfoPanel() {
-    const actionButton = document.getElementById('infoPanelToggle');
-    const panelOverlay = document.getElementById('linksExpandedPanel');
+    function init() {
+        dom.infoButton = document.getElementById('infoPanelToggle');
+        dom.infoPanel = document.getElementById('linksExpandedPanel');
+        dom.youtuberButton = document.getElementById('youtuberPanelToggle');
+        dom.youtuberPanel = document.getElementById('youtuberExpandedPanel');
+        dom.youtuberLinks = document.getElementById('youtuberLinks');
+        dom.versionElement = document.getElementById('versionText');
 
-    if (!actionButton || !panelOverlay) {
-        return;
+        if (!dom.infoButton || !dom.infoPanel || !dom.youtuberButton || !dom.youtuberPanel) {
+            return;
+        }
+
+        dom.infoPanel.classList.add('hidden');
+        dom.youtuberPanel.classList.add('hidden');
+
+        bindToggle('info');
+        bindToggle('youtuber');
+
+        document.addEventListener('click', handleDocumentClick);
+        document.addEventListener('mousemove', handleMouseMove);
+
+        if (dom.versionElement) {
+            dom.versionElement.addEventListener('click', (event) => {
+                event.preventDefault();
+                window.open('./docs/versions.txt', '_blank');
+            });
+        }
+
+        if (dom.youtuberLinks) {
+            renderYoutuberLinks();
+        }
     }
 
-    panelOverlay.classList.add('hidden');
-
-    const versionElement = document.getElementById('versionText');
-    if (versionElement) {
-        versionElement.addEventListener('click', (event) => {
-            event.preventDefault();
-            window.open('./docs/versions.txt', '_blank');
+    function bindToggle(key) {
+        const button = dom[key + 'Button'];
+        button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            setPanelState(key, !state[key]);
         });
     }
 
-    actionButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        panelState = !panelState;
-        if (panelState) {
-            panelOverlay.classList.remove('hidden');
-            panelOverlay.classList.add('visible');
-            actionButton.style.opacity = '1';
-        } else {
-            panelOverlay.classList.remove('visible');
-            panelOverlay.classList.add('hidden');
+    function setPanelState(key, isOpen) {
+        state[key] = isOpen;
+        const panel = dom[key + 'Panel'];
+        panel.classList.toggle('hidden', !isOpen);
+        panel.classList.toggle('visible', isOpen);
+        if (isOpen) {
+            dom[key + 'Button'].style.opacity = '1';
         }
-    });
+    }
 
-    document.addEventListener('click', (event) => {
-        if (panelState && !panelOverlay.contains(event.target) && !actionButton.contains(event.target)) {
-            panelState = false;
-            panelOverlay.classList.remove('visible');
-            panelOverlay.classList.add('hidden');
+    function handleDocumentClick(event) {
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            if (state[key]) {
+                const panel = dom[key + 'Panel'];
+                const button = dom[key + 'Button'];
+                if (!panel.contains(event.target) && !button.contains(event.target)) {
+                    setPanelState(key, false);
+                }
+            }
         }
-    });
-}
-
-function handleProximityFade(cursorX, cursorY) {
-    const actionButton = document.getElementById('infoPanelToggle');
-
-    if (!actionButton) {
-        return;
     }
 
-    if (panelState) {
-        actionButton.style.opacity = '1';
-        return;
-    }
-
-    const buttonBounds = actionButton.getBoundingClientRect();
-    const buttonCenterX = buttonBounds.left + buttonBounds.width / 2;
-    const buttonCenterY = buttonBounds.top + buttonBounds.height / 2;
-    const proximityDistance = Math.sqrt(Math.pow(cursorX - buttonCenterX, 2) + Math.pow(cursorY - buttonCenterY, 2));
-
-    if (proximityDistance > 100) {
-        actionButton.style.opacity = '0.3';
-    } else {
-        actionButton.style.opacity = '1';
-    }
-}
-
-let youtuberPanelState = false;
-
-function createYoutuberLink(entry) {
-    const linkEl = document.createElement('a');
-    linkEl.href = entry.link;
-    linkEl.target = '_blank';
-    linkEl.rel = 'noopener noreferrer';
-    linkEl.className = 'menuLink expandedPanelLink';
-    linkEl.setAttribute('role', 'listitem');
-
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svgEl = document.createElementNS(svgNS, 'svg');
-    svgEl.setAttribute('class', 'expandedPanelIcon');
-    svgEl.setAttribute('viewBox', '0 0 24 24');
-    svgEl.setAttribute('fill', 'currentColor');
-
-    const pathEl = document.createElementNS(svgNS, 'path');
-    pathEl.setAttribute('d', 'M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z');
-
-    svgEl.appendChild(pathEl);
-    linkEl.appendChild(svgEl);
-    linkEl.appendChild(document.createTextNode(entry.name));
-
-    return linkEl;
-}
-
-function populateYoutuberPanel() {
-    const linksContainer = document.getElementById('youtuberLinks');
-
-    if (!linksContainer) {
-        return;
-    }
-
-    linksContainer.textContent = '';
-
-    for (let i = 0; i < youtuberList.length; i++) {
-        linksContainer.appendChild(createYoutuberLink(youtuberList[i]));
-    }
-}
-
-function setupYoutuberPanel() {
-    const panelOverlay = document.getElementById('youtuberExpandedPanel');
-    const actionButton = document.getElementById('youtuberPanelToggle');
-
-    if (!panelOverlay || !actionButton) {
-        return;
-    }
-
-    panelOverlay.classList.add('hidden');
-
-    actionButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        youtuberPanelState = !youtuberPanelState;
-        if (youtuberPanelState) {
-            panelOverlay.classList.remove('hidden');
-            panelOverlay.classList.add('visible');
-            actionButton.style.opacity = '1';
-        } else {
-            panelOverlay.classList.remove('visible');
-            panelOverlay.classList.add('hidden');
+    function handleMouseMove(event) {
+        for (let i = 0; i < keys.length; i++) {
+            updateButtonOpacity(keys[i], event);
         }
-    });
+    }
 
-    document.addEventListener('click', (event) => {
-        if (youtuberPanelState && !panelOverlay.contains(event.target) && !actionButton.contains(event.target)) {
-            youtuberPanelState = false;
-            panelOverlay.classList.remove('visible');
-            panelOverlay.classList.add('hidden');
+    function updateButtonOpacity(key, event) {
+        if (state[key]) {
+            dom[key + 'Button'].style.opacity = '1';
+            return;
         }
-    });
-}
-
-function handleYoutuberProximityFade(cursorX, cursorY) {
-    const actionButton = document.getElementById('youtuberPanelToggle');
-
-    if (!actionButton) {
-        return;
+        const rect = dom[key + 'Button'].getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const distance = Math.hypot(event.clientX - centerX, event.clientY - centerY);
+        dom[key + 'Button'].style.opacity = distance > fadeRadius ? '0.3' : '1';
     }
 
-    if (youtuberPanelState) {
-        actionButton.style.opacity = '1';
-        return;
+    function renderYoutuberLinks() {
+        dom.youtuberLinks.textContent = '';
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < youtuberList.length; i++) {
+            fragment.appendChild(createYoutuberLink(youtuberList[i]));
+        }
+        dom.youtuberLinks.appendChild(fragment);
     }
 
-    const buttonBounds = actionButton.getBoundingClientRect();
-    const buttonCenterX = buttonBounds.left + buttonBounds.width / 2;
-    const buttonCenterY = buttonBounds.top + buttonBounds.height / 2;
-    const proximityDistance = Math.sqrt(Math.pow(cursorX - buttonCenterX, 2) + Math.pow(cursorY - buttonCenterY, 2));
+    function createYoutuberLink(entry) {
+        const linkEl = document.createElement('a');
+        linkEl.href = entry.link;
+        linkEl.target = '_blank';
+        linkEl.rel = 'noopener noreferrer';
+        linkEl.className = 'menuLink expandedPanelLink';
+        linkEl.setAttribute('role', 'listitem');
 
-    if (proximityDistance > 100) {
-        actionButton.style.opacity = '0.3';
-    } else {
-        actionButton.style.opacity = '1';
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svgEl = document.createElementNS(svgNS, 'svg');
+        svgEl.setAttribute('class', 'expandedPanelIcon');
+        svgEl.setAttribute('viewBox', '0 0 24 24');
+        svgEl.setAttribute('fill', 'currentColor');
+
+        const pathEl = document.createElementNS(svgNS, 'path');
+        pathEl.setAttribute('d', 'M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z');
+
+        svgEl.appendChild(pathEl);
+        linkEl.appendChild(svgEl);
+        linkEl.appendChild(document.createTextNode(entry.name));
+
+        return linkEl;
     }
-}
 
-function bootstrap() {
-    setupInfoPanel();
-    populateYoutuberPanel();
-    setupYoutuberPanel();
-    document.addEventListener('mousemove', (event) => {
-        handleProximityFade(event.clientX, event.clientY);
-        handleYoutuberProximityFade(event.clientX, event.clientY);
-    });
-}
+    return { init };
+})();
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootstrap);
+    document.addEventListener('DOMContentLoaded', PanelUI.init);
 } else {
-    bootstrap();
+    PanelUI.init();
 }
 
 function showItemInfo(item, isWeapon, isStoreItem) {
