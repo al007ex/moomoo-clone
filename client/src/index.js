@@ -677,87 +677,19 @@ function bindEvents() {
     }
 }
 
-// Заменить эти Js коды и прочее на main.css и play.html это будет лучше и качетвенее
-
 let panelState = false;
 
-function injectHiddenStyles() {
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-            #linksContainer2 {
-                display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-            }
-        `;
-    document.head.appendChild(styleElement);
-}
+function setupInfoPanel() {
+    const actionButton = document.getElementById('infoPanelToggle');
+    const panelOverlay = document.getElementById('linksExpandedPanel');
 
-function replaceLinksContainer() {
-    const originalContainer = document.getElementById('linksContainer2');
-    if (!originalContainer) {
-        setTimeout(replaceLinksContainer, 100);
+    if (!actionButton || !panelOverlay) {
         return;
     }
 
-    originalContainer.style.display = 'none';
-    originalContainer.style.visibility = 'hidden';
-    originalContainer.style.opacity = '0';
+    panelOverlay.classList.add('hidden');
 
-    const actionButton = document.createElement('div');
-    actionButton.id = 'infoPanelToggle';
-    actionButton.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
-        </svg>
-    `;
-    originalContainer.parentElement.appendChild(actionButton);
-
-    const panelOverlay = document.createElement('div');
-    panelOverlay.id = 'linksExpandedPanel';
-    panelOverlay.className = 'hidden';
-    panelOverlay.innerHTML = `
-            <div class="expandedPanelHeader">
-                <span style="color: #666;">Moomoo.io</span> <span style="cursor: pointer;" id="versionText">v1.8.1</span>
-            </div>
-            <div class="expandedPanelSection">
-                <div class="expandedPanelSectionTitle">COMMUNITY</div>
-                <a href="https://discord.gg/MqpUzka" target="_blank" class="menuLink expandedPanelLink">
-                    <svg class="expandedPanelIcon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
-                    </svg>
-                    Discord
-                </a>
-                </div>
-            <div class="expandedPanelSection">
-                <div class="expandedPanelSectionTitle">LEGAL</div>
-                <a href="https://frvr.com/legal#TermsofService" target="_blank" class="menuLink expandedPanelLink">
-                    <svg class="expandedPanelIcon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                    </svg>
-                    Terms
-                </a>
-                <a href="https://frvr.com/legal#PrivacyPolicy" target="_blank" class="menuLink expandedPanelLink">
-                    <svg class="expandedPanelIcon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1Z"/>
-                    </svg>
-                    Privacy
-                </a>
-            </div>
-
-            <div class="expandedPanelSection">
-                <div class="expandedPanelSectionTitle">JOIN</div>
-                <div class="expandedPanelJoinButton">
-                    <svg class="expandedPanelButtonIcon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5A3,3 0 0,0 13,8A3,3 0 0,0 16,11Z"/>
-                    </svg>
-                    Join Party
-                </div>
-            </div>
-        `;
-    originalContainer.parentElement.appendChild(panelOverlay);
-
-    const versionElement = panelOverlay.querySelector('#versionText');
+    const versionElement = document.getElementById('versionText');
     if (versionElement) {
         versionElement.addEventListener('click', (event) => {
             event.preventDefault();
@@ -811,217 +743,55 @@ function handleProximityFade(cursorX, cursorY) {
     }
 }
 
-function injectStylesheet() {
-    const stylesheet = document.createElement('style');
-    stylesheet.textContent = `
-            #linksContainer2 {
-                display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-            }
-
-            #infoPanelToggle {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                width: 40px;
-                height: 40px;
-                background: rgba(255, 255, 255, 0.95);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                transition: all 0.3s ease;
-                z-index: 9999;
-                opacity: 0.3;
-                pointer-events: all;
-                transform: scale(1);
-            }
-
-            #infoPanelToggle:hover {
-                background: #fff;
-                transform: scale(1.1);
-                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-                opacity: 1 !important;
-            }
-
-            #infoPanelToggle svg {
-                width: 24px;
-                height: 24px;
-                color: #a56dc8;
-            }
-
-            #linksExpandedPanel {
-                position: fixed;
-                bottom: 75px;
-                right: 20px;
-                width: 320px;
-                background: #fff;
-                border-radius: 12px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-                padding: 20px;
-                font-family: 'Hammersmith One', sans-serif;
-                z-index: 10000;
-                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            }
-
-            #linksExpandedPanel.hidden {
-                opacity: 0;
-                transform: translateX(100%);
-                pointer-events: none;
-            }
-
-            #linksExpandedPanel.visible {
-                opacity: 1;
-                transform: translateX(0);
-                pointer-events: all;
-            }
-
-            .expandedPanelHeader {
-                text-align: center;
-                font-size: 20px;
-                padding: 14px;
-                background: #f5f5f5;
-                border-radius: 8px;
-                margin-bottom: 16px;
-                font-weight: 600;
-            }
-
-            #versionText {
-                color: #a56dc8;
-                transition: color 0.3s ease;
-            }
-
-            #versionText:hover {
-                color: #855f9cff;
-            }
-
-            .expandedPanelSection {
-                margin-bottom: 14px;
-            }
-
-            .expandedPanelSection:last-child {
-                margin-bottom: 0;
-            }
-
-            .expandedPanelSectionTitle {
-                font-size: 13px;
-                font-weight: 700;
-                color: #666;
-                letter-spacing: 0.5px;
-                margin-bottom: 10px;
-            }
-
-            .expandedPanelLink {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 11px 14px;
-                background: #f8f8f8;
-                border-radius: 8px;
-                margin-bottom: 6px;
-                text-decoration: none;
-                color: #a56dc8 !important;
-                font-size: 15px;
-                transition: all 0.2s ease;
-            }
-
-            .expandedPanelLink:last-child {
-                margin-bottom: 0;
-            }
-
-            .expandedPanelLink:hover {
-                background: #f0f0f0;
-                transform: translateX(4px);
-                color: #795094 !important;
-            }
-
-            .expandedPanelIcon {
-                width: 20px;
-                height: 20px;
-                flex-shrink: 0;
-            }
-
-            .expandedPanelJoinButton {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 10px;
-                padding: 13px;
-                background: linear-gradient(135deg, #6eb3ef 0%, #5c96c9 100%);
-                color: #fff;
-                border-radius: 8px;
-                font-size: 17px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                box-shadow: 0 4px 12px rgba(110, 179, 239, 0.3);
-            }
-
-            .expandedPanelJoinButton:hover {
-                background: linear-gradient(135deg, #5c96c9 0%, #4a7ba7 100%);
-                transform: translateY(-2px);
-                box-shadow: 0 6px 16px rgba(110, 179, 239, 0.4);
-            }
-
-            .expandedPanelButtonIcon {
-                width: 22px;
-                height: 22px;
-            }
-        `;
-    document.head.appendChild(stylesheet);
-}
-
 let youtuberPanelState = false;
 
-function replaceYoutuberOf() {
-    const originalContainer = document.getElementById('youtuberOf');
-    if (!originalContainer) {
-        setTimeout(replaceYoutuberOf, 100);
+function createYoutuberLink(entry) {
+    const linkEl = document.createElement('a');
+    linkEl.href = entry.link;
+    linkEl.target = '_blank';
+    linkEl.rel = 'noopener noreferrer';
+    linkEl.className = 'menuLink expandedPanelLink';
+    linkEl.setAttribute('role', 'listitem');
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svgEl = document.createElementNS(svgNS, 'svg');
+    svgEl.setAttribute('class', 'expandedPanelIcon');
+    svgEl.setAttribute('viewBox', '0 0 24 24');
+    svgEl.setAttribute('fill', 'currentColor');
+
+    const pathEl = document.createElementNS(svgNS, 'path');
+    pathEl.setAttribute('d', 'M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z');
+
+    svgEl.appendChild(pathEl);
+    linkEl.appendChild(svgEl);
+    linkEl.appendChild(document.createTextNode(entry.name));
+
+    return linkEl;
+}
+
+function populateYoutuberPanel() {
+    const linksContainer = document.getElementById('youtuberLinks');
+
+    if (!linksContainer) {
         return;
     }
 
-    originalContainer.style.display = 'none';
-    originalContainer.style.visibility = 'hidden';
-    originalContainer.style.opacity = '0';
+    linksContainer.textContent = '';
 
-    const actionButton = document.createElement('div');
-    actionButton.id = 'youtuberPanelToggle';
-    actionButton.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-        </svg>
-    `;
-    originalContainer.parentElement.appendChild(actionButton);
-
-    const panelOverlay = document.createElement('div');
-    panelOverlay.id = 'youtuberExpandedPanel';
-    panelOverlay.className = 'hidden';
-
-    let youtubersHTML = '';
     for (let i = 0; i < youtuberList.length; i++) {
-        youtubersHTML += `
-            <a href="${youtuberList[i].link}" target="_blank" class="menuLink expandedPanelLink">
-                <svg class="expandedPanelIcon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M10,16.5V7.5L16,12M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-                </svg>
-                ${youtuberList[i].name}
-            </a>
-        `;
+        linksContainer.appendChild(createYoutuberLink(youtuberList[i]));
+    }
+}
+
+function setupYoutuberPanel() {
+    const panelOverlay = document.getElementById('youtuberExpandedPanel');
+    const actionButton = document.getElementById('youtuberPanelToggle');
+
+    if (!panelOverlay || !actionButton) {
+        return;
     }
 
-    panelOverlay.innerHTML = `
-        <div class="expandedPanelHeader">
-            <span style="color: #666;">Featured</span> <span style="color: #a56dc8;">Mootubers</span>
-        </div>
-        <div class="expandedPanelSection">
-            <div class="expandedPanelSectionTitle">CONTENT CREATORS</div>
-            ${youtubersHTML}
-        </div>
-    `;
-    originalContainer.parentElement.appendChild(panelOverlay);
+    panelOverlay.classList.add('hidden');
 
     actionButton.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -1069,116 +839,15 @@ function handleYoutuberProximityFade(cursorX, cursorY) {
     }
 }
 
-function injectYoutuberStyles() {
-    const stylesheet = document.createElement('style');
-    stylesheet.textContent = `
-            #youtuberOf {
-                display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-            }
-
-            #youtuberPanelToggle {
-                position: fixed;
-                bottom: 20px;
-                left: 20px;
-                width: 40px;
-                height: 40px;
-                background: rgba(255, 255, 255, 0.95);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                transition: all 0.3s ease;
-                z-index: 9999;
-                opacity: 0.3;
-                pointer-events: all;
-                transform: scale(1);
-            }
-
-            #youtuberPanelToggle:hover {
-                background: #fff;
-                transform: scale(1.1);
-                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-                opacity: 1 !important;
-            }
-
-            #youtuberPanelToggle svg {
-                width: 24px;
-                height: 24px;
-                color: #a56dc8;
-            }
-
-            #youtuberExpandedPanel {
-                position: fixed;
-                bottom: 75px;
-                left: 20px;
-                width: 320px;
-                max-height: 500px;
-                background: #fff;
-                border-radius: 12px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-                padding: 20px;
-                padding-right: 12px;
-                font-family: 'Hammersmith One', sans-serif;
-                z-index: 10000;
-                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-                overflow-y: auto;
-                overflow-x: hidden;
-            }
-
-            #youtuberExpandedPanel::-webkit-scrollbar {
-                width: 6px;
-            }
-
-            #youtuberExpandedPanel::-webkit-scrollbar-track {
-                background: transparent;
-                margin: 8px 0;
-            }
-
-            #youtuberExpandedPanel::-webkit-scrollbar-thumb {
-                background: #a56dc8;
-                border-radius: 3px;
-            }
-
-            #youtuberExpandedPanel::-webkit-scrollbar-thumb:hover {
-                background: #795094;
-            }
-            
-            #youtuberExpandedPanel .expandedPanelSection {
-                padding-right: 8px;
-            }
-
-            #youtuberExpandedPanel.hidden {
-                opacity: 0;
-                transform: translateX(-100%);
-                pointer-events: none;
-            }
-
-            #youtuberExpandedPanel.visible {
-                opacity: 1;
-                transform: translateX(0);
-                pointer-events: all;
-            }
-        `;
-    document.head.appendChild(stylesheet);
-}
-
 function bootstrap() {
-    injectHiddenStyles();
-    injectStylesheet();
-    injectYoutuberStyles();
-    replaceLinksContainer();
-    replaceYoutuberOf();
+    setupInfoPanel();
+    populateYoutuberPanel();
+    setupYoutuberPanel();
     document.addEventListener('mousemove', (event) => {
         handleProximityFade(event.clientX, event.clientY);
         handleYoutuberProximityFade(event.clientX, event.clientY);
     });
 }
-
-injectHiddenStyles();
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrap);
