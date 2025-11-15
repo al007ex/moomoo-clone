@@ -49,7 +49,6 @@ var ProjectileManager = require("./data/projectileManager.js");
 var Filter = require("bad-words");
 
 var textManager = new animText.TextManager();
-var serverConfig = require("./data/servers.js");
 var LOG_PREFIX = "[client]";
 
 function logInfo() {
@@ -72,91 +71,10 @@ if (typeof window !== "undefined" && typeof fetch === "function") {
 }
 
 
-async function initializeServerSelection() {
-    var serverParam = new URLSearchParams(window.location.search).get("server");
-    var servers = await loadServers();
-    if (typeof document !== "undefined") {
-        var browserEl = document.getElementById("serverBrowser");
-        if (browserEl) {
-            var selectEl = document.createElement("select");
-            selectEl.id = "serverSelect";
-
-            servers.forEach(function (entry, index) {
-                var optionEl = document.createElement("option");
-                optionEl.value = entry.key;
-                optionEl.textContent = entry.name
-                if (serverParam) {
-                    optionEl.selected = optionEl.value === serverParam;
-                } else if (index === 0) {
-                    optionEl.selected = true;
-                }
-                selectEl.appendChild(optionEl);
-            });
-
-            selectEl.addEventListener("change", function (event) {
-                var newUrl = new URL(window.location.href);
-                var selectedValue = event.target.value;
-                if (selectedValue) {
-                    newUrl.searchParams.set("server", selectedValue);
-                } else {
-                    newUrl.searchParams.delete("server");
-                }
-                window.location.href = newUrl.toString();
-            });
-            browserEl.innerHTML = "";
-            browserEl.appendChild(selectEl);
-        }
-    }
-    showLoadingText("Finding server...");
-    if (serverParam) {
-        logInfo("Connecting to requested server:", serverParam);
-    } else {
-        logInfo("No server specified, evaluating available servers.");
-        var bestServer = null;
-        var bestPing = Infinity;
-        for (var i = 0; i < servers.length; i++) {
-            var candidate = servers[i];
-            if (candidate.isLocal) {
-                continue;
-            }
-            try {
-                var ping = await pingServer(candidate);
-                logInfo("Ping to " + candidate.name + ": " + ping + "ms");
-                if (ping < bestPing) {
-                    bestPing = ping;
-                    bestServer = candidate;
-                }
-            } catch (err) {
-                logInfo("Failed to ping " + candidate.name + ":", err);
-            }
-        }
-        if (bestServer) {
-            logInfo("Best latency server identified: " + bestServer.name + " (" + bestPing + "ms)");
-        } else {
-            logInfo("No remote servers responded to ping requests.");
-        }
-    }
-    connectSocketIfReady();
-}
-
-function pingServer(server) {
-    return new Promise((resolve, reject) => {
-        let start = Date.now();
-        fetch(`https://${server.ws}.${server.host}/ping`, { cache: "no-store" }).then(() => {
-            let end = Date.now();
-            resolve(end - start);
-        }).catch(reject);
-
-    });
-}
 window.onload = function () {
-    initializeServerSelection();
+    showLoadingText("Connecting...");
+    connectSocketIfReady();
 };
-
-async function loadServers() {
-    // Load bundled server definitions; swap with remote fetch when backend is ready.
-    return serverConfig;
-}
 var connected = false;
 var startedConnecting = false;
 
@@ -357,14 +275,6 @@ var storeButton = document.getElementById("storeButton");
 var chatButton = document.getElementById("chatButton");
 var gameCanvas = document.getElementById("gameCanvas");
 var mainContext = gameCanvas.getContext("2d");
-var serverBrowser = document.getElementById("serverBrowser");
-if (serverBrowser) {
-    var serverLabel = "current host";
-    if (typeof window !== "undefined" && window.location) {
-        serverLabel = window.location.host || window.location.href;
-    }
-    serverBrowser.innerHTML = "<div class='serverStatus'>Connected to " + serverLabel + "</div>";
-}
 var nativeResolutionCheckbox = document.getElementById("nativeResolution");
 var showPingCheckbox = document.getElementById("showPing");
 var shutdownDisplay = document.getElementById("shutdownDisplay");
@@ -1787,6 +1697,9 @@ window.addEventListener('keyup', UTILS.checkTrusted(keyUp));
 
 function sendAtckState() {
     if (player && player.alive) {
+        if (attackState === 1) {
+            recordClickEvent();
+        }
         io.send("F", attackState, (player.buildIndex >= 0 ? getAttackDir() : null));
     }
 }
@@ -2250,6 +2163,22 @@ function updateGame() {
                             var tmpX = tmpObj.x - xOffset - (tmpS / 2) + (mainContext.measureText(tmpText).width / 2) + config.crownPad;
                             mainContext.drawImage(iconSprites["skull"], tmpX, (tmpObj.y - yOffset - tmpObj.scale) - config.nameY - (tmpS / 2) - 5, tmpS, tmpS);
                         }
+                    }
+                    var statsParts = [];
+                    if (typeof tmpObj.cps === "number" && tmpObj.cps >= 0) {
+                        statsParts.push(Math.max(0, Math.round(tmpObj.cps)) + " CPS");
+                    }
+                    if (typeof tmpObj.ping === "number" && tmpObj.ping >= 0) {
+                        statsParts.push(tmpObj.ping + "ms");
+                    }
+                    if (statsParts.length > 0) {
+                        var statsText = statsParts.join(" | ");
+                        var statsY = (tmpObj.y - yOffset - tmpObj.scale) - config.nameY + 22;
+                        mainContext.font = "20px Hammersmith One";
+                        mainContext.lineWidth = 6;
+                        mainContext.strokeText(statsText, tmpObj.x - xOffset, statsY);
+                        mainContext.fillStyle = "#fff";
+                        mainContext.fillText(statsText, tmpObj.x - xOffset, statsY);
                     }
                     if (tmpObj.health > 0) {
 
@@ -3037,6 +2966,10 @@ function addPlayer(data, isYou) {
     tmpPlayer.setData(data);
     if (isYou) {
         player = tmpPlayer;
+        clickTimestamps.length = 0;
+        clientCps = 0;
+        statsDirty = true;
+        updateClientCps(Date.now());
         camX = player.x;
         camY = player.y;
         updateItems();
@@ -3105,9 +3038,11 @@ function updatePlayers(data) {
             tmpObj.tailIndex = data[i + 10];
             tmpObj.iconIndex = data[i + 11];
             tmpObj.zIndex = data[i + 12];
+            tmpObj.cps = typeof data[i + 13] === "number" ? Math.max(0, Math.round(data[i + 13])) : 0;
+            tmpObj.ping = typeof data[i + 14] === "number" ? Math.max(-1, Math.round(data[i + 14])) : -1;
             tmpObj.visible = true;
         }
-        i += 13;
+        i += 15;
     }
 }
 
@@ -3155,12 +3090,19 @@ var packetCounterDisplay = 0;
 var lastPacketTime = Date.now();
 var performanceDisplay = null;
 var pingValueElement = null;
+var cpsValueElement = null;
 var fpsValueElement = null;
 var packetValueElement = null;
+var clickTimestamps = [];
+var clientCps = 0;
+var statsDirty = true;
+var lastStatsSent = 0;
+var statsSendInterval = 200;
 
 function initPerformanceDisplay() {
     performanceDisplay = document.getElementById("performanceDisplay");
     pingValueElement = document.getElementById("pingValue");
+    cpsValueElement = document.getElementById("cpsValue");
     fpsValueElement = document.getElementById("fpsValue");
     packetValueElement = document.getElementById("packetValue");
     updatePerformancePanelVisibility();
@@ -3174,6 +3116,50 @@ function updatePerformancePanelVisibility() {
 
 function incrementPacketCounter() {
     packetCounter++;
+}
+
+function pruneClickTimestamps(now) {
+    var cutoff = now - 1000;
+    while (clickTimestamps.length && clickTimestamps[0] < cutoff) {
+        clickTimestamps.shift();
+    }
+}
+
+function updateClientCps(now) {
+    if (!now) {
+        now = Date.now();
+    }
+    pruneClickTimestamps(now);
+    clientCps = clickTimestamps.length;
+    if (cpsValueElement) {
+        cpsValueElement.textContent = Math.max(0, Math.round(clientCps)).toString();
+    }
+}
+
+function recordClickEvent() {
+    var now = Date.now();
+    clickTimestamps.push(now);
+    updateClientCps(now);
+    statsDirty = true;
+    trySendPlayerStats();
+}
+
+function trySendPlayerStats() {
+    if (!player || !socketReady()) {
+        return;
+    }
+    var now = Date.now();
+    if (!statsDirty) {
+        return;
+    }
+    if ((now - lastStatsSent) < statsSendInterval) {
+        return;
+    }
+    updateClientCps(now);
+    var pingReport = (typeof window.pingTime === "number" && window.pingTime >= 0) ? Math.round(window.pingTime) : -1;
+    io.send("p", Math.max(0, Math.round(clientCps)), pingReport);
+    statsDirty = false;
+    lastStatsSent = now;
 }
 
 function updatePerformanceDisplay() {
@@ -3198,6 +3184,8 @@ function updatePerformanceDisplay() {
             packetValueElement.textContent = packetCounterDisplay + "/s";
         }
     }
+    updateClientCps(currentTime);
+    trySendPlayerStats();
 }
 
 function pingSocketResponse() {
@@ -3206,6 +3194,7 @@ function pingSocketResponse() {
     if (pingValueElement) {
         pingValueElement.textContent = pingTime + "ms";
     }
+    statsDirty = true;
 }
 
 function pingSocket() {

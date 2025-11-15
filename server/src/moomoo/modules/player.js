@@ -72,6 +72,8 @@ export class Player {
         this.iconIndex = 0;
         this.skinColor = 0;
         this.needsResourceSync = false;
+        this.clientCps = 0;
+        this.clientPing = -1;
 
         // SPAWN:
         this.spawn = function(moofoll) {
@@ -142,6 +144,8 @@ export class Player {
             this.weaponXP = [];
             this.reloads = {};
             this.hits = 0;
+            this.clientCps = 0;
+            this.clientPing = -1;
         };
 
         // RESET MOVE DIR:
@@ -240,7 +244,9 @@ export class Player {
                 this.skinIndex,
                 this.tailIndex,
                 this.iconIndex,
-                this.zIndex
+                this.zIndex,
+                Number.isFinite(this.clientCps) ? Math.max(0, Math.round(this.clientCps)) : 0,
+                Number.isFinite(this.clientPing) ? Math.max(-1, Math.round(this.clientPing)) : -1
             ];
         };
 

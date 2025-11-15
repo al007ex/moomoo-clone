@@ -15,7 +15,8 @@
     "server"
   ],
   "dependencies": {
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "puppeteer": "^24.29.1"

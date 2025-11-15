@@ -37,6 +37,8 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
     this.lastPing = 0;
     this.iconIndex = 0;
     this.skinColor = 0;
+    this.cps = 0;
+    this.ping = -1;
 
     this.spawn = function (moofoll) {
         this.active = true;
@@ -88,6 +90,8 @@ module.exports = function (id, sid, config, UTILS, projectileManager,
         this.shootCount = 0;
         this.weaponXP = [];
         this.reloads = {};
+        this.cps = 0;
+        this.ping = -1;
     };
 
     this.resetMoveDir = function () {

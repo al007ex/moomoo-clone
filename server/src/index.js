@@ -419,6 +419,24 @@ wss.on("connection", async (socket, req) => {
                     emit("0");
                     break;
                 }
+                case "p": {
+
+                    if (!player.alive) {
+                        break;
+                    }
+
+                    const rawCps = data[0];
+                    const rawPing = data[1];
+
+                    if (Number.isFinite(rawCps)) {
+                        player.clientCps = Math.max(0, Math.min(50, Math.round(Number(rawCps))));
+                    }
+                    if (Number.isFinite(rawPing)) {
+                        player.clientPing = Math.max(-1, Math.min(9999, Math.round(Number(rawPing))));
+                    }
+
+                    break;
+                }
                 case "L": {
 
                     if (!player.alive) break;
