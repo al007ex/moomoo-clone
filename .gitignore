@@ -145,3 +145,9 @@ bots
 config.js
 shared/config.js
 server/src/moomoo/config.js
+
+# Private server runtime data (accounts, secret key, bans, reports)
+server/data/
+
+# Build output (official client + generated protocol module)
+dist/

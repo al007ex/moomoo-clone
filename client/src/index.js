@@ -2159,22 +2159,6 @@ function updateGame() {
                             mainContext.drawImage(iconSprites["skull"], tmpX, (tmpObj.y - yOffset - tmpObj.scale) - config.nameY - (tmpS / 2) - 5, tmpS, tmpS);
                         }
                     }
-                    var statsParts = [];
-                    if (typeof tmpObj.cps === "number" && tmpObj.cps >= 0) {
-                        statsParts.push(Math.max(0, Math.round(tmpObj.cps)) + " CPS");
-                    }
-                    if (typeof tmpObj.ping === "number" && tmpObj.ping >= 0) {
-                        statsParts.push(tmpObj.ping + "ms");
-                    }
-                    if (statsParts.length > 0) {
-                        var statsText = statsParts.join(" | ");
-                        var statsY = (tmpObj.y - yOffset - tmpObj.scale) - config.nameY + 22;
-                        mainContext.font = "20px Hammersmith One";
-                        mainContext.lineWidth = 6;
-                        mainContext.strokeText(statsText, tmpObj.x - xOffset, statsY);
-                        mainContext.fillStyle = "#fff";
-                        mainContext.fillText(statsText, tmpObj.x - xOffset, statsY);
-                    }
                     if (tmpObj.health > 0) {
 
                         mainContext.fillStyle = darkOutlineColor;

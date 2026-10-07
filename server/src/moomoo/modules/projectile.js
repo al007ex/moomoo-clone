@@ -83,7 +83,7 @@ export class Projectile {
                             hitObj.xVel += tmpSd * Math.cos(this.dir);
                             hitObj.yVel += tmpSd * Math.sin(this.dir);
                             if (hitObj.weaponIndex == undefined || !(items.weapons[hitObj.weaponIndex].shield && UTILS.getAngleDist(this.dir + Math.PI, hitObj.dir) <= config.shieldAngle)) {
-                                hitObj.changeHealth(-this.dmg, this.owner, this.owner);
+                                hitObj.changeHealth(-this.dmg, this.owner, this.owner, this);
                             }
                         } else {
                             if (hitObj.projDmg && hitObj.health && hitObj.changeHealth(-this.dmg)) {

@@ -1,6 +1,10 @@
+// GAME
+// One running game world (a "server" in the client's server picker). Owns the players,
+// animals, objects and projectiles and sends the per-tick state with the packet layouts
+// the official client expects.
 
+import { createHash } from "node:crypto";
 import { Player } from "./modules/player.js";
-import { AI } from "./modules/ai.js";
 import { UTILS } from "./libs/utils.js";
 import { config } from "./config.js";
 import { ProjectileManager } from "./modules/projectileManager.js";
@@ -8,629 +12,497 @@ import { Projectile } from "./modules/projectile.js";
 import { ObjectManager } from "./modules/objectManager.js";
 import { GameObject } from "./modules/gameObject.js";
 import { items } from "./modules/items.js";
-import { AiManager } from "./modules/aiMaanager.js";
+import { AiManager } from "./modules/aiManager.js";
 import { accessories, hats } from "./modules/store.js";
 import { ClanManager } from "./modules/clanManager.js";
+import { HAT, TAIL, EFFECT, hasTail, secretDistance } from "./modules/effects.js";
+import { ANIMAL_KEYS, BOSS_KEYS } from "../api/store.js";
 
-import NanoTimer from "nanotimer";
-import { encode } from "msgpack-lite";
+const CRAB_KING = 11;
+const CRABLING = 14;
+const COW = 0;
+const ROLE_NUMBER = { mod: 1, admin: 2 };
 
 export class Game {
 
-    // var
     players = [];
     ais = [];
     projectiles = [];
     game_objects = [];
 
-    server = {
-        broadcast: async (type, ...data) => {
-            for (const player of this.players) {
-                if (!player.socket) continue;
-                player.socket.send(encode([
-                    type,
-                    data
-                ]));
+    constructor({ key, name, capacity, membersOnly, accounts, log }) {
+        this.key = key;
+        this.name = name;
+        this.capacity = capacity;
+        this.membersOnly = membersOnly;
+        this.accounts = accounts;
+        this.log = log || ((msg) => console.log(`[${key}] ${msg}`));
+        this.playersById = new Map();
+        this.sids = new Array(config.maxPlayersHard).fill(true);
+        this.crabKillers = new Set();
+        this.shutdownAt = 0;
+
+        this.server = {
+            broadcast: (type, ...data) => {
+                for (const player of this.players) player.send(type, ...data);
+            },
+            send: (id, type, ...data) => {
+                const player = this.playersById.get(id);
+                if (player) player.send(type, ...data);
             }
-
-        },
-        send: async (playerId, type, ...data) => {
-            if (!playerId) return;
-            const target = this.players.find(p => p.id === playerId);
-            if (!target || !target.socket) return;
-            target.socket.send(encode([type, data]));
-        }
-    };
-
-    // managers
-    ai_manager = null;
-    object_manager = null;
-    projectile_manager = null;
-    clan_manager = null;
-
-    id_storage = new Array(config.maxPlayersHard).fill(true);
-
-    constructor() {
-
-        this.object_manager = new ObjectManager(GameObject, this.game_objects, UTILS, config, this.players, this.server);
-        this.ai_manager = new AiManager(this.ais, AI, this.players, items, this.object_manager, config, UTILS, (player, score) => {
-            if (player && player.addResource) {
-                player.addResource(3, score); // 3 = points/gold
-            }
-        }, this.server);
-        this.projectile_manager = new ProjectileManager(Projectile, this.projectiles, this.players, this.ais, this.object_manager, items, config, UTILS, this.server);
-        this.clan_manager = new ClanManager(this.players, this.server);
-        this.aiSpawnPlan = this.buildAiSpawnPlan();
-        this.aiSpawnCheckTimer = 0;
-
-        const nano = (1000 / config.serverUpdateRate);
-        const timer = new NanoTimer;
-
-        let last = 0;
-        let minimap_cd = config.minimapRate;
-
-        setInterval(() => {
-
-            const t = performance.now();
-
-            const delta = t - last;
-            last = t;
-
-            let kills = 0;
-            let leader = null;
-
-            const updt_map = minimap_cd <= 0;
-
-            if (updt_map) {
-                minimap_cd = config.minimapRate;
-            } else {
-                minimap_cd -= delta;
-            }
-
-            const minimap_ext = [];
-
-            for (const player of this.players) {
-
-                player.update(delta);
-                player.iconIndex = 0;
-
-                if (!player.alive) continue;
-
-                if (kills < player.kills) {
-                    kills = player.kills;
-                    leader = player;
-                }
-
-                if (updt_map) {
-                    minimap_ext.push({
-                        sid: player.sid,
-                        x: player.x,
-                        y: player.y,
-                        team: player.team || null
-                    });
-                }
-
-            }
-
-            if (leader) leader.iconIndex = 1;
-
-            for (const projectile of this.projectiles)
-                projectile.update(delta);
-
-            this.updateAnimals(delta);
-            this.updateTurrets(delta);
-
-            {
-
-                const metric = (player) => player.points
-                const sort = this.players.filter(x => x.alive).sort((a, b) => {
-                    return metric(b) - metric(a);
-                });
-                const sorts = [];
-                const maxEntries = Math.min(config.leaderboardMaxPlayers || 10, sort.length);
-                for (let i = 0; i < maxEntries; i++) {
-                    sorts.push(sort[i]);
-                }
-
-                this.server.broadcast("G", sorts.flatMap(p => [p.sid, p.name, metric(p)]));
-
-            }
-
-            const activeAis = this.ais.filter(ai => ai.active);
-
-            for (const player of this.players) {
-
-                const sent_players = [];
-                const sent_objects = [];
-            
-                for (const player2 of this.players) {
-
-                    if (!player.canSee(player2) || !player2.alive) {
-                        continue;
-                    }
-
-                    if (!player2.sentTo[player.id]) {
-                        player2.sentTo[player.id] = true;
-                        player.send("D", player2.getData(), player.id === player2.id);
-                    }
-                    if (player.id === player2.id && player2.needsResourceSync) {
-                        player2.needsResourceSync = false;
-                        player2.syncResources();
-                    }
-                    sent_players.push(player2.getInfo());
-
-                }
-
-                for (const object of this.game_objects) {
-
-                    if (
-                        !object.sentTo[player.id] && object.active && object.visibleToPlayer(player) && player.canSee(object)
-                    ) {
-                        sent_objects.push(object);
-                        object.sentTo[player.id] = true;
-                    }
-
-                }
-
-                player.send("a", sent_players.flatMap(data => data));
-
-                // ais
-                const aiPayload = [];
-                for (const ai of activeAis) {
-                    if (!ai.alive) continue;
-                    if (!player.canSee(ai)) {
-                        continue;
-                    }
-                    aiPayload.push(
-                        ai.sid,
-                        ai.index,
-                        UTILS.fixTo(ai.x, 1),
-                        UTILS.fixTo(ai.y, 1),
-                        UTILS.fixTo(ai.dir, 3),
-                        Math.round(ai.health),
-                        ai.nameIndex ?? 0
-                    );
-                }
-                player.send("I", aiPayload.length > 0 ? aiPayload : null);
-
-                if (sent_objects.length > 0) {
-                    player.send("H", sent_objects.flatMap(object => [
-                        object.sid,
-                        UTILS.fixTo(object.x, 1),
-                        UTILS.fixTo(object.y, 1),
-                        object.dir,
-                        object.scale,
-                        object.type,
-                        object.id,
-                        object.owner ? object.owner.sid : -1
-                    ]));
-                }
-
-                if (minimap_ext.length === 0) continue;
-
-                const filteredMinimap = minimap_ext.filter(target => {
-                    if (target.sid === player.sid) {
-                        return false;
-                    }
-                    if (config.isSandbox) {
-                        return true;
-                    }
-                    if (player.team && target.team !== player.team) {
-                        return false;
-                    }
-                    return true;
-                });
-
-                player.send("7", filteredMinimap.flatMap(x => [x.x, x.y]));
-
-            }
-
-        }, nano);
-
-        const init_objects = () => {
-
-            const spawnCounts = config.spawnCounts || {
-                treesPerArea: config.treesPerArea,
-                bushesPerArea: config.bushesPerArea,
-                totalRocks: config.totalRocks,
-                goldOres: config.goldOres
-            };
-
-            let treesPerArea = spawnCounts.treesPerArea;
-            let bushesPerArea = spawnCounts.bushesPerArea;
-            let totalRocks = spawnCounts.totalRocks;
-            let goldOres = spawnCounts.goldOres;
-            let treeScales = config.treeScales;
-            let bushScales = config.bushScales;
-            let rockScales = config.rockScales;
-            let cLoc = function () {
-                return Math.round(Math.random() * config.mapScale);
-            };
-            let rScale = function (scales) {
-                return scales[Math.floor(Math.random() * scales.length)];
-            };
-            for (let i = 0; i < treesPerArea * config.areaCount;) {
-                let newObject = [this.game_objects.length, cLoc(), cLoc(), 0, rScale(treeScales), 0, undefined, false, null];
-                if (newObject[2] >= config.mapScale / 2 - config.riverWidth / 2 && newObject[2] <= config.mapScale / 2 + config.riverWidth / 2) continue;
-                if (newObject[2] >= config.mapScale - config.snowBiomeTop) continue;
-                if (this.object_manager.checkItemLocation(newObject[1], newObject[2], newObject[4], 0.6, null, false, null, true)) {
-                    this.object_manager.add(...newObject);
-                } else {
-                    continue;
-                }
-                i++;
-            };
-            for (let i = 0; i < bushesPerArea * config.areaCount;) {
-                let newObject = [this.game_objects.length, cLoc(), cLoc(), 0, rScale(bushScales), 1, undefined, false, null];
-                if (newObject[2] >= config.mapScale / 2 - config.riverWidth / 2 && newObject[2] <= config.mapScale / 2 + config.riverWidth / 2) continue;
-                if (this.object_manager.checkItemLocation(newObject[1], newObject[2], newObject[4], 0.6, null, false, null, true)) {
-                    this.object_manager.add(...newObject);
-                } else {
-                    continue;
-                }
-                i++;
-            };
-            for (let i = 0; i < totalRocks;) {
-                let newObject = [this.game_objects.length, cLoc(), cLoc(), 0, rScale(rockScales), 2, undefined, false, null];
-                if (this.object_manager.checkItemLocation(newObject[1], newObject[2], newObject[4], 0.6, null, true, null, true)) {
-                    this.object_manager.add(...newObject);
-                } else {
-                    continue;
-                }
-                i++;
-            };
-            for (let i = 0; i < goldOres;) {
-                let newObject = [this.game_objects.length, cLoc(), cLoc(), 0, rScale(rockScales), 3, undefined, false, null];
-                if (this.object_manager.checkItemLocation(newObject[1], newObject[2], newObject[4], 0.6, null, true, null, true)) {
-                    this.object_manager.add(...newObject);
-                } else {
-                    continue;
-                }
-                i++;
-            };
         };
 
-        init_objects();
+        this.scoreCallback = (player, amount) => {
+            if (!player || !player.isPlayer) return;
+            if (config.unlimitedResources && amount < 0) return;
+            player.points += amount;
+            player.send("N", "points", player.points, 1);
+            if (amount > 0) {
+                player.earnXP(amount);
+                if (player.lifeStats) {
+                    player.lifeStats.gold += amount;
+                    player.lifeStats.score = Math.max(player.lifeStats.score, player.points);
+                }
+            }
+        };
+
+        this.iconCallback = (player) => this.onPlayerDeath(player);
+
+        this.object_manager = new ObjectManager(GameObject, this.game_objects, UTILS, config, this.players, this.server);
+        this.projectile_manager = new ProjectileManager(Projectile, this.projectiles, this.players, this.ais, this.object_manager, items, config, UTILS, this.server);
+        this.clan_manager = new ClanManager(this.players, this.server);
+        this.ai_manager = new AiManager(this.ais, this.players, items, this.object_manager, config, UTILS, this.scoreCallback, this.server, {
+            onKill: (ai, doer) => this.onAnimalKilled(ai, doer),
+            killScore: (ai, doer) => ai.index == COW && doer && hasTail(doer, TAIL.COW_CAPE) ? Math.round(ai.killScore * EFFECT.cowCapeMult) : ai.killScore,
+            dropAmount: (ai, doer, amount) => ai.index == COW && hasTail(doer, TAIL.COW_CAPE) ? Math.round(amount * EFFECT.cowCapeMult) : amount,
+            respawnAt: (ai) => ai.secret ? this.randomSecretPoint(ai.scale) : null
+        });
+
+        this.generateWorld();
         this.ensureAnimals();
 
+        this.lastTick = Date.now();
+        this.leaderboardTimer = 0;
+        this.minimapTimer = 0;
+        this.statsTimer = 0;
+        this.spawnTimer = 0;
+        this.interval = setInterval(() => this.tick(), 1000 / config.serverUpdateRate);
     }
 
-    buildAiSpawnPlan() {
-        const map = config.mapScale;
-        const fallbackPlan = [{
-            index: 0,
-            desired: 12
-        }, {
-            index: 1,
-            desired: 10
-        }, {
-            index: 4,
-            desired: 8
-        }, {
-            index: 5,
-            desired: 6
-        }, {
-            index: 2,
-            desired: 8
-        }, {
-            index: 3,
-            desired: 6
-        }, {
-            index: 6,
-            desired: 1,
-            positions: [{
-                xRatio: 0.42,
-                yRatio: 0.72
-            }]
-        }, {
-            index: 7,
-            desired: 1,
-            positions: [{
-                xRatio: 0.18,
-                yRatio: 0.22
-            }]
-        }, {
-            index: 8,
-            desired: 1,
-            positions: [{
-                xRatio: 0.78,
-                yRatio: 0.64
-            }]
-        }];
-
-        const planSource = Array.isArray(config.animalSpawnPlan) && config.animalSpawnPlan.length ? config.animalSpawnPlan : fallbackPlan;
-
-        return planSource.map(plan => {
-            if (!Number.isInteger(plan.index)) {
-                return null;
-            }
-            const desired = typeof plan.desired === "number" ? plan.desired : 0;
-            if (desired <= 0) {
-                return null;
-            }
-            const rawPositions = Array.isArray(plan.positions) ? plan.positions : [];
-            const resolvedPositions = rawPositions.map(pos => {
-                if (typeof pos.x === "number" && typeof pos.y === "number") {
-                    return {
-                        x: pos.x,
-                        y: pos.y
-                    };
+    // ------------------------------------------------------------------ world
+    generateWorld() {
+        const cfg = config;
+        const areaSize = cfg.mapScale / cfg.areaCount;
+        const riverTop = cfg.mapScale / 2 - cfg.riverWidth / 2;
+        const riverBottom = cfg.mapScale / 2 + cfg.riverWidth / 2;
+        const pick = (list) => list[Math.floor(Math.random() * list.length)];
+        const place = (x, y, scale, type, ignoreWater) => {
+            if (!this.object_manager.checkItemLocation(x, y, scale, 0.6, null, ignoreWater)) return false;
+            this.object_manager.add(this.game_objects.length, x, y, 0, scale, type, undefined, false, null);
+            return true;
+        };
+        for (let ax = 0; ax < cfg.areaCount; ax++) {
+            for (let ay = 0; ay < cfg.areaCount; ay++) {
+                const left = ax * areaSize;
+                const top = ay * areaSize;
+                for (let placed = 0, tries = 0; placed < cfg.treesPerArea && tries < 200; tries++) {
+                    const x = UTILS.randInt(left, left + areaSize);
+                    const y = UTILS.randInt(top, top + areaSize);
+                    if (y >= riverTop - 100 && y <= riverBottom + 100) continue;
+                    if (y >= cfg.mapScale - cfg.snowBiomeTop) continue;
+                    if (place(x, y, pick(cfg.treeScales), 0, false)) placed++;
                 }
-                if (typeof pos.xRatio === "number" && typeof pos.yRatio === "number") {
-                    const xRatio = Math.min(Math.max(pos.xRatio, 0), 1);
-                    const yRatio = Math.min(Math.max(pos.yRatio, 0), 1);
-                    return {
-                        x: Math.round(map * xRatio),
-                        y: Math.round(map * yRatio)
-                    };
+                for (let placed = 0, tries = 0; placed < cfg.bushesPerArea && tries < 200; tries++) {
+                    const x = UTILS.randInt(left, left + areaSize);
+                    const y = UTILS.randInt(top, top + areaSize);
+                    if (y >= riverTop - 50 && y <= riverBottom + 50) continue;
+                    if (place(x, y, pick(cfg.bushScales), 1, false)) placed++;
                 }
-                return null;
-            }).filter(Boolean);
-            return {
-                index: plan.index,
-                desired: desired,
-                positions: resolvedPositions.length ? resolvedPositions : undefined,
-                nextPosition: 0
-            };
-        }).filter(Boolean);
+            }
+        }
+        for (let placed = 0, tries = 0; placed < cfg.totalRocks && tries < 5000; tries++) {
+            if (place(UTILS.randInt(0, cfg.mapScale), UTILS.randInt(0, cfg.mapScale), pick(cfg.rockScales), 2, true)) placed++;
+        }
+        for (let placed = 0, tries = 0; placed < cfg.goldOres && tries < 5000; tries++) {
+            if (place(UTILS.randInt(0, cfg.mapScale), UTILS.randInt(0, cfg.mapScale), pick(cfg.rockScales), 3, true)) placed++;
+        }
+    }
+
+    randomSecretPoint(scale) {
+        const pools = config.secretPool.pool;
+        for (let i = 0; i < 50; i++) {
+            const p = pools[UTILS.randInt(0, pools.length - 1)];
+            const a = Math.random() * Math.PI * 2;
+            const r = Math.random() * (p[2] - scale);
+            const x = p[0] + Math.cos(a) * r;
+            const y = p[1] + Math.sin(a) * r;
+            if (secretDistance(config, x + scale, y) <= 0) return { x, y };
+        }
+        return { x: pools[0][0], y: pools[0][1] };
+    }
+
+    animalPosition(plan) {
+        const type = this.ai_manager.aiTypes[plan.index];
+        if (plan.positions && plan.positions.length) {
+            const pos = plan.positions[0];
+            if (typeof pos.x === "number") return { x: pos.x, y: pos.y };
+            return { x: Math.round(config.mapScale * pos.xRatio), y: Math.round(config.mapScale * pos.yRatio) };
+        }
+        if (plan.area === "secret") return this.randomSecretPoint(type.scale);
+        for (let i = 0; i < 40; i++) {
+            let x = UTILS.randInt(type.scale, config.mapScale - type.scale);
+            let y = UTILS.randInt(type.scale, config.mapScale - type.scale);
+            if (plan.area === "snow") y = UTILS.randInt(type.scale, config.snowBiomeTop - type.scale);
+            if (plan.area === "river") y = UTILS.randInt(config.mapScale / 2 - config.riverWidth, config.mapScale / 2 + config.riverWidth);
+            if (this.object_manager.checkItemLocation(x, y, type.scale, 0.6, null, true)) return { x, y };
+        }
+        return { x: UTILS.randInt(0, config.mapScale), y: UTILS.randInt(0, config.mapScale) };
     }
 
     ensureAnimals() {
-        if (!this.ai_manager || !this.aiSpawnPlan) return;
-        for (const plan of this.aiSpawnPlan) {
-            let activeOfType = 0;
-            for (const ai of this.ais) {
-                if (ai.active && ai.index === plan.index) {
-                    activeOfType++;
+        for (const plan of config.server.animalSpawnPlan) {
+            const active = this.ais.filter(ai => ai.active && ai.index === plan.index && !ai.despawnOnDeath).length;
+            for (let i = active; i < plan.desired; i++) {
+                const pos = this.animalPosition(plan);
+                const overrides = plan.index === CRAB_KING ? { spawnDelay: 10 * 60 * 1000 } : null;
+                this.ai_manager.spawn(pos.x, pos.y, UTILS.randFloat(-Math.PI, Math.PI), plan.index, overrides);
+            }
+        }
+    }
+
+    onAnimalKilled(ai, doer) {
+        if (!doer || !doer.isPlayer) return;
+        const key = ANIMAL_KEYS[ai.index];
+        const stats = doer.lifeStats;
+        if (stats) {
+            if (BOSS_KEYS.includes(key)) stats.bosses++;
+            else stats.animals++;
+            if (key) stats.animalKills[key] = (stats.animalKills[key] || 0) + 1;
+        }
+        if (ai.index === CRAB_KING) {
+            const winners = new Set([doer]);
+            for (const [player, damage] of ai.damageBy) {
+                if (player.alive && damage >= ai.maxHealth * 0.05) winners.add(player);
+            }
+            for (const player of winners) {
+                this.crabKillers.add(player.sid);
+                if (player.lifeStats) player.lifeStats.bossKills++;
+                if (!player.skins[HAT.CRAB_SHELL]) {
+                    player.skins[HAT.CRAB_SHELL] = 1;
+                    player.send("5", 0, HAT.CRAB_SHELL, 0);
                 }
             }
-            let safety = 0;
-            while (activeOfType < plan.desired && safety < plan.desired * 3) {
-                const spawnPos = this.nextAnimalPosition(plan);
-                if (!spawnPos) break;
-                const dir = UTILS.randFloat(-Math.PI, Math.PI);
-                this.ai_manager.spawn(spawnPos.x, spawnPos.y, dir, plan.index);
-                activeOfType++;
-                safety++;
-            }
+            this.server.broadcast("6", -1, `${doer.name} defeated the Crab King!`);
         }
     }
 
-    nextAnimalPosition(plan) {
-        const type = this.ai_manager.aiTypes[plan.index];
-        if (!type) {
-            return null;
+    // ------------------------------------------------------------------ players
+    addPlayer({ send, account, ip, id }) {
+        const sid = this.sids.findIndex(free => free);
+        if (sid < 0) return null;
+        this.sids[sid] = false;
+        id = id || UTILS.randomString(16);
+        const player = new Player(id, sid, config, UTILS, this.projectile_manager, this.object_manager, this.players, this.ais, items, hats, accessories, this.server, this.scoreCallback, this.iconCallback);
+        player.send = send;
+        player.ip = ip;
+        player.ipHash = createHash("sha256").update(String(ip)).digest("hex").slice(0, 12);
+        player.connectedAt = Date.now();
+        player.reports = 0;
+        player.visiblePlayers = new Set();
+        player.visibleAis = new Set();
+        player.attrCache = new Map();
+        if (account) {
+            player.account = account;
+            player.role = account.role || null;
+            player.isMember = true;
+            player.shadowed = account.verdict === "shadow";
+            player.clanTag = account.clan || null;
+            if (account.name) player.name = account.name;
         }
-        if (plan.positions && plan.positions.length) {
-            const pos = plan.positions[plan.nextPosition % plan.positions.length];
-            plan.nextPosition = (plan.nextPosition + 1) % plan.positions.length;
-            if (this.validateAnimalSpawn(plan.index, pos.x, pos.y)) {
-                return {
-                    x: pos.x,
-                    y: pos.y
-                };
-            }
-        }
-        return this.randomAnimalPosition(plan.index);
+        this.players.push(player);
+        this.playersById.set(id, player);
+        player.send("A", { teams: this.clan_manager.list() });
+        return player;
     }
 
-    validateAnimalSpawn(index, x, y) {
-        const type = this.ai_manager.aiTypes[index];
-        if (!type) return false;
-        const scale = type.scale;
-        if (x < scale || y < scale || x > config.mapScale - scale || y > config.mapScale - scale) {
-            return false;
-        }
-        if (!this.object_manager.checkItemLocation(x, y, scale, 0.6, null, false, null)) {
-            return false;
-        }
-        for (const ai of this.ais) {
-            if (!ai.active) continue;
-            if (UTILS.getDistance(x, y, ai.x, ai.y) < ai.scale + scale) {
-                return false;
-            }
-        }
-        return true;
+    removePlayer(player) {
+        const index = this.players.indexOf(player);
+        if (index < 0) return;
+        this.recordLife(player, false);
+        this.clan_manager.leaveTribe(player);
+        this.clan_manager.forget(player);
+        this.object_manager.removeAllItems(player.sid, this.server);
+        this.players.splice(index, 1);
+        this.playersById.delete(player.id);
+        this.sids[player.sid] = true;
+        this.crabKillers.delete(player.sid);
+        this.server.broadcast("E", player.id);
     }
 
-    randomAnimalPosition(index) {
-        const type = this.ai_manager.aiTypes[index];
-        if (!type) return null;
-        for (let attempt = 0; attempt < 40; attempt++) {
-            const x = UTILS.randInt(type.scale, config.mapScale - type.scale);
-            const y = UTILS.randInt(type.scale, config.mapScale - type.scale);
-            if (this.validateAnimalSpawn(index, x, y)) {
-                return {
-                    x,
-                    y
-                };
-            }
-        }
-        return {
-            x: UTILS.randInt(type.scale, config.mapScale - type.scale),
-            y: UTILS.randInt(type.scale, config.mapScale - type.scale)
-        };
+    onPlayerDeath(player) {
+        this.recordLife(player, true);
+        this.leaderboardTimer = 0;
     }
 
-    updateAnimals(delta) {
-        for (const ai of this.ais) {
-            if (ai.active) {
-                ai.update(delta);
-            }
+    recordLife(player, died) {
+        if (!player.lifeStats || !player.account || !this.accounts) {
+            player.lifeStats = null;
+            return;
         }
-        this.aiSpawnCheckTimer -= delta;
-        if (this.aiSpawnCheckTimer <= 0) {
-            this.aiSpawnCheckTimer = 1000;
+        const life = player.lifeStats;
+        life.died = died;
+        life.playtime = Date.now() - player.spawnedAt;
+        player.lifeStats = null;
+        if (!this.accounts.data.accounts[player.account.id]) return;
+        if (player.account.verdict === "shadow") return;
+        this.accounts.recordLife(player.account, life);
+    }
+
+    playerCount() {
+        return this.players.length;
+    }
+
+    kickAccount(accountId, reason) {
+        for (const player of this.players) {
+            if (player.account && player.account.id === accountId && player.kick) player.kick(reason);
+        }
+    }
+
+    sessionFor(accountId) {
+        const player = this.players.find(p => p.account && p.account.id === accountId);
+        return player ? { at: player.connectedAt, server: this.key, ipHash: player.ipHash, reports: player.reports } : null;
+    }
+
+    // ------------------------------------------------------------------ loop
+    tick() {
+        const now = Date.now();
+        const delta = now - this.lastTick;
+        this.lastTick = now;
+
+        for (const player of this.players) {
+            player.chatCooldown -= delta;
+            player.tribeCooldown -= delta;
+            player.pingCooldown -= delta;
+            if (player.alive) player.update(delta);
+            if (player.anticheat) player.anticheat.tick(now);
+        }
+        for (const projectile of this.projectiles) projectile.update(delta);
+        this.updateStructures(delta);
+        for (const ai of this.ais) if (ai.active) ai.update(delta);
+
+        this.spawnTimer -= delta;
+        if (this.spawnTimer <= 0) {
+            this.spawnTimer = 1000;
             this.ensureAnimals();
         }
+
+        this.updateLeaders();
+
+        this.leaderboardTimer -= delta;
+        if (this.leaderboardTimer <= 0) {
+            this.leaderboardTimer = config.server.leaderboardRate;
+            this.sendLeaderboard();
+        }
+
+        this.minimapTimer -= delta;
+        const sendMinimap = this.minimapTimer <= 0;
+        if (sendMinimap) this.minimapTimer = config.minimapRate;
+
+        this.statsTimer -= delta;
+        const sendStats = this.statsTimer <= 0;
+        if (sendStats) this.statsTimer = config.server.statsRate;
+
+        for (const viewer of this.players) {
+            this.syncPlayers(viewer);
+            this.syncObjects(viewer);
+            this.syncAnimals(viewer);
+            if (sendMinimap) this.sendMinimap(viewer);
+            if (sendStats && viewer.watchStats >= 0) this.sendStats(viewer, viewer.watchStats);
+        }
     }
 
-    updateTurrets(delta) {
-        if (!this.object_manager || !this.projectile_manager) {
-            return;
+    updateLeaders() {
+        let pointsLeader = null;
+        let killLeader = null;
+        for (const player of this.players) {
+            player.isLeader = false;
+            player.iconIndex = 0;
+            if (!player.alive) continue;
+            if (!pointsLeader || player.points > pointsLeader.points) pointsLeader = player;
+            if (player.kills > 0 && (!killLeader || player.kills > killLeader.kills)) killLeader = player;
         }
+        if (pointsLeader) pointsLeader.isLeader = true;
+        if (killLeader) killLeader.iconIndex = 1;
+    }
+
+    // "a": [sid, x, y, dir*100] positions, [sid, buildIndex, weaponIndex, variant, team,
+    // isLeader, skin, tail, icon, zIndex] attributes (only when changed), hidden sids.
+    syncPlayers(viewer) {
+        const positions = [];
+        const attrs = [];
+        const hidden = [];
+        const visibleNow = new Set();
+        for (const other of this.players) {
+            if (!other.alive || !viewer.canSee(other)) continue;
+            visibleNow.add(other.sid);
+            if (!other.sentTo[viewer.id]) {
+                other.sentTo[viewer.id] = true;
+                viewer.attrCache.delete(other.sid);
+                viewer.send("D", other.getData(), viewer === other);
+                // SANDBOX_UNLIMITED: the client starts every life at zero, and only takes resource
+                // updates once it knows its own player, so the full stock follows right here.
+                if (viewer === other && config.unlimitedResources) {
+                    for (const type of config.resourceTypes) viewer.send("N", type, viewer[type], 1);
+                }
+            }
+            positions.push(other.sid, Math.round(other.x), Math.round(other.y), Math.round(other.dir * 100));
+            const attr = [other.sid, other.buildIndex, other.weaponIndex, other.variant().id, other.team, other.isLeader ? 1 : 0, other.displaySkin(), other.tailIndex, other.iconIndex, other.zIndex];
+            const key = attr.join(",");
+            if (viewer.attrCache.get(other.sid) !== key) {
+                viewer.attrCache.set(other.sid, key);
+                attrs.push(...attr);
+            }
+        }
+        for (const sid of viewer.visiblePlayers) {
+            if (!visibleNow.has(sid)) hidden.push(sid);
+        }
+        viewer.visiblePlayers = visibleNow;
+        viewer.send("a", positions, attrs, hidden);
+    }
+
+    // "H": objects in view that this viewer hasn't received yet (8 values each).
+    syncObjects(viewer) {
+        const fresh = [];
+        for (const object of this.game_objects) {
+            if (object.active && !object.sentTo[viewer.id] && object.visibleToPlayer(viewer) && viewer.canSee(object)) {
+                object.sentTo[viewer.id] = true;
+                fresh.push(object.sid, UTILS.fixTo(object.x, 1), UTILS.fixTo(object.y, 1), object.dir, object.scale, object.type, object.id, object.owner ? object.owner.sid : -1);
+            }
+        }
+        if (fresh.length) viewer.send("H", fresh);
+    }
+
+    // "I": [sid, index, x, y, dir*100, health, nameIndex, state] + sids that left view.
+    syncAnimals(viewer) {
+        const list = [];
+        const hidden = [];
+        const visibleNow = new Set();
+        for (const ai of this.ais) {
+            if (!ai.active || ai.spawnCounter || !viewer.canSee(ai)) continue;
+            visibleNow.add(ai.sid);
+            list.push(ai.sid, ai.index, UTILS.fixTo(ai.x, 1), UTILS.fixTo(ai.y, 1), Math.round(ai.dir * 100), Math.round(ai.health), ai.nameIndex, ai.state || 0);
+        }
+        for (const sid of viewer.visibleAis) {
+            if (!visibleNow.has(sid)) hidden.push(sid);
+        }
+        viewer.visibleAis = visibleNow;
+        if (list.length || hidden.length) viewer.send("I", list, hidden);
+    }
+
+    // "7": tribe members (staff see everyone).
+    sendMinimap(viewer) {
+        if (!viewer.alive) return;
+        const staff = Boolean(viewer.role);
+        if (!viewer.team && !staff) return;
+        const data = [];
+        for (const other of this.players) {
+            if (other === viewer || !other.alive) continue;
+            if (staff || (viewer.team && other.team === viewer.team)) data.push(Math.round(other.x), Math.round(other.y));
+        }
+        viewer.send("7", data);
+    }
+
+    // "G": leaderboard.
+    sendLeaderboard() {
+        const ranked = this.players.filter(p => p.spawned).sort((a, b) => b.points - a.points);
+        for (const viewer of this.players) {
+            const list = ranked.filter(p => !p.shadowed || p === viewer || viewer.role).slice(0, 10);
+            const entries = [];
+            const roles = [];
+            const dead = [];
+            const crab = [];
+            const clans = [];
+            const tribes = [];
+            for (const p of list) {
+                entries.push(p.sid, p.name, Math.round(p.points));
+                if (p.account) roles.push(p.sid, ROLE_NUMBER[p.role] || 0);
+                if (!p.alive) dead.push(p.sid);
+                if (this.crabKillers.has(p.sid)) crab.push(p.sid);
+                if (p.clanTag) {
+                    clans.push(p.sid, p.clanTag);
+                    tribes.push(p.sid, p.team || "");
+                }
+            }
+            viewer.send("G", entries, roles, dead, crab, clans, tribes);
+        }
+    }
+
+    // "F": live stats of one player for the profile card ("V" selects whom).
+    sendStats(viewer, sid) {
+        const target = this.players.find(p => p.sid === sid);
+        if (!target || !target.lifeStats) return;
+        const s = target.lifeStats;
+        viewer.send("F", sid, s.kills, s.wood, s.food, s.stone, s.gold, Math.round(s.damage), Math.round(s.animalDamage), Math.round(s.healing), s.animals, s.bosses, null, Math.round(s.score));
+    }
+
+    // Turrets and other updating structures.
+    updateStructures(delta) {
         const structures = this.object_manager.updateObjects;
-        if (!structures || structures.length === 0) {
-            return;
-        }
         for (let i = 0; i < structures.length; i++) {
             const structure = structures[i];
-            if (!structure || !structure.active) {
-                continue;
-            }
-
-            if (typeof structure.update === "function") {
-                structure.update(delta);
-            }
-
-            if (structure.projectile == null || !structure.shootRate || !structure.shootRange) {
-                continue;
-            }
-
-            if (typeof structure.shootCount !== "number") {
-                structure.shootCount = structure.shootRate;
-            }
-
+            if (!structure || !structure.active) continue;
+            structure.update(delta);
+            if (structure.projectile == null || !structure.shootRate || !structure.shootRange) continue;
+            if (typeof structure.shootCount !== "number") structure.shootCount = structure.shootRate;
             structure.shootCount -= delta;
-            if (structure.shootCount > 0) {
-                continue;
-            }
-
-            const target = this.pickTurretTarget(structure);
+            if (structure.shootCount > 0) continue;
+            const target = this.turretTarget(structure);
             if (!target) {
                 structure.shootCount = Math.min(structure.shootRate, 250);
                 continue;
             }
-
-            const direction = UTILS.getDirection(target.x, target.y, structure.x, structure.y);
-            structure.dir = direction;
-
-            const projectileData = items.projectiles[structure.projectile];
-            if (!projectileData) {
-                structure.shootCount = structure.shootRate;
-                continue;
-            }
-            const projectileSpeed = projectileData.speed || 1.6;
-
-            const muzzleOffset = structure.scale + 45;
-            const spawnX = structure.x + Math.cos(direction) * muzzleOffset;
-            const spawnY = structure.y + Math.sin(direction) * muzzleOffset;
-
-            this.projectile_manager.addProjectile(
-                spawnX,
-                spawnY,
-                direction,
-                structure.shootRange,
-                projectileSpeed,
-                structure.projectile,
-                structure.owner,
-                structure.sid,
-                projectileData.layer
-            );
-
+            const dir = UTILS.getDirection(target.x, target.y, structure.x, structure.y);
+            structure.dir = dir;
+            const data = items.projectiles[structure.projectile];
+            this.projectile_manager.addProjectile(structure.x + Math.cos(dir) * (structure.scale + 45), structure.y + Math.sin(dir) * (structure.scale + 45), dir, structure.shootRange, data.speed || 1.6, structure.projectile, structure.owner, structure.sid, data.layer);
             structure.shootCount = structure.shootRate;
-
-            this.broadcastTurretShot(structure, direction);
+            for (const player of this.players) {
+                if (structure.sentTo[player.id] && player.canSee(structure)) player.send("M", structure.sid, UTILS.fixTo(dir, 2));
+            }
         }
     }
 
-    pickTurretTarget(structure) {
-        let bestTarget = null;
-        let bestDist = Infinity;
+    turretTarget(structure) {
         const owner = structure.owner;
-        const ownerTeam = owner && owner.team ? owner.team : null;
-
+        let best = null;
+        let bestDist = Infinity;
         const consider = (candidate) => {
-            const distance = UTILS.getDistance(structure.x, structure.y, candidate.x, candidate.y);
-            if (distance > structure.shootRange + (candidate.scale || 0)) {
-                return;
-            }
-            if (!bestTarget || distance < bestDist) {
-                bestTarget = candidate;
-                bestDist = distance;
+            const dist = UTILS.getDistance(structure.x, structure.y, candidate.x, candidate.y);
+            if (dist <= structure.shootRange + (candidate.scale || 0) && dist < bestDist) {
+                best = candidate;
+                bestDist = dist;
             }
         };
-
         for (const player of this.players) {
-            if (!player.active || !player.alive) continue;
-            if (player === owner) continue;
-            if (player.skinIndex === 22) continue;
-            if (ownerTeam && player.team && player.team === ownerTeam) continue;
+            if (!player.alive || player === owner) continue;
+            if (player.skin && player.skin.antiTurret) continue;
+            if (owner && owner.team && player.team === owner.team) continue;
             if (player.skin && player.skin.invisTimer && player.noMovTimer >= player.skin.invisTimer) continue;
+            if (player.powers.invisible) continue;
             consider(player);
         }
-
         for (const ai of this.ais) {
-            if (!ai.active || !ai.alive) continue;
-            consider(ai);
+            if (ai.active && ai.alive && !ai.spawnCounter && !ai.submerged) consider(ai);
         }
-
-        return bestTarget;
+        return best;
     }
 
-    broadcastTurretShot(structure, direction) {
-        const fixedDir = UTILS.fixTo(direction, 2);
-        for (const player of this.players) {
-            if (!player.active) continue;
-            if (!structure.sentTo[player.id]) continue;
-            if (!player.canSee(structure)) continue;
-            player.send("M", structure.sid, fixedDir);
-        }
+    // Graceful shutdown countdown ("Z").
+    announceShutdown(seconds) {
+        this.server.broadcast("Z", seconds);
     }
 
-    addPlayer(socket) {
-
-        const string_id = UTILS.randomString(16);
-        const sid = this.id_storage.findIndex(bool => bool);
-        const player = new Player(
-            string_id,
-            sid,
-            config,
-            UTILS,
-            this.projectile_manager,
-            this.object_manager,
-            this.players,
-            this.ais,
-            items,
-            hats,
-            accessories,
-            socket,
-            (player, score) => {
-                if (player && player.addResource) {
-                    player.addResource(3, score); // 3 = points/gold
-                }
-            },
-            () => {}
-        );
-
-        player.send("io-init", player.id);
-        player.send("A", {
-            teams: this.clan_manager.ext()
-        });
-
-        this.id_storage[sid] = false;
-        this.players.push(player);
-
-        return player;
-
+    stop() {
+        clearInterval(this.interval);
     }
-
-    removePlayer(id) {
-
-        for (let i = 0; i < this.players.length; i++) {
-
-            const player = this.players[i];
-
-            if (player.id === id) {
-                this.server.broadcast("E", player.id);
-                this.object_manager.removeAllItems(player.sid, this.server);
-                this.players.splice(i, 1);
-                this.id_storage[player.sid] = true;
-                break;
-            }
-
-        }
-
-    }
-
 }

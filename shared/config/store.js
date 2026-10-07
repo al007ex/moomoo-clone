@@ -1,22 +1,29 @@
+// STORE
+// Hats and accessories, copied entry-for-entry (same order) from the official client
+// bundle ([bu] = hats, [vu] = accessories). The store UI lists them in this order.
+// Accessory effects that have no data field (Tree Cape, Cow Cape, Blockades, ...) are
+// implemented server-side in server/src/moomoo/modules/effects.js.
+
+// HATS:
 module.exports.hats = [{
     id: 45,
     name: "Shame!",
     dontSell: true,
     price: 0,
     scale: 120,
-    desc: "Assigned by the anti-cheat system to flagged accounts."
+    desc: "hacks are for losers"
 }, {
     id: 51,
     name: "Moo Cap",
     price: 0,
     scale: 120,
-    desc: "Classic Moo-branded cap for dedicated players."
+    desc: "coolest mooer around"
 }, {
     id: 50,
     name: "Apple Cap",
     price: 0,
     scale: 120,
-    desc: "Throwback cosmetic inspired by the Apple Farms event."
+    desc: "apple farms remembers"
 }, {
     id: 28,
     name: "Moo Head",
@@ -70,25 +77,25 @@ module.exports.hats = [{
     name: "Enigma Hat",
     price: 0,
     scale: 120,
-    desc: "Official Enigma community cosmetic."
+    desc: "join the enigma army"
 }, {
     id: 43,
     name: "Blitz Hat",
     price: 0,
     scale: 120,
-    desc: "Content creator collaboration item from Blitz."
+    desc: "hey everybody i'm blitz"
 }, {
     id: 49,
     name: "Bob XIII Hat",
     price: 0,
     scale: 120,
-    desc: "Pay tribute to Bob XIII's channel."
+    desc: "like and subscribe"
 }, {
     id: 57,
     name: "Pumpkin",
     price: 50,
     scale: 120,
-    desc: "Seasonal pumpkin cosmetic."
+    desc: "Spooooky"
 }, {
     id: 8,
     name: "Bummle Hat",
@@ -161,6 +168,14 @@ module.exports.hats = [{
     spdMult: 0.94,
     dmgMult: 0.75
 }, {
+    id: 59,
+    name: "Scout Hat",
+    price: 3500,
+    scale: 120,
+    desc: "move faster but take more damage",
+    spdMult: 1.08,
+    dmgMult: 1.12
+}, {
     id: 23,
     name: "Anti Venom Gear",
     price: 4000,
@@ -220,6 +235,26 @@ module.exports.hats = [{
     desc: "knocks back enemies that attack you",
     dmgK: 0.6
 }, {
+    id: 60,
+    name: "Frost Helm",
+    price: 7000,
+    scale: 120,
+    desc: "normal speed in snow and reduces damage taken",
+    coldM: 1,
+    spdMult: 0.94,
+    dmgMult: 0.88
+}, {
+    id: 61,
+    name: "Crab Shell",
+    dontSell: true,
+    earned: true,
+    price: 0,
+    scale: 120,
+    desc: "dropped by the Crab King. reflects damage and reduces damage taken",
+    dmg: 0.3,
+    dmgMult: 0.85,
+    spdMult: 0.92
+}, {
     id: 21,
     name: "Plague Mask",
     price: 10000,
@@ -257,11 +292,7 @@ module.exports.hats = [{
     price: 10000,
     scale: 120,
     desc: "you become a walking turret",
-    turret: {
-        proj: 1,
-        range: 700,
-        rate: 2500
-    },
+    turret: {"proj":1,"range":700,"rate":2500},
     spdMult: 0.7
 }, {
     id: 20,
@@ -306,7 +337,7 @@ module.exports.hats = [{
     scale: 120,
     desc: "Restore Health when dealing damage. And increased damage",
     healD: 0.25,
-    dmgMultO: 1.2,
+    dmgMultO: 1.2
 }, {
     id: 56,
     name: "Assassin Gear",
@@ -318,37 +349,38 @@ module.exports.hats = [{
     invisTimer: 1000
 }];
 
+// ACCESSORIES:
 module.exports.accessories = [{
     id: 12,
     name: "Snowball",
     price: 1000,
     scale: 105,
     xOff: 18,
-    desc: "no effect"
+    desc: "half the snow slowdown"
 }, {
     id: 9,
     name: "Tree Cape",
     price: 1000,
     scale: 90,
-    desc: "no effect"
+    desc: "1 extra wood per hit on a tree"
 }, {
     id: 10,
     name: "Stone Cape",
     price: 1000,
     scale: 90,
-    desc: "no effect"
+    desc: "1 extra stone per hit on a rock"
 }, {
     id: 3,
     name: "Cookie Cape",
     price: 1500,
     scale: 90,
-    desc: "no effect"
+    desc: "1 extra food per hit on a bush or cactus"
 }, {
     id: 8,
     name: "Cow Cape",
     price: 2000,
     scale: 90,
-    desc: "no effect"
+    desc: "1.5x gold and food from cows"
 }, {
     id: 11,
     name: "Monkey Tail",
@@ -371,58 +403,58 @@ module.exports.accessories = [{
     name: "Winter Cape",
     price: 3000,
     scale: 90,
-    desc: "no effect"
+    desc: "no snow slowdown"
 }, {
     id: 4,
     name: "Skull Cape",
     price: 4000,
     scale: 90,
-    desc: "no effect"
+    desc: "3x gold for killing the kill leader"
 }, {
     id: 5,
     name: "Dash Cape",
     price: 5000,
     scale: 90,
-    desc: "no effect"
+    desc: "5% faster"
 }, {
     id: 2,
     name: "Dragon Cape",
     price: 6000,
     scale: 90,
-    desc: "no effect"
+    desc: "5% more damage for 5s after hitting a player"
 }, {
     id: 1,
     name: "Super Cape",
     price: 8000,
     scale: 90,
-    desc: "no effect"
+    desc: "after a kill: 5% more damage and 15% faster for 10s"
 }, {
     id: 7,
     name: "Troll Cape",
     price: 8000,
     scale: 90,
-    desc: "no effect"
+    desc: "2x gold for kills by your spikes"
 }, {
     id: 14,
     name: "Thorns",
     price: 10000,
     scale: 115,
     xOff: 20,
-    desc: "no effect"
+    desc: "heals a little when you hit a player"
 }, {
     id: 15,
     name: "Blockades",
     price: 10000,
     scale: 95,
     xOff: 15,
-    desc: "no effect"
+    desc: "25% less damage from projectiles"
 }, {
     id: 20,
     name: "Devils Tail",
     price: 10000,
     scale: 95,
     xOff: 20,
-    desc: "no effect"
+    desc: "hits make players bleed for 2s"
 }, {
     id: 16,
     name: "Sawblade",

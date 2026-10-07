@@ -1,36 +1,21 @@
 "use strict";
 
-// Check if running in Node.js environment
+// GAME CONFIG
+// Field-for-field copy of the config object (M) inside the official client bundle.
+// The client's minified constant names are noted next to each value. Do not change a
+// value here unless the client changes it too - client and server must agree.
+//
+// Server-only tuning (world generation counts per area, animal spawns, sandbox limits)
+// lives in the `server` block at the bottom.
+
 var hasProcess = typeof process === "object" && process !== null;
 var hasArgv = hasProcess && Array.isArray(process.argv);
+var env = hasProcess && process.env ? process.env : {};
 
-// Returns 80 if --largeserver flag, otherwise 10
-function resolveMaxPlayers() {
-    if (hasArgv && process.argv.indexOf("--largeserver") !== -1) {
-        return 80;
-    }
-    return 10;
-}
+// [nc] / [xd]
+var maxPlayers = hasArgv && process.argv.indexOf("--largeserver") != -1 ? 80 : 40;
 
-// Flattens grouped config and validates no duplicate keys
-function defineConfig(groups) {
-    var flat = { groups: groups };
-    Object.keys(groups).forEach(function (groupName) {
-        var group = groups[groupName];
-        Object.keys(group).forEach(function (settingKey) {
-            if (flat.hasOwnProperty(settingKey)) {
-                throw new Error("Duplicate config key detected: " + settingKey);
-            }
-            flat[settingKey] = group[settingKey];
-        });
-    });
-    return flat;
-}
-
-var baseMaxPlayers = resolveMaxPlayers();
-
-// Weapon upgrade tiers: id, src (image suffix), xp (required XP), val (damage multiplier), poison
-// 0: Default, 1: Gold (_g, 3k XP, 1.1x), 2: Diamond (_d, 7k XP, 1.18x), 3: Ruby (_r, 12k XP, 1.18x + poison), 4: Emerald (_e, 24k XP, 1.18x + poison)
+// [Co] weapon variants
 var weaponVariants = [{
     id: 0,
     src: "",
@@ -55,278 +40,157 @@ var weaponVariants = [{
 }, {
     id: 4,
     src: "_e",
-    poison: true,
-    xp: 24000,
+    lifesteal: 0.15,
+    membersOnly: true,
+    xp: 20000,
     val: 1.18
 }];
 
-// Player spawn defaults
-var defaultStartItems = [0, 3, 6, 10];  // Item IDs players spawn with
-var defaultStartWeapons = [0];  // Weapon IDs players spawn with
-var startResources = {
-    normal: 100,    // Starting score/points
-    moofoll: 100    // Starting moofoll currency
-};
+var config = {
+    // RENDER:
+    maxScreenWidth: 1920,                   // [fd]
+    maxScreenHeight: 1080,                  // [ud]
 
-// Sandbox mode building limits
-var sandboxBuildLimits = {
-    mill: 1,
-    spikes: 200,
-    traps: 100,
-    general: 300
-};
+    // SERVER:
+    serverUpdateRate: 9,                    // [hd]
+    maxPlayers: maxPlayers,                 // [nc]
+    maxPlayersHard: maxPlayers + 10,        // [xd]
+    collisionDepth: 6,                      // [md]
+    minimapRate: 3000,                      // [pd]
 
-// World resource spawn counts (trees/bushes are per area, rocks/gold are total for entire map)
-var worldSpawnCounts = {
-    treesPerArea: 30,
-    bushesPerArea: 12,
-    totalRocks: 120,
-    goldOres: 7
-};
+    // COLLISIONS:
+    colGrid: 10,                            // [gd]
 
-// Animal spawn plan: index (animal type: 0=Cow, 1=Pig, 2=Bull, 3=Bully, 4=Wolf, 5=Bear, 6-8=Bosses),
-// desired (count to maintain), positions (optional: xRatio/yRatio 0-1 for spawn location)
-var animalSpawnPlan = [{
-    index: 0, desired: 2  // Cow
-}, {
-    index: 1, desired: 2  // Pig
-}, {
-    index: 4, desired: 3  // Wolf
-}, {
-    index: 5, desired: 1  // Duck
-}, {
-    index: 2, desired: 1  // Bull
-}, {
-    index: 3, desired: 1  // Bully
-}, {
-    index: 6, desired: 0, positions: [{ xRatio: 0.42, yRatio: 0.72 }]  // Boss #1
-}, {
-    index: 7, desired: 0, positions: [{ xRatio: 0.18, yRatio: 0.22 }]  // Boss #2
-}, {
-    index: 8, desired: 0, positions: [{ xRatio: 0.78, yRatio: 0.64 }]  // Boss #3
-}];
+    // CLIENT:
+    clientSendRate: 5,                      // [yd]
 
-// Main game configuration
-var groupedConfig = {
+    // UI:
+    healthBarWidth: 50,                     // [kd]
+    healthBarPad: 4.5,                      // [wd]
+    iconPadding: 15,                        // [bd]
+    iconPad: 0.9,                           // [vd]
+    deathFadeout: 3000,                     // [Wd]
+    crownIconScale: 60,                     // [Sd]
+    crownPad: 35,                           // [Ed]
 
-    render: {
-        maxScreenWidth: 1920,
-        maxScreenHeight: 1080
-    },
+    // CHAT:
+    chatCountdown: 3000,                    // [Cd]
+    chatCooldown: 500,                      // [Md]
 
-    server: {
-        serverUpdateRate: 9,
-        maxPlayers: baseMaxPlayers,
-        maxPlayersHard: baseMaxPlayers + 10,
-        collisionDepth: 6,
-        minimapRate: 3000  // ms
-    },
+    // SANDBOX:
+    inSandbox: Boolean(env.IS_SANDBOX),     // [Id]  ({}.IS_SANDBOX in the client build)
+    // SERVER: SANDBOX_UNLIMITED=1 keeps every resource and gold topped up, so nothing costs anything.
+    unlimitedResources: Boolean(env.SANDBOX_UNLIMITED),
+    unlimitedAmount: 1000000,
 
-    collisions: {
-        colGrid: 10
-    },
+    // PLAYER:
+    maxAge: 100,                            // [Td]
+    gatherAngle: Math.PI / 2.6,             // [Rd]
+    gatherWiggle: 10,                       // [Pd]
+    hitReturnRatio: 0.25,                   // [Ad]
+    hitAngle: Math.PI / 2,                  // [Od]
+    playerScale: 35,                        // [Bd]
+    playerSpeed: 0.0016,                    // [Dd]
+    playerDecel: 0.993,                     // [_d]
+    nameY: 34,                              // [Ld]
 
-    networking: {
-        clientSendRate: 5
-    },
+    // CUSTOMIZATION:
+    skinColors: ["#bf8f54", "#cbb091", "#896c4b", "#fadadc", "#ececec", "#c37373", "#4c4c4c", "#ecaff7", "#738cc3", "#8bc373"], // [Nd]
 
-    ui: {
-        healthBarWidth: 50,
-        healthBarPad: 4.5,
-        iconPadding: 15,
-        iconPad: 0.9,
-        deathFadeout: 3000,  // ms
-        crownIconScale: 60,
-        crownPad: 35
-    },
+    // ANIMALS:
+    animalCount: 7,                         // [Gd]
+    aiTurnRandom: 0.06,                     // [Hd]
+    cowNames: ["Sid", "Steph", "Bmoe", "Romn", "Jononthecool", "Fiona", "Vince", "Nathan", "Nick", "Flappy", "Ronald", "Otis", "Pepe", "Mc Donald", "Theo", "Fabz", "Oliver", "Jeff", "Jimmy", "Helena", "Reaper", "Ben", "Alan", "Naomi", "XYZ", "Clever", "Jeremy", "Mike", "Destined", "Stallion", "Allison", "Meaty", "Sophia", "Vaja", "Joey", "Pendy", "Murdoch", "Theo", "Jared", "July", "Sonia", "Mel", "Dexter", "Quinn", "Milky"], // [Fd]
 
-    chat: {
-        chatCountdown: 3000,  // ms
-        chatCooldown: 500     // ms
-    },
-
-    sandbox: {
-        isSandbox: true,
-        millPpsMultiplier: 5,
-        sandboxBuildLimits: sandboxBuildLimits
-    },
-
-    player: {
-        maxAge: 100,
-        gatherAngle: Math.PI / 2.6,
-        gatherWiggle: 10,
-        hitReturnRatio: 0.25,
-        hitAngle: Math.PI / 2,
-        baseHealth: 100,
-        playerScale: 35,
-        playerSpeed: 0.0016,
-        playerDecel: 0.993,
-        nameY: 34,
-        startItems: defaultStartItems,
-        startWeapons: defaultStartWeapons,
-        startResources: startResources
-    },
-
-    customization: {
-        skinColors: ["#bf8f54", "#cbb091", "#896c4b", "#fadadc", "#ececec", "#c37373", "#4c4c4c", "#ecaff7", "#738cc3", "#8bc373"]
-    },
-
-    animals: {
-        animalCount: 100000,  // deprecated - use animalSpawnPlan
-        aiTurnRandom: 0.06,
-        cowNames: ["Sid", "Steph", "Bmoe", "Romn", "Jononthecool", "Fiona", "Vince", "Nathan", "Nick", "Flappy", "Ronald", "Otis", "Pepe", "Mc Donald", "Theo", "Fabz", "Oliver", "Jeff", "Jimmy", "Helena", "Reaper", "Ben", "Alan", "Naomi", "XYZ", "Clever", "Jeremy", "Mike", "Destined", "Stallion", "Allison", "Meaty", "Sophia", "Vaja", "Joey", "Pendy", "Murdoch", "Theo", "Jared", "July", "Sonia", "Mel", "Dexter", "Quinn", "Milky"],
-        animalSpawnPlan: animalSpawnPlan
-    },
-
-    weapons: {
-        shieldAngle: Math.PI / 3,
-        weaponVariants: weaponVariants,
-        fetchVariant: function (player) {
-            var tmpXP = player.weaponXP[player.weaponIndex] || 0;
-            for (var i = weaponVariants.length - 1; i >= 0; --i) {
-                if (tmpXP >= weaponVariants[i].xp) {
-                    return weaponVariants[i];
-                }
+    // WEAPONS:
+    shieldAngle: Math.PI / 3,               // [qd]
+    weaponVariants: weaponVariants,         // [Co]
+    fetchVariant: function (player) {      // [Vd]
+        var tmpXP = player.weaponXP[player.weaponIndex] || 0;
+        for (var i = weaponVariants.length - 1; i >= 0; --i) {
+            if (tmpXP >= weaponVariants[i].xp) {
+                return weaponVariants[i];
             }
-            return weaponVariants[0];
         }
     },
 
-    world: Object.assign({
-        resourceTypes: ["wood", "food", "stone", "points"],
-        areaCount: 7,
-        riverWidth: 724,
-        riverPadding: 114,
-        waterCurrent: 0.0011,
-        waveSpeed: 0.0001,
-        waveMax: 1.3,
-        treeScales: [150, 160, 165, 175],
-        bushScales: [80, 85, 95],
-        rockScales: [80, 85, 90]
-    }, worldSpawnCounts, {
-        spawnCounts: worldSpawnCounts
-    }),
+    // NATURE:
+    resourceTypes: ["wood", "food", "stone", "points"], // [Qd]
+    areaCount: 7,                           // [Kd]
+    treesPerArea: 9,                        // [Ud]
+    bushesPerArea: 3,                       // [Xd]
+    totalRocks: 32,                         // [Jd]
+    goldOres: 7,                            // [zd]
+    riverWidth: 724,                        // [Yd]
+    riverPadding: 114,                      // [Zd]
+    waterCurrent: 0.0011,                   // [jd]
+    waveSpeed: 0.0001,                      // [$d]
+    waveMax: 1.3,                           // [ef]
+    treeScales: [150, 160, 165, 175],       // [tf]
+    bushScales: [80, 85, 95],               // [nf]
+    rockScales: [80, 85, 90],               // [of]
 
-    biome: {
-        snowBiomeTop: 2400,
-        snowSpeed: 0.75
+    // BIOME DATA:
+    snowBiomeTop: 2400,                     // [sf]
+    snowSpeed: 0.75,                        // [af]
+
+    // DATA:
+    maxNameLength: 15,                      // [lf]
+
+    // MAP:
+    mapScale: 14400,                        // [rf]
+    secretPool: {                           // [cf]
+        gorgeX0: -1500,
+        gorgeHalf: 520,
+        pool: [[-2500, 7200, 1150], [-3300, 6750, 750], [-3200, 7750, 700], [-1700, 6900, 600], [-1800, 7550, 600]],
+        waterfall: {
+            x: -3860,
+            y: 7250,
+            half: 210
+        },
+        shallows: {
+            start: -1500,
+            length: 320
+        }
     },
+    mapPingScale: 40,                       // [df]
+    mapPingTime: 2200,                      // [ff]
 
-    meta: {
-        maxNameLength: 15
-    },
-
-    map: {
-        mapScale: 14400,
-        mapPingScale: 40,
-        mapPingTime: 2200  // ms
-    },
-
-    experience: {
-        initialXP: 300,
-        levelMultiplier: 1.2,
-        gatheringMultiplier: 4,
-        goldBonusResources: 4,
-        goldGenerationXP: 0.1
-    },
-
-    economy: {
-        millPointsPerTick: 5000
-    },
-
-    combat: {
-        baseKnockback: 0.3,
-        projectileKnockback: 0.3,
-        spikeKnockback: 1.5,
-        defaultHitSlow: 0.3,
-        slowRecoveryRate: 0.0008,
-        playerHitScale: 1.8,
-        objectDamageMultiplier: 5,
-        killScoreMultiplier: 100,
-        goldStealPercent: 0.5,
-        poisonDamage: 5,
-        poisonDuration: 5
-    },
-
-    water: {
-        normalSpeedMultiplier: 0.33,
-        immunitySpeedMultiplier: 0.75,
-        normalCurrentEffect: 1.0,
-        immunityCurrentEffect: 0.4
-    },
-
-    environment: {
-        cactusDamage: 20
-    },
-
-    shameSystem: {
-        detectionWindow: 120,     // ms
-        threshold: 8,
-        penaltyDuration: 30000,   // ms
-        countReduction: 2
-    },
-
-    ai: {
-        initialWait: 1000,           // ms
-        updateInterval: 1000,        // ms
-        chargeDurationMin: 8000,     // ms
-        chargeDurationMax: 12000,    // ms
-        wanderDurationMin: 1000,     // ms
-        wanderDurationMax: 2000,     // ms
-        movementDurationMin: 4000,   // ms
-        movementDurationMax: 10000,  // ms
-        hostileWaitTime: 1500,       // ms
-        passiveWaitMin: 1500,        // ms
-        passiveWaitMax: 6000,        // ms
-        postHitWait: 3000,           // ms
-        fleeDuration: 2000,          // ms
-        fleeSpeedMultiplier: 1.42,
-        chargeSpeedMultiplier: 1.75,
-        hitWindupSlowdown: 0.3,
-        waterSlowdown: 0.33,
-        leapChance: 0.33,
-        playerKnockback: 0.6,
-        collisionKnockback: 0.55,
-        hitDelay: 600,               // ms
-        hitDelayAfterDamage: 500,    // ms
-        animationSpeed: 600,         // ms
-        attackAngle: 0.8,
-        collisionDepthDivisor: 40,
-        maxCollisionDepth: 4,
-        minCollisionDepth: 1
-    },
-
-    physics: {
-        velocityStopThreshold: 0.01,
-        collisionVelocityRetention: 0.75,
-        objectScaleMultiplier: 0.6,
-        wiggleDecayRate: 0.99,
-        buildingSpeedPenalty: 0.5
-    },
-
-    turret: {
-        gearHatID: 53,
-        empHelmetID: 22,
-        targetRange: 735,
-        projectileSpeed: 1.6,
-        fireRate: 2500,              // ms
-        structureMinCooldown: 250    // ms
-    },
-
-    leaderboard: {
-        leaderboardMaxPlayers: 10,
-        allianceNameMaxLength: 7
-    },
-
-    specialItems: {
-        shameHatID: 45,
-        turretGearID: 53
-    },
-
-    spawning: {
-        aiSpawnCheckInterval: 1000,  // ms
-        turretProjectileOffset: 45
-    }
+    // ANIMAL TUNING:
+    MAX_ATTACK: 0.6,                        // [uf]
+    MAX_SPAWN_DELAY: 1,                     // [hf]
+    MAX_SPEED: 0.3,                         // [xf]
+    MAX_TURN_SPEED: 0.3,                    // [mf]
+    DAY_INTERVAL: 1440000                   // [pf]
 };
 
-module.exports = defineConfig(groupedConfig);
+// -------------------------------------------------------------------------------------
+// SERVER-ONLY TUNING (not part of the client bundle)
+config.server = {
+    // Trees / bushes are generated per area on an areaCount x areaCount grid; rocks and
+    // gold are totals for the whole map.
+    // Animals kept alive on the map (index: aiTypes index, desired: count).
+    animalSpawnPlan: [
+        { index: 0, desired: 10 },                          // Cow
+        { index: 1, desired: 8 },                           // Pig
+        { index: 12, desired: 6 },                          // Sheep
+        { index: 2, desired: 5 },                           // Bull
+        { index: 3, desired: 2 },                           // Bully
+        { index: 4, desired: 6, area: "snow" },             // Wolf
+        { index: 5, desired: 4, area: "river" },            // Quack
+        { index: 9, desired: 4 },                           // Boar
+        { index: 10, desired: 2, area: "snow" },            // Yeti
+        { index: 6, desired: 1, positions: [{ xRatio: 0.5, yRatio: 0.93 }] },   // MOOSTAFA (desert)
+        { index: 7, desired: 1, positions: [{ xRatio: 0.18, yRatio: 0.22 }] },  // Treasure
+        { index: 8, desired: 1, positions: [{ xRatio: 0.78, yRatio: 0.08 }] },  // MOOFIE (snow)
+        { index: 11, desired: 1, area: "secret", positions: [{ x: -2500, y: 7200 }] }  // Crab King (the only crab in the game)
+    ],
+    cactusDamage: 20,
+    leaderboardRate: 1000,
+    statsRate: 2000
+};
+
+// Legacy alias used by the old webpack client in client/.
+config.isSandbox = config.inSandbox;
+
+module.exports = config;

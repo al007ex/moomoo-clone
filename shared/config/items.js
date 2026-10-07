@@ -19,6 +19,7 @@ module.exports.groups = [{
     name: "mill",
     place: true,
     limit: 7,
+    sandboxLimit: 299,
     layer: 1
 }, {
     id: 4,
@@ -37,6 +38,7 @@ module.exports.groups = [{
     name: "booster",
     place: true,
     limit: 12,
+    sandboxLimit: 299,
     layer: -1
 }, {
     id: 7,
@@ -79,6 +81,7 @@ module.exports.groups = [{
     name: "teleporter",
     place: true,
     limit: 2,
+    sandboxLimit: 299,
     layer: -1
 }];
 
