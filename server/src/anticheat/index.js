@@ -45,7 +45,7 @@ export class ModerationStore {
         this.reportsFile = path.join(dataDir, CONFIG.storage.reports);
         this.bansFile = path.join(dataDir, CONFIG.storage.bans);
         this.recordsFile = path.join(dataDir, "moderation.json");
-        this.bans = { ips: {}, accounts: {} };
+        this.bans = { ips: {}, accounts: {}, devices: {} };
         this.records = {};
         try {
             this.bans = Object.assign(this.bans, JSON.parse(fs.readFileSync(this.bansFile, "utf8")));
@@ -53,6 +53,24 @@ export class ModerationStore {
         try {
             this.records = JSON.parse(fs.readFileSync(this.recordsFile, "utf8"));
         } catch {}
+        this.bans.devices = this.bans.devices || {};
+    }
+
+    // Account ids that AccountStore.migrateIds() replaced.
+    migrateIds(remap) {
+        if (!remap || !Object.keys(remap).length) return;
+        for (const [from, to] of Object.entries(remap)) {
+            if (this.records[from]) {
+                this.records[to] = this.records[from];
+                delete this.records[from];
+            }
+            if (this.bans.accounts[from]) {
+                this.bans.accounts[to] = this.bans.accounts[from];
+                delete this.bans.accounts[from];
+            }
+        }
+        this.saveRecords();
+        this.saveBans();
     }
 
     saveBans() {
@@ -67,13 +85,14 @@ export class ModerationStore {
         return this.records[accountId] || (this.records[accountId] = { reports: [], flags: [], verdict: null });
     }
 
-    isBanned(ip, accountId) {
-        return Boolean(this.bans.ips[ip] || (accountId && this.bans.accounts[accountId]));
+    isBanned(ip, accountId, did) {
+        return Boolean(this.bans.ips[ip] || (accountId && this.bans.accounts[accountId]) || (did && this.bans.devices[did]));
     }
 
-    ban({ ip, accountId, name }, by) {
-        const entry = { name, by: by ? by.name : "system", at: new Date().toISOString() };
+    ban({ ip, did, accountId, name, reason }, by) {
+        const entry = { name, by: by ? by.name : "system", reason: reason || undefined, at: new Date().toISOString() };
         if (ip) this.bans.ips[ip] = entry;
+        if (did) this.bans.devices[did] = entry;
         if (accountId) this.bans.accounts[accountId] = entry;
         this.saveBans();
     }
@@ -83,21 +102,43 @@ export class ModerationStore {
         this.saveBans();
     }
 
-    // In-game "Report" button (packet R).
+    unbanIp(ip, did) {
+        if (ip) delete this.bans.ips[ip];
+        if (did) delete this.bans.devices[did];
+        this.saveBans();
+    }
+
+    // In-game "Report" button (packet R). The reason ("What for?") arrives as a second
+    // R packet and is attached to this report.
     report({ target, reporter, sessionReports }) {
+        const entry = {
+            at: Date.now(),
+            by: { name: reporter.name, kind: reporter.account ? "account" : "guest" },
+            sessionReports
+        };
         fs.appendFileSync(this.reportsFile, JSON.stringify({
-            at: new Date().toISOString(),
+            at: new Date(entry.at).toISOString(),
             target: { name: target.name, account: target.account ? target.account.id : null, flags: target.anticheat ? target.anticheat.summary() : null },
             reporter: { name: reporter.name, account: reporter.account ? reporter.account.id : null }
         }) + "\n");
         if (target.account) {
-            this.record(target.account.id).reports.push({
-                at: Date.now(),
-                by: { name: reporter.name, kind: reporter.account ? "account" : "guest" },
-                sessionReports
-            });
+            this.record(target.account.id).reports.push(entry);
             this.saveRecords();
+        } else {
+            (target.reportLog = target.reportLog || []).push(entry);
         }
+        return entry;
+    }
+
+    reportReason({ target, reporter, entry, reason }) {
+        entry.reason = reason;
+        fs.appendFileSync(this.reportsFile, JSON.stringify({
+            at: new Date().toISOString(),
+            reason,
+            target: { name: target.name, account: target.account ? target.account.id : null },
+            reporter: { name: reporter.name, account: reporter.account ? reporter.account.id : null }
+        }) + "\n");
+        if (target.account) this.saveRecords();
     }
 
     // Anticheat signal on a signed-in player.
@@ -133,7 +174,24 @@ export class ModerationStore {
             },
             verdict: rec.verdict ? { level: rec.verdict.level, reason: rec.verdict.reason } : null,
             session: session ? { at: session.at, server: session.server, ip: session.ipHash } : null,
-            recent: rec.reports.slice(-5).reverse().map(r => ({ by: r.by, at: r.at }))
+            recent: rec.reports.slice(-5).reverse().map(r => ({ by: r.by, at: r.at, reason: r.reason }))
+        };
+    }
+
+    // Same shape for a guest (no account): only this session is known.
+    guestRecord(player, session) {
+        const names = player.anticheat ? [...player.anticheat.flagNames].map(signalName) : [];
+        const signals = names.reduce((acc, n) => (acc[n] = (acc[n] || 0) + 1, acc), {});
+        const reports = player.reportLog || [];
+        return {
+            reports: { session: player.reports || 0, week: reports.length, lifetime: reports.length },
+            flags: {
+                week: { total: names.length, signals },
+                lifetime: { total: names.length, signals }
+            },
+            verdict: player.shadowed ? { level: "shadow", reason: "" } : null,
+            session: session ? { at: session.at, server: session.server, ip: session.ipHash } : null,
+            recent: reports.slice(-5).reverse().map(r => ({ by: r.by, at: r.at, reason: r.reason }))
         };
     }
 }

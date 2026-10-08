@@ -1,13 +1,33 @@
 // LOCAL API
 // Answers every request the official client makes to api.moomoo.io (and the FRVR auth
-// calls made by client-official/shim.js) so the menus, sign-in, profiles, clans, top
-// boards and server picker behave like the live site - without any real verification.
+// and social calls made through client-official/shim.js) so the menus, sign-in, friends,
+// profiles, clans, top boards and server picker behave like the live site - without any
+// real verification.
 
 import express from "express";
+import { createSocialRouter } from "./social.js";
 
-export function createApiRouter({ store, moderation, servers, game }) {
+// Sliding-window counter per key (friend requests: "Too many friend requests").
+function rateLimiter(max, windowMs) {
+    const hits = new Map();
+    return (key) => {
+        const now = Date.now();
+        const list = (hits.get(key) || []).filter(t => now - t < windowMs);
+        if (list.length >= max) {
+            hits.set(key, list);
+            return false;
+        }
+        list.push(now);
+        hits.set(key, list);
+        return true;
+    };
+}
+
+export function createApiRouter({ store, moderation, servers, game, social }) {
     const router = express.Router();
+    router.use("/social", createSocialRouter({ store, hub: social }));
     router.use(express.json({ limit: "32kb" }));
+    const friendRequestRate = rateLimiter(20, 60 * 60 * 1000);
 
     const auth = (req) => store.verifyToken(req.body && req.body.auth);
     const requireAuth = (req, res) => {
@@ -58,12 +78,15 @@ export function createApiRouter({ store, moderation, servers, game }) {
         res.json(servers.list());
     });
 
+    // The client sends the address of the server it is about to open ("host"); the ticket
+    // is only good for that server. Local servers are addressed as <host>/s/<key>.
     router.post("/join", (req, res) => {
         const body = req.body || {};
         const account = body.auth ? store.verifyToken(body.auth) : null;
         if (body.auth && !account) return res.status(403).json({ error: "auth" });
         if (!account && !body.captcha) return res.status(403).json({ error: "captcha" });
-        res.json(store.issueTicket({ account, did: body.did }));
+        const match = /\/s\/([A-Za-z0-9]+)$/.exec(String(body.host || ""));
+        res.json(store.issueTicket({ account, did: body.did, server: match ? match[1] : null }));
     });
 
     // ---------- account / names ----------
@@ -72,12 +95,16 @@ export function createApiRouter({ store, moderation, servers, game }) {
         if (account) res.json(store.accountInfo(account));
     });
 
+    router.post("/account/prefs", (req, res) => {
+        const account = requireAuth(req, res);
+        if (account) res.json({ prefs: store.setPrefs(account, req.body.prefs) });
+    });
+
     router.post("/name", (req, res) => {
         const account = requireAuth(req, res);
         if (!account) return;
         const result = store.claimName(account, req.body.name);
-        if (result.status !== 200) return res.status(result.status).json({});
-        res.json({ name: result.name });
+        res.status(result.status).json(result.body);
     });
 
     router.get("/name-check", (req, res) => {
@@ -92,13 +119,39 @@ export function createApiRouter({ store, moderation, servers, game }) {
     router.post("/account/socials", (req, res) => {
         const account = requireAuth(req, res);
         if (!account) return;
-        const socials = req.body.socials && typeof req.body.socials === "object" ? req.body.socials : {};
-        account.socials = {};
-        for (const [k, v] of Object.entries(socials)) {
-            if (typeof v === "string" && k.length < 20) account.socials[k] = v.slice(0, 60);
-        }
-        store.save();
-        res.json({ socials: account.socials });
+        const result = store.setSocials(account, req.body.socials);
+        res.status(result.status).json(result.body);
+    });
+
+    // ---------- Discord linking (?discord=<code> from the Discord bot's /link) ----------
+    router.get("/discord/link", (req, res) => {
+        const entry = store.discordCode(req.query.code);
+        if (!entry) return res.status(404).json({ error: "code" });
+        res.json({ discord: entry.discord });
+    });
+
+    router.post("/discord/link", (req, res) => {
+        const account = requireAuth(req, res);
+        if (!account) return;
+        const result = store.linkDiscord(account, req.body.code);
+        res.status(result.status).json(result.body);
+    });
+
+    // ---------- friends (moomoo side: names and request permission) ----------
+    router.post("/names-for", (req, res) => {
+        res.json({ names: store.namesFor(req.body && req.body.ids) });
+    });
+
+    // Asked before every friend request. 403 when the player has "Allow Friend Requests"
+    // off; requests from shadowed players are swallowed ({silent: true}).
+    router.post("/friends/allow", (req, res) => {
+        const account = requireAuth(req, res);
+        if (!account) return;
+        const target = store.accountById(String(req.body.to || ""));
+        if (!target || target.id === account.id) return res.status(404).json({ error: "not found" });
+        if (!store.prefsOf(target).friendRequests) return res.status(403).json({ error: "closed" });
+        if (!friendRequestRate(account.id)) return res.status(429).json({ error: "rate" });
+        res.json({ silent: account.verdict === "shadow" });
     });
 
     router.post("/client-log", (_req, res) => res.status(204).end());
@@ -145,15 +198,52 @@ export function createApiRouter({ store, moderation, servers, game }) {
         res.json({});
     });
 
+    // Staff panel on a profile: {name} for accounts, {id} for guests (the id comes with
+    // the live stats packet). "IP ban" / "Clear" send ip: true.
     router.post("/mod/verdict", (req, res) => {
         const staff = requireStaff(req, res);
         if (!staff) return;
+        const level = ["ban", "shadow", "clear"].includes(req.body.level) ? req.body.level : "clear";
+        const reason = String(req.body.reason || "").slice(0, 80);
+        if (req.body.id && !req.body.name) {
+            const guest = game.playerBySession(String(req.body.id));
+            if (!guest) return res.status(404).json({ error: "no player" });
+            if (level === "ban") {
+                moderation.ban({ ip: guest.ip, did: guest.did, name: guest.name, reason }, staff);
+                if (guest.kick) guest.kick("kicked");
+            } else if (level === "shadow") {
+                guest.shadowed = true;
+            } else if (req.body.ip) {
+                moderation.unbanIp(guest.ip, guest.did);
+            }
+            return res.json({});
+        }
         const target = store.nameOwner(req.body.name);
         if (!target) return res.status(404).json({ error: "no player" });
-        const level = String(req.body.level || "clear");
         store.setVerdict(target.name, level);
-        moderation.recordVerdict(target, level, String(req.body.reason || ""), staff);
+        moderation.recordVerdict(target, level, reason, staff);
+        const last = target.lastSeen || {};
+        if (level === "ban" && req.body.ip && last.ip) moderation.ban({ ip: last.ip, did: last.did, name: target.name, reason }, staff);
+        if (level === "clear" && req.body.ip && last.ip) moderation.unbanIp(last.ip, last.did);
         if (level === "ban") game.kickAccount(target.id, "kicked");
+        game.setShadow(target.id, level === "shadow");
+        res.json({});
+    });
+
+    router.post("/mod/kick", (req, res) => {
+        if (!requireStaff(req, res)) return;
+        let kicked = 0;
+        if (req.body.id && !req.body.name) {
+            const guest = game.playerBySession(String(req.body.id));
+            if (guest && guest.kick) {
+                guest.kick("kicked");
+                kicked++;
+            }
+        } else {
+            const target = store.nameOwner(req.body.name);
+            if (target) kicked = game.kickAccount(target.id, "kicked");
+        }
+        if (!kicked) return res.status(404).json({ error: "not online" });
         res.json({});
     });
 
@@ -165,13 +255,15 @@ export function createApiRouter({ store, moderation, servers, game }) {
 
     router.post("/mod/player", (req, res) => {
         if (!requireStaff(req, res)) return;
+        if (req.body.id && !req.body.name) {
+            const guest = game.playerBySession(String(req.body.id));
+            if (!guest) return res.status(404).json({ error: "no player" });
+            return res.json(moderation.guestRecord(guest, game.sessionOf(guest)));
+        }
         const target = store.nameOwner(req.body.name);
         if (!target) return res.status(404).json({ error: "no player" });
         res.json(moderation.playerRecord(target, game.sessionFor(target.id)));
     });
-
-    // ---------- FRVR social (friends) - not available on a private server ----------
-    router.all(["/requests", "/names-for", "/friends/allow", "/social/*rest"], (_req, res) => res.status(404).json({ error: "not found" }));
 
     router.use((_req, res) => res.status(404).json({ error: "not found" }));
     return router;

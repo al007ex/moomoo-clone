@@ -42,13 +42,16 @@ export function createConnectionHandler({ build, accounts, moderation, log }) {
         if (limiter.check(ip)) return reject(CLOSE.INVALID_CONNECTION, "too many connections from this ip");
 
         let account = null;
+        let did = null;
         if (rules.requireTicket) {
             const token = url.searchParams.get("token") || "";
             const ticket = token.startsWith("tk:") ? accounts.consumeTicket(token.slice(3), rules.ticketMaxAgeMs) : null;
             if (!ticket) return reject(CLOSE.INVALID_CONNECTION, "missing or invalid join ticket");
+            if (ticket.server && ticket.server !== game.key) return reject(CLOSE.INVALID_CONNECTION, `ticket is for server ${ticket.server}`);
             account = ticket.account;
+            did = ticket.did;
         }
-        if (moderation.isBanned(ip, account && account.id) || (account && account.verdict === "ban")) {
+        if (moderation.isBanned(ip, account && account.id, did) || (account && account.verdict === "ban")) {
             return reject(CLOSE.INVALID_CONNECTION, "banned");
         }
         if (game.membersOnly && !account) return reject(CLOSE.SIGN_IN_REQUIRED, "members-only server");
@@ -82,6 +85,11 @@ export function createConnectionHandler({ build, accounts, moderation, log }) {
             limiter.down(ip);
             closed = true;
             return;
+        }
+        player.did = did;
+        if (account) {
+            account.lastSeen = { ip, did, at: Date.now(), server: game.key };
+            accounts.save();
         }
         player.kick = (reason) => {
             send("B", reason);

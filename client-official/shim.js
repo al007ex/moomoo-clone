@@ -6,6 +6,8 @@
  *  - FRVR SDK: bootstrapper, tracker, ads, profile and the auth API used for signing in.
  *    Sign-in talks to this server's /api/auth/* endpoints: any email works, any 6-digit
  *    code or password is accepted, and a real (locally signed) access token is issued.
+ *  - FRVR social: friends (webClient -> /api/social) and the live socket for presence and
+ *    game invites (/api/social/ws), with the SDK's message format ({code, data}).
  *  - Cloudflare Turnstile: the "human check" passes instantly.
  *  - Ads / consent: no-ops.
  */
@@ -14,6 +16,7 @@
 
     var API = location.origin + "/api";
     var STORE_KEY = "moo_local_frvr_session";
+    var GAME_ID = "moomoo";
 
     function load() {
         try {
@@ -104,11 +107,17 @@
         getAccessToken: function () {
             return session ? session.token : null;
         },
+        getFRVRID: function () {
+            return session ? session.id : null;
+        },
         getFreshAccessToken: function () {
             if (!session) return Promise.resolve(null);
             return post("/auth/refresh", { token: session.token }).then(function (res) {
+                var changed = session.id !== res.id;
                 session.token = res.token;
+                session.id = res.id;
                 save(session);
+                if (changed) notify();
                 return res.token;
             }, function (err) {
                 if (err && err.type === "accountNotActive") {
@@ -118,6 +127,16 @@
                     return null;
                 }
                 return session ? session.token : null;
+            });
+        },
+        // Like the SDK: JSON + "Authorization: Bearer <access token>", refreshing first
+        // when the token is close to expiring.
+        authenticatedFetch: function (url, opts) {
+            return freshEnough().then(function (token) {
+                if (!token) throw sdkError("notLoggedIn");
+                var options = Object.assign({}, opts);
+                options.headers = Object.assign({ "Content-Type": "application/json" }, options.headers, { Authorization: "Bearer " + token });
+                return fetch(url, options);
             });
         },
         logout: function () {
@@ -140,9 +159,162 @@
         }
     };
 
+    function tokenExpiry(token) {
+        try {
+            var part = String(token).split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+            return (JSON.parse(atob(part)).exp || 0) * 1000;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    function freshEnough() {
+        if (!session) return Promise.resolve(null);
+        if (tokenExpiry(session.token) - Date.now() > 60000) return Promise.resolve(session.token);
+        return auth.getFreshAccessToken();
+    }
+
+    // ---------------- FRVR social ----------------
+    var SOCIAL_EVENTS = {
+        onFriendStatusUpdated: "FRIEND_STATUS_UPDATED",
+        onConnect: "ON_CONNECT",
+        onGameInvite: "RECEIVE_GAME_INVITE",
+        onError: "ON_ERROR"
+    };
+
+    function LiveClient(gameId) {
+        var self = this;
+        this.gameId = gameId;
+        this.SocialEvents = SOCIAL_EVENTS;
+        this.listeners = {};
+        Object.keys(SOCIAL_EVENTS).forEach(function (k) {
+            self.listeners[SOCIAL_EVENTS[k]] = [];
+        });
+        this.friendsStatus = {};
+        this.socket = null;
+        this.connectedUser = undefined;
+        this.closedByUser = false;
+        this.retries = 0;
+        this.on(SOCIAL_EVENTS.onConnect, function (msg) {
+            ((msg.data && msg.data.friends) || []).forEach(function (status) {
+                self.friendsStatus[status.userId] = status;
+            });
+        });
+        this.on(SOCIAL_EVENTS.onFriendStatusUpdated, function (msg) {
+            if (msg.data) self.friendsStatus[msg.data.userId] = msg.data;
+        });
+        auth.addStatusChangeListener(function () {
+            if (!auth.isLoggedIn()) return self.close();
+            var state = self.readyState();
+            if (state === 0 || state === 1) self.connect();
+        });
+    }
+
+    LiveClient.prototype.readyState = function () {
+        return this.socket ? this.socket.readyState : 3;
+    };
+
+    LiveClient.prototype.connect = function () {
+        var sameUser = this.connectedUser === auth.getFRVRID();
+        var state = this.readyState();
+        if ((state !== 0 && state !== 1) || !sameUser) {
+            this.connectedUser = auth.getFRVRID();
+            this.open();
+        }
+    };
+
+    LiveClient.prototype.open = function () {
+        var self = this;
+        this.closedByUser = false;
+        if (this.socket) {
+            var old = this.socket;
+            this.socket = null;
+            old.onopen = old.onclose = old.onmessage = old.onerror = null;
+            try {
+                old.close();
+            } catch (e) {}
+        }
+        auth.getFreshAccessToken().then(function (token) {
+            if (!token || self.closedByUser) return;
+            var ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/api/social/ws?token=" + encodeURIComponent(token) + "&gameId=" + encodeURIComponent(self.gameId));
+            self.socket = ws;
+            ws.onopen = function () {
+                self.retries = 0;
+            };
+            ws.onmessage = function (event) {
+                var msg;
+                try {
+                    msg = JSON.parse(event.data);
+                } catch (e) {
+                    return;
+                }
+                if (msg && self.listeners[msg.code]) self.dispatch(msg.code, msg);
+            };
+            ws.onclose = function () {
+                if (self.socket === ws && !self.closedByUser) self.reconnect();
+            };
+            ws.onerror = function () {};
+        });
+    };
+
+    LiveClient.prototype.reconnect = function () {
+        var self = this;
+        var backoff = 500 * this.retries++ + 1000;
+        setTimeout(function () {
+            if (!self.closedByUser) self.open();
+        }, backoff);
+    };
+
+    LiveClient.prototype.close = function () {
+        this.friendsStatus = {};
+        this.connectedUser = undefined;
+        this.closedByUser = true;
+        if (this.socket) {
+            try {
+                this.socket.close();
+            } catch (e) {}
+        }
+    };
+
+    LiveClient.prototype.on = function (type, listener) {
+        if (!this.listeners[type]) throw new Error('event type "' + type + '" is not supported');
+        this.listeners[type].push(listener);
+    };
+
+    LiveClient.prototype.dispatch = function (type, msg) {
+        this.listeners[type].forEach(function (listener) {
+            listener(msg);
+        });
+    };
+
+    LiveClient.prototype.send = function (msg) {
+        if (this.socket && this.socket.readyState === 1) this.socket.send(JSON.stringify(msg));
+    };
+
+    LiveClient.prototype.getFriendsStatus = function () {
+        var self = this;
+        return Object.keys(this.friendsStatus).map(function (id) {
+            return self.friendsStatus[id];
+        });
+    };
+
+    LiveClient.prototype.updateStatus = function (metadata) {
+        this.send({ code: "UPDATE_STATUS", data: { metadata: metadata, gameId: this.gameId } });
+    };
+
+    LiveClient.prototype.sendGameInvite = function (recipientId, lobbyId, metadata) {
+        this.send({ code: "SEND_GAME_INVITE", data: { recipientId: recipientId, lobbyId: lobbyId, gameId: this.gameId, metadata: metadata } });
+    };
+
+    var social = {
+        gameId: GAME_ID,
+        webClient: { baseUrl: API + "/social", auth: auth },
+        live: new LiveClient(GAME_ID)
+    };
+
     // ---------------- FRVR SDK ----------------
     window.FRVR = {
-        config: {},
+        config: { gameId: GAME_ID },
         bootstrapper: {
             init: function () {
                 return Promise.resolve();
@@ -152,6 +324,7 @@
             }
         },
         auth: auth,
+        social: social,
         tracker: {
             levelStart: function () {},
             levelEnd: function () {},

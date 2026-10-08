@@ -1,15 +1,27 @@
 // ACCOUNT STORE
-// Local stand-in for moomoo.io's account backend (FRVR auth + api.moomoo.io):
-// accounts, permanent names, roles, persistent clans, lifetime / period stats,
-// join tickets. Everything is kept in server/data/accounts.json.
+// Local stand-in for moomoo.io's account backend (FRVR auth + api.moomoo.io + FRVR
+// social): accounts, permanent names, roles, preferences, persistent clans, friends,
+// lifetime / period stats, join tickets, Discord link codes. Everything is kept in
+// server/data/accounts.json.
 
 import fs from "node:fs";
 import path from "node:path";
 import { randomBytes, createHmac, timingSafeEqual } from "node:crypto";
+import { gameName, isRude } from "../moomoo/libs/nameFilter.js";
 
-const CLAN_MAX_MEMBERS = 80;               // [Kh]
-const NAME_RE = /^[\w:()\/? -]{1,15}$/;
+const CLAN_MAX_MEMBERS = 80;               // [Ox]
 const CLAN_RE = /^[A-Za-z0-9]{3,4}$/;
+const NAME_MIN = 3;                        // "Names are 3-15 letters, numbers and _ : ( ) / ? -"
+const NAME_MAX = 15;
+const SOCIAL_FIELDS = ["youtube", "twitch", "tiktok", "x", "discord"];   // [hi]
+const HANDLE_RE = /^[A-Za-z0-9._-]{1,32}$/;
+export const DEFAULT_PREFS = { friendNotifs: true, friendRequests: true, clanInvites: true };
+const DISCORD_CODE_MS = 10 * 60 * 1000;
+
+// FRVR IDs look like MongoDB ObjectIds: 24 hex characters, starting with the creation time.
+function objectId(at = Date.now()) {
+    return Math.floor(at / 1000).toString(16).padStart(8, "0") + randomBytes(8).toString("hex");
+}
 
 // AI index -> stats key used by the client's profile card ([qh] / [Fh]).
 export const ANIMAL_KEYS = ["cow", "pig", "bull", "bully", "wolf", "duck", "moostafa", "treasure", "moofie", "boar", "yeti", "crab_king", "sheep", "crab", "crab"];
@@ -44,13 +56,58 @@ export class AccountStore {
         const secretFile = path.join(dataDir, "secret.key");
         if (!fs.existsSync(secretFile)) fs.writeFileSync(secretFile, randomBytes(32).toString("hex"));
         this.secret = Buffer.from(fs.readFileSync(secretFile, "utf8").trim(), "hex");
-        this.data = { accounts: {}, emails: {}, names: {}, clans: {} };
+        this.data = { accounts: {}, emails: {}, names: {}, clans: {}, social: { friends: {}, requests: [] }, legacyIds: {} };
         try {
             Object.assign(this.data, JSON.parse(fs.readFileSync(this.file, "utf8")));
         } catch {}
+        this.data.social = Object.assign({ friends: {}, requests: [] }, this.data.social);
+        this.data.legacyIds = this.data.legacyIds || {};
         this.tickets = new Map();
         this.loginFlows = new Map();
+        this.discordCodes = new Map();
         this.saveTimer = null;
+        this.migratedIds = this.migrateIds();
+    }
+
+    // Accounts made before ids followed the FRVR format get one; tokens that still carry
+    // the old id keep working through legacyIds.
+    migrateIds() {
+        const remap = {};
+        for (const [id, account] of Object.entries(this.data.accounts)) {
+            if (/^[a-f0-9]{24}$/.test(id)) continue;
+            const seconds = Math.floor((account.createdAt || Date.now()) / 1000).toString(16).padStart(8, "0");
+            remap[id] = seconds + (/^[a-f0-9]{16}$/.test(id) ? id : randomBytes(8).toString("hex"));
+        }
+        if (!Object.keys(remap).length) return remap;
+        const m = (id) => remap[id] || id;
+        const accounts = {};
+        for (const account of Object.values(this.data.accounts)) {
+            account.id = m(account.id);
+            accounts[account.id] = account;
+        }
+        this.data.accounts = accounts;
+        for (const map of [this.data.emails, this.data.names]) {
+            for (const key of Object.keys(map)) map[key] = m(map[key]);
+        }
+        for (const clan of Object.values(this.data.clans)) {
+            clan.members.forEach(member => member.id = m(member.id));
+            (clan.past || []).forEach(past => past.id = m(past.id));
+            (clan.invites || []).forEach(invite => {
+                invite.id = m(invite.id);
+                invite.by = m(invite.by);
+            });
+            clan.requests = clan.requests.map(m);
+        }
+        const friends = {};
+        for (const [id, list] of Object.entries(this.data.social.friends)) friends[m(id)] = list.map(f => Object.assign(f, { id: m(f.id) }));
+        this.data.social.friends = friends;
+        this.data.social.requests.forEach(r => {
+            r.senderId = m(r.senderId);
+            r.recipientId = m(r.recipientId);
+        });
+        Object.assign(this.data.legacyIds, remap);
+        fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2));
+        return remap;
     }
 
     save() {
@@ -84,7 +141,7 @@ export class AccountStore {
         try {
             const payload = JSON.parse(fromB64url(parts[1]).toString("utf8"));
             if (payload.exp && payload.exp * 1000 < Date.now()) return null;
-            return this.data.accounts[payload.sub] || null;
+            return this.data.accounts[this.data.legacyIds[payload.sub] || payload.sub] || null;
         } catch {
             return null;
         }
@@ -96,10 +153,11 @@ export class AccountStore {
         if (!key || key.length > 120) return null;
         let id = this.data.emails[key];
         if (!id) {
-            id = randomBytes(8).toString("hex");
+            const createdAt = Date.now();
+            id = objectId(createdAt);
             this.data.accounts[id] = {
-                id, email: key, name: null, role: null, clan: null, createdAt: Date.now(),
-                stats: emptyStats(), socials: {}, verdict: null
+                id, email: key, name: null, role: null, clan: null, createdAt,
+                stats: emptyStats(), socials: {}, prefs: { ...DEFAULT_PREFS }, verdict: null
             };
             this.data.emails[key] = id;
             this.save();
@@ -128,16 +186,53 @@ export class AccountStore {
         return id ? this.data.accounts[id] : null;
     }
 
+    // POST /name. The name has to come through the game's own name filter unchanged:
+    // 400 {error:"censored", shown} when it would be shown differently in game,
+    // 400 {error:"unclean"} when the filter would replace it with "unknown".
     claimName(account, rawName) {
-        const name = String(rawName || "").slice(0, 15).replace(/[^\w:\(\)\/? -]+/gmi, " ").trim();
-        if (!name || !NAME_RE.test(name)) return { status: 400 };
-        const owner = this.nameOwner(name);
-        if (owner && owner.id !== account.id) return { status: 409 };
-        if (account.name) return { status: 200, name: account.name };
-        account.name = name;
-        this.data.names[name.toLowerCase()] = account.id;
+        if (account.name) return { status: 200, body: { name: account.name } };
+        const requested = String(rawName ?? "").trim();
+        if (requested.length < NAME_MIN || requested.length > NAME_MAX) return { status: 400, body: { error: "invalid" } };
+        const shown = gameName(requested, NAME_MAX);
+        if (shown.name.length < NAME_MIN) return { status: 400, body: { error: "invalid" } };
+        if (shown.profane) return { status: 400, body: { error: "unclean" } };
+        if (shown.name !== requested) return { status: 400, body: { error: "censored", shown: shown.name } };
+        const owner = this.nameOwner(requested);
+        if (owner && owner.id !== account.id) return { status: 409, body: { error: "taken" } };
+        account.name = requested;
+        this.data.names[requested.toLowerCase()] = account.id;
         this.save();
-        return { status: 200, name };
+        return { status: 200, body: { name: requested } };
+    }
+
+    // PREFERENCES (Settings -> Friend Notifications / Allow Friend Requests / Allow Clan Invitations)
+    prefsOf(account) {
+        return Object.assign({}, DEFAULT_PREFS, account && account.prefs);
+    }
+
+    setPrefs(account, changes) {
+        const prefs = this.prefsOf(account);
+        for (const key of Object.keys(DEFAULT_PREFS)) {
+            if (changes && typeof changes[key] === "boolean") prefs[key] = changes[key];
+        }
+        account.prefs = prefs;
+        this.save();
+        return prefs;
+    }
+
+    // SOCIAL HANDLES (profile card). 400 {field, why: "format" | "rude"}.
+    setSocials(account, socials) {
+        const out = {};
+        for (const field of SOCIAL_FIELDS) {
+            const value = socials && typeof socials[field] === "string" ? socials[field].trim() : "";
+            if (!value) continue;
+            if (!HANDLE_RE.test(value)) return { status: 400, body: { field, why: "format" } };
+            if (isRude(value) || isRude(value.replace(/[._-]+/g, " "))) return { status: 400, body: { field, why: "rude" } };
+            out[field] = value;
+        }
+        account.socials = out;
+        this.save();
+        return { status: 200, body: { socials: out } };
     }
 
     // ACCOUNT (POST /account)
@@ -149,15 +244,17 @@ export class AccountStore {
             name: account.name,
             role: account.role,
             clan: clan ? { name: clan.name, role: member ? member.role : "member" } : null,
-            clanNotes: notes
+            clanNotes: notes,
+            prefs: this.prefsOf(account)
         };
     }
 
-    // JOIN TICKETS (POST /join -> "tk:<ticket>" -> game server)
-    issueTicket({ account, did }) {
+    // JOIN TICKETS (POST /join -> "tk:<ticket>" -> game server). A ticket only opens the
+    // server it was asked for (the client sends that server's address as "host").
+    issueTicket({ account, did, server }) {
         const ticket = randomBytes(18).toString("hex");
         const deviceId = did && /^[a-f0-9]{16,64}$/.test(did) ? did : randomBytes(12).toString("hex");
-        this.tickets.set(ticket, { accountId: account ? account.id : null, did: deviceId, at: Date.now() });
+        this.tickets.set(ticket, { accountId: account ? account.id : null, did: deviceId, server: server || null, at: Date.now() });
         return { ticket, did: deviceId };
     }
 
@@ -166,7 +263,7 @@ export class AccountStore {
         if (!entry) return null;
         this.tickets.delete(ticket);
         if (Date.now() - entry.at > maxAgeMs) return null;
-        return { account: entry.accountId ? this.data.accounts[entry.accountId] || null : null, did: entry.did };
+        return { account: entry.accountId ? this.data.accounts[entry.accountId] || null : null, did: entry.did, server: entry.server };
     }
 
     // STATS
@@ -280,6 +377,7 @@ export class AccountStore {
         const nameOf = (id) => (this.data.accounts[id] || {}).name || "unknown";
         return {
             name: clan.name,
+            closed: !!clan.closed,
             members: clan.members.map(m => ({
                 name: nameOf(m.id),
                 role: m.role,
@@ -341,6 +439,7 @@ export class AccountStore {
             case "create": {
                 const name = String(body.name || "").trim();
                 if (!CLAN_RE.test(name)) return err("invalid");
+                if (isRude(name)) return err("unclean");
                 if (mine) return err("in a clan");
                 if (Object.keys(clans).some(n => n.toLowerCase() === name.toLowerCase())) return err("taken", 409);
                 clans[name] = {
@@ -355,8 +454,16 @@ export class AccountStore {
                 const clan = Object.values(clans).find(c => c.name.toLowerCase() === String(body.clan || "").toLowerCase());
                 if (!clan) return err("not found", 404);
                 if (mine) return err("in a clan");
+                if (clan.closed) return err("closed", 403);
                 if (clan.members.length >= CLAN_MAX_MEMBERS) return err("full");
                 if (!clan.requests.includes(account.id)) clan.requests.push(account.id);
+                break;
+            }
+            case "requests": {
+                if (!mine) return err("not found", 404);
+                if (rank < 2) return err("rank", 403);
+                mine.closed = !body.open;
+                if (mine.closed) mine.requests = [];
                 break;
             }
             case "answer": {
@@ -377,6 +484,7 @@ export class AccountStore {
                 if (rank < 1) return err("rank", 403);
                 if (!target) return err("no player", 404);
                 if (target.clan) return err("in a clan");
+                if (!this.prefsOf(target).clanInvites) return err("no invites", 403);
                 mine.invites = (mine.invites || []).filter(i => i.id !== target.id);
                 mine.invites.push({ id: target.id, by: account.id });
                 break;
@@ -458,9 +566,116 @@ export class AccountStore {
         return true;
     }
 
+    // FRIENDS (FRVR social). Ids are FRVR ids (account ids); names come from /names-for.
+    namesFor(ids) {
+        const names = {};
+        for (const id of Array.isArray(ids) ? ids.slice(0, 200) : []) {
+            const account = this.data.accounts[this.data.legacyIds[id] || id];
+            names[id] = account && account.name ? account.name : null;
+        }
+        return names;
+    }
+
+    friendsOf(id) {
+        return this.data.social.friends[id] || [];
+    }
+
+    areFriends(a, b) {
+        return this.friendsOf(a).some(f => f.id === b);
+    }
+
+    requestsFor(id) {
+        return this.data.social.requests.filter(r => r.recipientId === id);
+    }
+
+    requestsFrom(id) {
+        return this.data.social.requests.filter(r => r.senderId === id);
+    }
+
+    // Returns {status, request?, friends?}: 409 when already friends / already asked.
+    createFriendRequest(senderId, recipientId) {
+        if (!this.data.accounts[recipientId] || senderId === recipientId) return { status: 404 };
+        if (this.areFriends(senderId, recipientId)) return { status: 409 };
+        const social = this.data.social;
+        if (social.requests.some(r => r.senderId === senderId && r.recipientId === recipientId)) return { status: 409 };
+        const reverse = social.requests.find(r => r.senderId === recipientId && r.recipientId === senderId);
+        if (reverse) {
+            this.answerFriendRequest(recipientId, reverse.id, true);
+            return { status: 200, friends: true };
+        }
+        const request = { id: objectId(), senderId, recipientId, createdAt: new Date().toISOString() };
+        social.requests.push(request);
+        this.save();
+        return { status: 201, request };
+    }
+
+    answerFriendRequest(recipientId, requestId, accept) {
+        const social = this.data.social;
+        const request = social.requests.find(r => r.id === requestId && r.recipientId === recipientId);
+        if (!request) return false;
+        social.requests = social.requests.filter(r => r !== request && !(r.senderId === request.recipientId && r.recipientId === request.senderId));
+        if (accept && !this.areFriends(request.senderId, request.recipientId)) {
+            const since = new Date().toISOString();
+            (social.friends[request.senderId] = this.friendsOf(request.senderId).slice()).push({ id: request.recipientId, createdAt: since });
+            (social.friends[request.recipientId] = this.friendsOf(request.recipientId).slice()).push({ id: request.senderId, createdAt: since });
+        }
+        this.save();
+        return request;
+    }
+
+    cancelFriendRequest(senderId, requestId) {
+        const social = this.data.social;
+        const before = social.requests.length;
+        social.requests = social.requests.filter(r => !(r.id === requestId && r.senderId === senderId));
+        if (social.requests.length === before) return false;
+        this.save();
+        return true;
+    }
+
+    removeFriend(id, friendId) {
+        const social = this.data.social;
+        if (!this.areFriends(id, friendId)) return false;
+        social.friends[id] = this.friendsOf(id).filter(f => f.id !== friendId);
+        social.friends[friendId] = this.friendsOf(friendId).filter(f => f.id !== id);
+        this.save();
+        return true;
+    }
+
+    // DISCORD LINKING: the Discord bot's /link hands out https://moomoo.io/?discord=<code>.
+    // Here the admin console stands in for the bot (`discord <username>`).
+    createDiscordCode(discordName) {
+        const code = randomBytes(12).toString("hex");
+        this.discordCodes.set(code, { discord: String(discordName).slice(0, 32), at: Date.now() });
+        return code;
+    }
+
+    discordCode(code) {
+        const entry = this.discordCodes.get(String(code || ""));
+        if (!entry) return null;
+        if (Date.now() - entry.at > DISCORD_CODE_MS) {
+            this.discordCodes.delete(code);
+            return null;
+        }
+        return entry;
+    }
+
+    linkDiscord(account, code) {
+        if (!account.name) return { status: 400, body: { error: "no name" } };
+        const entry = this.discordCode(code);
+        if (!entry) return { status: 400, body: { error: "code" } };
+        this.discordCodes.delete(code);
+        account.discord = { name: entry.discord, linkedAt: Date.now() };
+        this.save();
+        return { status: 200, body: { ok: true, discord: entry.discord } };
+    }
+
     // OWNER / DEV HELPERS
     accountByEmail(email) {
         const id = this.data.emails[String(email || "").trim().toLowerCase()];
         return id ? this.data.accounts[id] : null;
+    }
+
+    accountById(id) {
+        return this.data.accounts[this.data.legacyIds[id] || id] || null;
     }
 }

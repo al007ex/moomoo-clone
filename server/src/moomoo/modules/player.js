@@ -3,10 +3,9 @@
 // functions keep the client's logic line for line; additions that only exist on the
 // server are marked "SERVER:".
 
-import { Filter } from "bad-words";
+import { NAME_WORDS } from "../libs/nameFilter.js";
 import { TAIL, HAT, EFFECT, hasTail, snowFactor, gatherBonus, secretDistance, inSecretPool } from "./effects.js";
 
-const langFilter = new Filter();
 const mathCOS = Math.cos;
 const mathSIN = Math.sin;
 const mathPOW = Math.pow;
@@ -178,7 +177,7 @@ export class Player {
                 name = name.trim();
                 let isProfane = false;
                 const convertedName = name.toLowerCase().replace(/\s/g, "").replace(/1/g, "i").replace(/0/g, "o").replace(/5/g, "s");
-                for (const word of langFilter.list) {
+                for (const word of NAME_WORDS) {
                     if (convertedName.indexOf(word) != -1) {
                         isProfane = true;
                         break;

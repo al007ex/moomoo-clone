@@ -30,55 +30,71 @@ function pick(re) {
 }
 
 // ---------------------------------------------------------------- bundle patches
+// The minifier renames identifiers on every moomoo.io build, so each patch is a pattern
+// that captures the names instead of spelling them out. Every pattern must match exactly
+// once; if one stops matching, the client changed in a way that needs a look.
+const ID = "([A-Za-z_$][\\w$]*)";
+const LOCALHOST = 'location\\.hostname==="localhost"\\|\\|location\\.hostname==="127\\.0\\.0\\.1"';
 const PATCHES = [
     {
         name: "run as production (anti-tamper on, /join tickets, no dev globals)",
-        from: 'const Ne=location.hostname==="localhost"||location.hostname==="127.0.0.1";',
-        to: "const Ne=!1;"
+        from: new RegExp(`const ${ID}=${LOCALHOST};`),
+        to: "const $1=!1;"
+    },
+    {
+        name: "no localhost dev token (moo_dev_frvr_token)",
+        from: new RegExp(`${ID}="moo_dev_frvr_token",${ID}=${LOCALHOST}`),
+        to: '$1="moo_dev_frvr_token",$2=!1'
     },
     {
         name: "API base -> this server",
-        from: '(Ee="https://api.moomoo.io",Ai="moomoo.io")',
-        to: '(Ee=location.origin+"/api",Ai="moomoo.io")'
+        from: new RegExp(`\\(${ID}="https://api\\.moomoo\\.io",${ID}="moomoo\\.io"\\)`),
+        to: '($1=location.origin+"/api",$2="moomoo.io")'
     },
     {
         name: "servers in the \"local\" region live on this host (/s/<key>)",
-        from: 'function vc(e){return e.region==0?"localhost":',
-        to: 'function vc(e){return e.region=="local"?location.host+"/s/"+e.key:'
+        from: new RegExp(`function ${ID}\\(${ID}\\)\\{return \\2\\.region==0\\?"localhost":`),
+        to: 'function $1($2){return $2.region=="local"?location.host+"/s/"+$2.key:'
     },
     {
         name: "ws:// when the page is served over http",
-        from: 'let a="wss"+"://"+n;',
-        to: 'let a=(location.protocol==="https:"?"wss":"ws")+"://"+n;'
+        from: new RegExp(`let ${ID}="wss"\\+"://"\\+${ID};`),
+        to: 'let $1=(location.protocol==="https:"?"wss":"ws")+"://"+$2;'
     },
     {
         name: "server ping over the page protocol",
-        from: 'i="https://"+vc(n)+"/ping"',
-        to: 'i=location.protocol+"//"+vc(n)+"/ping"'
+        from: new RegExp(`${ID}="https://"\\+${ID}\\(${ID}\\)\\+"/ping"`),
+        to: '$1=location.protocol+"//"+$2($3)+"/ping"'
     },
     {
         name: "FRVR social API -> this server",
-        from: 'Pu="https://crucible.frvr.com/v1/social"',
-        to: 'Pu=location.origin+"/api/social"'
+        from: new RegExp(`${ID}="https://crucible\\.frvr\\.com/v1/social"`),
+        to: '$1=location.origin+"/api/social"'
+    },
+    {
+        name: "\"Copy link\" (profiles / clans) points at this server",
+        from: new RegExp(`${ID}=/\\(\\^\\|\\\\\\.\\)moomoo\\\\\\.io\\$/\\.test\\(location\\.hostname\\)\\?location\\.origin:"https://moomoo\\.io"`),
+        to: "$1=location.origin"
     }
 ];
 
 if (args.has("--no-anti-debug")) {
     PATCHES.push({
         name: "disable the debugger trap (development only)",
-        from: "od({antiDebug:!0,detectUserscripts:!0})",
-        to: "od({antiDebug:!1,detectUserscripts:!0})"
+        from: new RegExp(`${ID}\\(\\{antiDebug:!0,detectUserscripts:!0\\}\\)`),
+        to: "$1({antiDebug:!1,detectUserscripts:!0})"
     });
 }
 
 function patchBundle(source) {
     let out = source;
     for (const patch of PATCHES) {
-        const count = out.split(patch.from).length - 1;
+        const global = new RegExp(patch.from.source, "g");
+        const count = (out.match(global) || []).length;
         if (count !== 1) {
             throw new Error(`patch "${patch.name}" matched ${count} times (expected 1). The client build changed - update tools/build-official-client.mjs.`);
         }
-        out = out.replace(patch.from, () => patch.to);
+        out = out.replace(patch.from, patch.to);
         console.log(`  patched: ${patch.name}`);
     }
     return out;
@@ -175,6 +191,16 @@ function buildHtml(page, files) {
     html = setStyle(html, "touch-controls-fullscreen", "");
     html = setStyle(html, "gameUI", "display:none");
     html = setStyle(html, "topSpot", "display:none");
+
+    // signed-out menu: the game switches these as soon as it knows who is signed in, but a
+    // page saved while signed in would otherwise flash the account row first
+    html = html.replace(/(<input\b[^>]*\bid="nameInput"[^>]*?)\s+disabled(?:="[^"]*")?/, "$1");
+    html = html.replace(/(<div\b[^>]*\bid="enterGame"[^>]*>\s*<span>)Enter Game(<\/span>)/, "$1Play as Guest$2");
+    html = setStyle(html, "signInButton", "");
+    html = setStyle(html, "signInHint", "");
+    html = setStyle(html, "accountRow", "display: none;");
+    html = emptyElement(html, "accountRow");
+    html = setStyle(html, "accountPrefs", "display:none");
 
     // local favicon / manifest
     html = html.replace(/href="https:\/\/moomoo\.io\/manifest\.json"/, 'href="/manifest.json"');

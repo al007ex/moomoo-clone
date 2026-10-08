@@ -263,14 +263,34 @@ export class Game {
     }
 
     kickAccount(accountId, reason) {
+        let kicked = 0;
         for (const player of this.players) {
-            if (player.account && player.account.id === accountId && player.kick) player.kick(reason);
+            if (player.account && player.account.id === accountId && player.kick) {
+                player.kick(reason);
+                kicked++;
+            }
         }
+        return kicked;
+    }
+
+    setShadow(accountId, on) {
+        for (const player of this.players) {
+            if (player.account && player.account.id === accountId) player.shadowed = on;
+        }
+    }
+
+    sessionOf(player) {
+        return { at: player.connectedAt, server: this.key, ipHash: player.ipHash, reports: player.reports };
     }
 
     sessionFor(accountId) {
         const player = this.players.find(p => p.account && p.account.id === accountId);
-        return player ? { at: player.connectedAt, server: this.key, ipHash: player.ipHash, reports: player.reports } : null;
+        return player ? this.sessionOf(player) : null;
+    }
+
+    // Guests are looked up by the id staff get in the live stats packet ("F").
+    playerBySession(id) {
+        return this.playersById.get(id) || null;
     }
 
     // ------------------------------------------------------------------ loop
@@ -442,7 +462,10 @@ export class Game {
         const target = this.players.find(p => p.sid === sid);
         if (!target || !target.lifeStats) return;
         const s = target.lifeStats;
-        viewer.send("F", sid, s.kills, s.wood, s.food, s.stone, s.gold, Math.round(s.damage), Math.round(s.animalDamage), Math.round(s.healing), s.animals, s.bosses, null, Math.round(s.score));
+        // Staff looking at a guest also get the guest's session id for the staff panel.
+        const staff = viewer.role === "mod" || viewer.role === "admin";
+        const guestId = staff && !target.account ? target.id : null;
+        viewer.send("F", sid, s.kills, s.wood, s.food, s.stone, s.gold, Math.round(s.damage), Math.round(s.animalDamage), Math.round(s.healing), s.animals, s.bosses, guestId, Math.round(s.score));
     }
 
     // Turrets and other updating structures.
@@ -497,9 +520,17 @@ export class Game {
         return best;
     }
 
-    // Graceful shutdown countdown ("Z").
+    // Graceful shutdown countdown ("Z": "Server restarting in m:ss").
     announceShutdown(seconds) {
         this.server.broadcast("Z", seconds);
+    }
+
+    // Last word before the server goes away: the client looks for another server
+    // ("<server> has closed - switched you to ...").
+    closeAll() {
+        for (const player of [...this.players]) {
+            if (player.kick) player.kick("Server is restarting - pick another");
+        }
     }
 
     stop() {

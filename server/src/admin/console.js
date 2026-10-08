@@ -69,12 +69,14 @@ const label = (index) => DISPLAY[index] || (AI_TYPES[index] && (label(index))) |
 
 export class AdminConsole {
 
-    constructor({ games, accounts, moderation, build, dataDir, log }) {
+    constructor({ games, accounts, moderation, build, dataDir, log, social, baseUrl }) {
         this.games = games;
         this.accounts = accounts;
         this.moderation = moderation;
         this.build = build;
         this.log = log;
+        this.social = social;
+        this.baseUrl = baseUrl;
         this.stateFile = path.join(dataDir, "console.json");
         this.state = { me: null };
         try {
@@ -529,7 +531,7 @@ export class AdminConsole {
 
         add("ban", "ban <player>", "ban ip + account", (a) => {
             const { player } = this.findPlayer(a.join(" "), { needAlive: false });
-            this.moderation.ban({ ip: player.ip, accountId: player.account && player.account.id, name: player.name }, { name: "console" });
+            this.moderation.ban({ ip: player.ip, did: player.did, accountId: player.account && player.account.id, name: player.name }, { name: "console" });
             if (player.account) this.accounts.setVerdict(player.account.name, "ban");
             if (player.kick) player.kick("kicked");
             return [`banned ${player.name}`];
@@ -565,6 +567,44 @@ export class AdminConsole {
             const s = player.anticheat ? player.anticheat.summary() : null;
             return [s ? `${player.name}: flags ${s.flagNames.join(", ") || "none"}, untrusted events ${s.untrustedEvents}, strikes ${s.strikes}` : "no anticheat data"];
         }, ["ac"]);
+
+        // ---------------- accounts / friends / Discord
+        const account = (name) => {
+            const found = this.accounts.nameOwner(name);
+            if (!found) throw new Error(`no account named "${name}" (they need to sign in and pick a name)`);
+            return found;
+        };
+
+        add("friends", "friends <account name>", "friends, requests and prefs of an account", (a) => {
+            const acc = account(a.join(" "));
+            const nameOf = (id) => (this.accounts.accountById(id) || {}).name || id;
+            const prefs = this.accounts.prefsOf(acc);
+            return [
+                `${acc.name}: ${this.accounts.friendsOf(acc.id).map(f => nameOf(f.id)).join(", ") || "no friends yet"}`,
+                `incoming: ${this.accounts.requestsFor(acc.id).map(r => nameOf(r.senderId)).join(", ") || "none"}, outgoing: ${this.accounts.requestsFrom(acc.id).map(r => nameOf(r.recipientId)).join(", ") || "none"}`,
+                `prefs: friend notifications ${prefs.friendNotifs ? "on" : "off"}, friend requests ${prefs.friendRequests ? "on" : "off"}, clan invites ${prefs.clanInvites ? "on" : "off"}`,
+                acc.discord ? `discord: ${acc.discord.name}` : "discord: not linked"
+            ];
+        });
+
+        add("befriend", "befriend <account> <account>", "make two accounts friends straight away", (a) => {
+            if (a.length !== 2) throw new Error("befriend <account> <account> (one word each)");
+            const [first, second] = a.map(account);
+            if (first === second) throw new Error("pick two different accounts");
+            const result = this.accounts.createFriendRequest(first.id, second.id);
+            if (result.status === 409 && this.accounts.areFriends(first.id, second.id)) return [`${first.name} and ${second.name} are already friends`];
+            const pending = this.accounts.requestsFor(second.id).find(r => r.senderId === first.id);
+            if (pending) this.accounts.answerFriendRequest(second.id, pending.id, true);
+            if (this.social) this.social.friendshipChanged(first.id, second.id);
+            return [`${first.name} and ${second.name} are now friends`];
+        });
+
+        add("discord", "discord <discord username>", "stand-in for the Discord bot's /link: prints a link to open", (a) => {
+            const name = a.join(" ").trim();
+            if (!name) throw new Error("discord <discord username>");
+            const code = this.accounts.createDiscordCode(name);
+            return [`open ${this.baseUrl}/?discord=${code}`, "(signed in, with a player name; the link works for 10 minutes)"];
+        }, ["link"]);
 
         return C;
     }

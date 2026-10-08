@@ -17,6 +17,7 @@ const ADMIN_LISTS = {
     health: [1, 2, 5, 10, 20]
 };
 const ADMIN_POWERS = ["god", "aura", "godlike", "boss", "invisible"];
+const REPORT_REASONS = ["Bot", "Hack", "Autoheal", "Abuse"];   // [om], sent as index + 1
 const MAX_TRIBE_NAME = 7;
 
 // Re-send "D" (addPlayer) to everyone except the player itself, e.g. after a size change.
@@ -266,18 +267,28 @@ export function handlePacket(ctx, player, name, args) {
             return;
         }
 
-        // REPORT / STAFF ACTION: [sid] or [sid, 1 shadow | 2 ban]
+        // REPORT / STAFF ACTION:
+        //   [sid]                 Report
+        //   [sid, 0, reason]      "What for?" answer (1 Bot, 2 Hack, 3 Autoheal, 4 Abuse)
+        //   [sid, 1 | 2]          staff: shadow / ban
         case "R": {
             const sid = args[0];
             if (!isInt(sid)) return invalid("report");
             const target = game.players.find(p => p.sid === sid);
             if (!target || target === player) return;
             if (args[1] === undefined) {
-                player.reported = player.reported || new Set();
+                player.reported = player.reported || new Map();
                 if (player.reported.has(sid)) return;
-                player.reported.add(sid);
                 target.reports++;
-                ctx.moderation.report({ target, reporter: player, sessionReports: target.reports });
+                player.reported.set(sid, ctx.moderation.report({ target, reporter: player, sessionReports: target.reports }));
+                return;
+            }
+            if (args[1] === 0) {
+                const reason = isInt(args[2]) ? REPORT_REASONS[args[2] - 1] : undefined;
+                if (!reason) return invalid("report reason");
+                const entry = player.reported && player.reported.get(sid);
+                if (!entry || entry.reason) return;
+                ctx.moderation.reportReason({ target, reporter: player, entry, reason });
                 return;
             }
             if (player.role !== "mod" && player.role !== "admin") return invalid("staff action");

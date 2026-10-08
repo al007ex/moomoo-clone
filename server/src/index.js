@@ -4,6 +4,8 @@
 //   /assets/*            official bundle (patched) + shim
 //   /p/<id>.js           "moomoo-protocol" module for this build (BUILD_ID, BUILD_SALT, mixKey)
 //   /api/*               api.moomoo.io + FRVR auth stand-in (accounts, profiles, clans, top, join tickets)
+//   /api/social/*        crucible.frvr.com/v1/social stand-in (friends) + /api/social/ws (presence, invites)
+//   /player/<name>       "Copy link" pages -> /?profile=<name>, /clan/<name> -> /?clan=<name>
 //   /s/<key>             game servers (WebSocket) and /s/<key>/ping
 //   /img, /css, ...      static game assets
 
@@ -18,6 +20,7 @@ import { Game } from "./moomoo/server.js";
 import { createProtocolBuild } from "./protocol/build.js";
 import { AccountStore } from "./api/store.js";
 import { createApiRouter } from "./api/routes.js";
+import { SocialHub } from "./api/social.js";
 import { ModerationStore } from "./anticheat/index.js";
 import { createConnectionHandler } from "./network/connection.js";
 import { AdminConsole } from "./admin/console.js";
@@ -51,6 +54,9 @@ const build = await createProtocolBuild({
 });
 const accounts = new AccountStore(DATA_DIR);
 const moderation = new ModerationStore(DATA_DIR);
+moderation.migrateIds(accounts.migratedIds);
+if (Object.keys(accounts.migratedIds).length) log(`accounts: moved ${Object.keys(accounts.migratedIds).length} account id(s) to the FRVR id format`);
+const social = new SocialHub({ store: accounts, log });
 
 // Owner convenience: OWNER_EMAIL=<email> makes that account an admin.
 if (process.env.OWNER_EMAIL) {
@@ -65,11 +71,25 @@ for (const def of GAME_SERVERS) {
 }
 
 const gameApi = {
-    kickAccount: (id, reason) => games.forEach(g => g.kickAccount(id, reason)),
+    kickAccount: (id, reason) => [...games.values()].reduce((n, g) => n + g.kickAccount(id, reason), 0),
+    setShadow: (id, on) => games.forEach(g => g.setShadow(id, on)),
     sessionFor: (id) => {
         for (const g of games.values()) {
             const s = g.sessionFor(id);
             if (s) return s;
+        }
+        return null;
+    },
+    playerBySession: (id) => {
+        for (const g of games.values()) {
+            const p = g.playerBySession(id);
+            if (p) return p;
+        }
+        return null;
+    },
+    sessionOf: (player) => {
+        for (const g of games.values()) {
+            if (g.players.includes(player)) return g.sessionOf(player);
         }
         return null;
     }
@@ -91,7 +111,7 @@ const servers = {
 const tokenFile = path.join(DATA_DIR, "admin.token");
 if (!fs.existsSync(tokenFile)) fs.writeFileSync(tokenFile, randomBytes(24).toString("hex"));
 const ADMIN_TOKEN = Buffer.from(fs.readFileSync(tokenFile, "utf8").trim());
-const adminConsole = new AdminConsole({ games, accounts, moderation, build, dataDir: DATA_DIR, log });
+const adminConsole = new AdminConsole({ games, accounts, moderation, build, dataDir: DATA_DIR, log, social, baseUrl: `http://${["0.0.0.0", "127.0.0.1", "::1", "::"].includes(HOST) ? "localhost" : HOST}:${PORT}` });
 
 // ---------------------------------------------------------------- http
 const app = express();
@@ -133,9 +153,9 @@ if (process.env.IS_SANDBOX) {
     const assetsDir = path.join(OFFICIAL_DIR, "assets");
     const bundle = fs.existsSync(assetsDir) && fs.readdirSync(assetsDir).find(f => /^index-[0-9a-f]+\.js$/.test(f));
     const source = bundle ? fs.readFileSync(path.join(assetsDir, bundle), "utf8") : "";
-    const flag = "Id=aa&&{}.IS_SANDBOX";
-    if (source.split(flag).length === 2) {
-        const sandboxed = source.replace(flag, "Id=!0");
+    const flag = /([A-Za-z_$][\w$]*)=[A-Za-z_$][\w$]*&&\{\}\.IS_SANDBOX/g;
+    if ((source.match(flag) || []).length === 1) {
+        const sandboxed = source.replace(flag, "$1=!0");
         app.get(`/assets/${bundle}`, (_req, res) => {
             res.set("Cache-Control", "no-cache");
             res.type("application/javascript").send(sandboxed);
@@ -147,7 +167,11 @@ if (process.env.IS_SANDBOX) {
 }
 
 app.use("/assets", express.static(path.join(OFFICIAL_DIR, "assets"), { fallthrough: false }));
-app.use("/api", createApiRouter({ store: accounts, moderation, servers, game: gameApi }));
+app.use("/api", createApiRouter({ store: accounts, moderation, servers, game: gameApi, social }));
+
+// Links from "Copy link" on profiles and clans open the game with that card.
+app.get("/player/:name", (req, res) => res.redirect(302, "/?profile=" + encodeURIComponent(req.params.name)));
+app.get("/clan/:name", (req, res) => res.redirect(302, "/?clan=" + encodeURIComponent(req.params.name)));
 
 app.get("/s/:key/ping", (req, res) => {
     if (!games.has(req.params.key)) return res.status(404).end();
@@ -171,7 +195,9 @@ const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
 const onConnection = createConnectionHandler({ build, accounts, moderation, log });
 
 server.on("upgrade", (req, socket, head) => {
-    const match = /^\/s\/([A-Za-z0-9]+)\/?$/.exec(new URL(req.url, "http://localhost").pathname);
+    const pathname = new URL(req.url, "http://localhost").pathname;
+    if (pathname === "/api/social/ws") return social.handleUpgrade(req, socket, head);
+    const match = /^\/s\/([A-Za-z0-9]+)\/?$/.exec(pathname);
     const game = match && games.get(match[1]);
     if (!game) {
         socket.destroy();
@@ -186,12 +212,14 @@ server.listen(PORT, HOST, () => {
     if (!fs.existsSync(indexFile)) log("official client is not built yet - run `npm run build`");
 });
 
-// Graceful shutdown: show the client's "Server restarting" notice first.
+// Graceful shutdown: the client's "Server restarting in 0:03" notice, then
+// "Server is restarting - pick another" so open pages look for another server.
 let stopping = false;
 const shutdown = () => {
     if (stopping) process.exit(0);
     stopping = true;
     games.forEach(g => g.announceShutdown(3));
+    setTimeout(() => games.forEach(g => g.closeAll()), 1100);
     setTimeout(() => process.exit(0), 1500);
 };
 process.on("SIGINT", shutdown);
