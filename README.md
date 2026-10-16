@@ -1,9 +1,10 @@
 # MooMoo.io Private Server
 
-A local MooMoo.io server that runs the **current official client** (v1.9.1, bundle
-`index-04fd22e2.js`, API version 1.28), speaking the real packet protocol and anti-tamper
-system, with a local stand-in for every online service the client expects (accounts,
-friends, servers, clans, profiles, Discord linking, captcha, ads).
+A local MooMoo.io server that runs the **current official client** (v1.9.4, bundle
+`index-6642cae8.js`, API version 1.31), speaking the real packet protocol and anti-tamper
+system (including the new code seal and integrity probes), with a local stand-in for every
+online service the client expects (accounts, friends, whispers and clan chat, servers,
+clans, profiles, Discord linking, captcha, ads).
 
 > Fan project for personal use. MooMoo.io, its client code, art and names belong to their
 > owners (MooMoo.io / FRVR). The game's real server code isn't public: anything marked
@@ -37,8 +38,55 @@ npm run console -- tp me falls
 ---
 
 
+### New in v1.9.4 **[client UI / local backend]**
+Everything below arrived with v1.9.4 and works here. moomoo later re-deployed v1.9.4 as
+`index-6642cae8.js`: same packets, tables, seal and probe kinds, but with **three new
+anti-tamper pieces**, all replicated here (see *Anticheat*):
+- the `T` telemetry frame carries two more fields — the client's current send sequence and
+  a **frame ledger** (a rolling FNV-1a hash of every client→server body it has sent);
+- two new tamper **flag bits** — `16` (WebSocket / `send` not native-named, or its
+  constructor swapped) and `32` (own properties added to the socket object);
+- a stricter "native function" check that also matches each guarded function's name.
+
+- **Whispers and clan chat:** **Message** a friend from the Friends list, or talk to your
+  clan in the clan card's **Chat** tab, with history, a word filter (*"unclean"*) and a rate
+  limit. In game, type `/w <friend> <message>`, `/c <message>` or `/r <message>` (reply) in
+  the chat box. Messages pop up at the side of the screen while you play, with a reply
+  button (*Show Friend Messages In Game* / *Show Clan Messages In Game* in Settings > Social).
+- **Invites and who's online:** *"come to my server"* invites, friends and clanmates in a
+  game with the server they're on, and live player counts in the server picker. They all
+  arrive over a page stream that stays open while the page is.
+- **Anonymous mode** (Settings > Social, signed-in players): other players see you as
+  `Anon#<sid>` with no clan tag or crown, and your profile only shows that name. *Show my
+  own name to me* keeps your real name on your own screen. You can switch it once every 31
+  seconds.
+- **Look editor** (Settings > Social > *Edit look*): choose the hat, accessory, weapon, variant and colour
+  your profile and share card show. You can only pick what you've earned (*"That isn't yours
+  to show yet"*).
+- **Shop editor** (Settings > Shop): drag hats and accessories into your own order, hide
+  the ones you never buy, or show both in one list (*Combined Shop*).
+- **Settings** are split into **Social**, **Shop** and **Keys** pop-ups, plus *Show CPS*
+  (clicks per second next to FPS) and *Aim Follows Movement* on touch screens.
+- **Crowns:** this week's top three players by kills wear a gold, silver or bronze crown next
+  to their name in game and on the leaderboard (with the skull when they also lead kills).
+- **News from other servers:** *"The Crab King has fallen on Local LC to alex"* and
+  *"[CLAN] has taken the top on …"*.
+- **Updates and restarts:** *"Game updated - reloading in m:ss"* (or *"it reloads after this
+  life"*), open pages reload on their own when a new bundle is out, a site-wide notice can
+  sit under the menu, and servers about to restart drop out of the server picker.
+- **Staff:** **Messages** on the staff panel (what someone said in whispers, clan and game
+  chat), bans for a while instead of for good, and a rejoin lock after a kick (*"You were
+  removed from the game - try again in …"*).
+- **Animal looks:** players can be drawn as an animal (`morph`), dive like the Crab King
+  (`dive`) or wear their clan as their tribe tag (`disguise`). The game itself doesn't use
+  these for players yet; the console does.
+- **Clan tribes:** a tribe named after your clan only takes clanmates. *solo* can't be used
+  as a clan name.
+- **Balance:** Crab Shell now reflects 37.5% of damage, takes 20% less and slows you 7%;
+  emerald weapons need 30,000 XP and also poison. The animal list comes from the server now.
+
 ### New in v1.9.1 **[client UI / local backend]**
-Everything below arrived with the October update (`index-04fd22e2.js`) and works here:
+These arrived with the earlier October update (`index-04fd22e2.js`):
 
 - **Friends:** add players by name, accept or decline requests, see who's online and on
   which server, **Join** them or send an **Invite** (a banner pops up for them). Signed-in
@@ -170,7 +218,13 @@ private window) and add each other by name, or run `befriend <name> <name>` in t
 - **Debugger trap:** with DevTools open, the page keeps pausing (the client's anti-debug).
 - **Tamper-proof traffic:** edited, replayed or forged packets get you disconnected
   ("Could not verify the connection").
-- **Old client:** after `npm run start:new-build`, open pages show *"Game updated - please reload"*.
+- **Code seal:** edit the bundle in `dist/official/assets/` (or replace one of its guarded
+  functions from DevTools) and the first packet closes the connection with *"Invalid
+  Connection"*. The seal is mixed into the connection key.
+- **Integrity probes:** the server asks the client to check for hooked functions, wrapped
+  constructors and userscript globals. Matches show up in `flags <player>`.
+- **Old client:** after `npm run start:new-build`, or when the page runs an older bundle than
+  the server serves, the client shows *"Game updated - please reload"*.
 
 ### Dormant code found in the client **[hidden]**
 - `DAY_INTERVAL` = 24 minutes: a day/night cycle constant whose rendering has been removed.
@@ -222,8 +276,14 @@ falls pool lair waterfall nw ne sw se moostafa moofie treasure` (`places` lists 
 | `friends <account>` | an account's friends, requests, settings and Discord link |
 | `befriend <account> <account>` | make two accounts friends straight away |
 | `discord <discord username>` | stand-in for the Discord bot's `/link`: prints a link to open |
-| `announce <text>`, `restart <s>` | chat notice, "Server restarting in m:ss" banner (stays until players rejoin) |
-| `kick`, `ban` (IP + device + account), `unban`, `role <name> <admin\|mod\|none>`, `flags <p>` | moderation |
+| `morph <p> <animal\|off>`, `dive <p> [s]`, `disguise <p> [on\|off]`, `anon <p> [on\|off]` | animal look, Crab King dive, clan as tribe tag, anonymous mode |
+| `announce <text>` | chat notice |
+| `restart <s\|cancel>` | "Server restarting in …" banner (over 60 s it reads minutes / hours) and the server list marks the server as restarting |
+| `update [s]` | "Game updated - reloading in m:ss" (`0` = after this life); open pages reload |
+| `notice <text> [minutes]`, `notice off` | site notice under the menu on every open page |
+| `kick <p> [s]` | remove a player; they can't rejoin for `s` seconds (default 120) |
+| `ban <p> [30m\|12h\|7d]`, `unban <name\|ip>` | ban IP + device + account, for good or for a while; `unban` also lifts a kick's lock |
+| `role <name> <admin\|mod\|none>`, `flags <p>` | staff role; anti-cheat flags, strikes and probe rounds answered |
 
 ### Scene scripts for a video
 ```text
@@ -263,24 +323,27 @@ discord moo_fan            # open the printed link while signed in
 browser (official client, patched)                 this server
 ------------------------------------------------   --------------------------------------
 index.html  import map -> /p/<id>.js  ------------> protocol build (BUILD_ID, salt, mixKey)
+                       -> /p/<seal>.js -----------> code seal (its file name is the seal)
 shim.js     FRVR SDK, Turnstile, ads  ------------> /api/auth/*  (any code / password)
             FRVR social (friends)  ---------------> /api/social/*, /api/social/ws (presence, invites)
-fetch(Ce + ...) servers, join, profiles, clans ---> /api/*       accounts, clans, top, tickets
-WebSocket ws://host/s/<server>?token=tk:..&b=.. --> gate -> io-init -> keyed frames -> Game
+fetch(Pe + ...) servers, join, profiles, clans ---> /api/*       accounts, clans, chat, top, tickets
+EventSource /api/page/stream ---------------------> notices, whispers, invites, counts, news
+WebSocket ws://host/s/<server>?token=tk:..&b=..&u=.. -> gate -> io-init -> keyed frames -> Game
 ```
 
 ### Official client (`client-official/`, `tools/build-official-client.mjs`)
-`client-official/source/` holds the files saved from moomoo.io, unmodified. The previous
-version (v1.9.0, `index-228e9652.js`) is kept in `client-official/archive/`.
+`client-official/source/` holds the files saved from moomoo.io, unmodified. Earlier versions
+(`index-228e9652.js` v1.9.0, `index-04fd22e2.js` v1.9.1, `index-45e2f6ff.js` the first v1.9.4
+build) are kept in `client-official/archive/`.
 `npm run build` creates `dist/official/` by:
 
 1. **Patching the bundle.** moomoo's minifier renames things on every build, so each patch is
    a pattern that captures the names. Each must match exactly once, so a newer build fails
    loudly instead of half-working:
-   - `const Ae=!1` makes the client behave as on moomoo.io: anti-tamper on, `/join` tickets,
+   - `const Fe=!1` makes the client behave as on moomoo.io: anti-tamper on, `/join` tickets,
      no dev globals.
    - The localhost sign-in shortcut (`moo_dev_frvr_token`) is switched off.
-   - The API base `Ce` points to `/api` on this server.
+   - The API base `Pe` points to `/api` on this server.
    - Servers in region `"local"` live on this host at `/s/<key>`.
    - Sockets use `ws://` when the page is served over `http://`.
    - Server pings use the page's protocol.
@@ -289,7 +352,19 @@ version (v1.9.0, `index-228e9652.js`) is kept in `client-official/archive/`.
 2. **Restoring the static page** from the saved snapshot. It removes the injected CookiePro
    banner, the Turnstile iframe, ads and browser-extension leftovers, empties the containers
    the game fills itself, resets the signed-in state a saved page can carry (disabled name box,
-   account row, account settings), and adds the import map, `shim.js` and the module script.
+   account row, account settings), and adds the import map (`moomoo-protocol` and
+   `moomoo-seal`), `shim.js` and the module script.
+
+   It also strips what mods and userscripts running in your browser leave in a saved page:
+   MooMoo.js (`mmj-*`: the config overlay and the game menu's "Mods" tab), script menus
+   (`mmjes-*`) and userscript chat overlays. The build prints how many elements it removed.
+
+   **Page parts:** the game stops loading when the page lacks an element it looks up. If a
+   saved page is older than the bundle, the build adds the missing ones (settings pop-up,
+   whisper card, chat pop-ups, CPS counter, update / site notices, leaderboard kinds…) and
+   appends `client-official/page-parts.css` to `main.css`. Their markup follows how the
+   bundle uses them, but it's a stand-in until the page is saved again. The current
+   `page.html` and `main.css` were saved with v1.9.4 (`index-6642cae8.js`), so nothing is added.
 3. **Adding `shim.js`**, a local FRVR SDK (bootstrapper, tracker, ads, profile, **auth** with
    `getFRVRID` and `authenticatedFetch`, and **social**), an instant-pass Turnstile, and ad /
    consent no-ops. The social part copies the SDK: REST calls go to `/api/social`, and the
@@ -300,17 +375,29 @@ version (v1.9.0, `index-228e9652.js`) is kept in `client-official/archive/`.
 
 ### Protocol (`server/src/protocol/`)
 Everything here mirrors the client function named in brackets (names from
-`index-04fd22e2.js`; they change on every build). The protocol didn't change in v1.9.1, and it
-was verified against the new client's own code with 14,900 automated checks.
+`index-6642cae8.js`; they change on every build). API 1.31 changed the protocol: packet ids
+go up to 127, a code seal is bound into the key, and the server now drives the telemetry. It
+was verified against the new client's own transport code with 21,742 automated checks, and
+end to end (gate, seal, probes, packets, chat, clans, moderation) with headless clients.
 
 - **Build module** `/p/<id>.js` exports `BUILD_ID`, `BUILD_SALT` and `mixKey`, as moomoo.io's
   per-deploy module does. This server generates its own: a random id, salt and ARX key mixer.
   It's kept in `server/data/protocol-build.json`, and `npm run start:new-build` rolls it.
-- **URL** `ws://host/s/<server>?token=tk:<ticket>&b=<BUILD_ID>`
-- **Handshake** (the only plain frame): `["io-init", [socketId, seed, keyHex, 1, 1]]`
+- **URL** `ws://host/s/<server>?token=tk:<ticket>&b=<BUILD_ID>&u=<bundle name>`; `u` must
+  be the bundle this server serves (`index-6642cae8`).
+- **Handshake** (the only plain frame): `["io-init", [socketId, seed, keyHex, 1, 1, sealMode]]`
   - `key = mixKey(hex(keyHex), seed)`
-  - packet tables are a mulberry32 Fisher–Yates shuffle of the packet names, seeded with
-    `seed ^ imul(BUILD_SALT, 2654435761)` [ml/xl/ou]
+  - **Seal** [Sd]: the page's import map has a second module, `moomoo-seal`, whose file name
+    is 16 random bytes in hex. The client XORs them with SHA-256 of its own bundle
+    (first 16 bytes), and with `165` as well if any of its 15 guarded functions (send,
+    connect, input, telemetry…) no longer appears in the bundle source. In seal mode 2 (the
+    default) the result is XORed into the first 16 bytes of the key, so a modified client
+    can neither send a valid frame nor read the server's. In mode 1 it only reports a hash
+    of it [Dx] in every `T`.
+  - Packet tables [s0]: the first 22 client and 39 server packet names are shuffled with
+    mulberry32 Fisher–Yates, seeded with `seed ^ imul(BUILD_SALT, 2654435761)` [gs]. Names
+    added after that (`q`, `r`, `m`) get ids from a salted FNV-1a hash in the free range up
+    to 127, with linear probing [i0]. The server table uses the salt `^ 2246822507`.
 - **Client → server frame:** `tag(6) || mask(msgpack([id, args, seq]))`
   - `tag` = HMAC-SHA256(key, body)[0..6] [su/ru]
   - `mask` = xorshift32 keystream seeded with `c2sSeed ^ u32(tag)` [pl/du]
@@ -326,30 +413,30 @@ was verified against the new client's own code with 14,900 automated checks.
   | 4003 | Sign in to play on this server |
   | 4004 | Please play at moomoo.io |
 
-**Client → server packets (21):**
+**Client → server packets (22):**
 
 | Id | Meaning | Id | Meaning |
 |---|---|---|---|
-| `M` | spawn `{name, moofoll, skin}` | `D` | aim direction |
+| `M` | spawn `{name, moofoll, skin, anon}` | `D` | aim direction |
 | `9` | move direction (null = stop) | `e` | reset movement |
 | `F` | mouse `[down, buildDir]` | `z` | select `[index, isWeapon]` |
 | `H` | upgrade pick | `K` | `0` lock rotation, `1` auto-gather |
 | `L` | create tribe | `N` | leave tribe |
 | `b` | request to join | `P` | answer request `[sid, accept]` |
-| `Q` | kick member | `c` | store `[0 buy \| 1 equip, id, isAccessory]` |
+| `Q` | kick member | `c` | store `[1 buy \| 0 equip, id, isAccessory]` (id 0 unequips) |
 | `6` | chat (≤30 characters) | `S` | map ping |
-| `0` | ping | `T` | **telemetry** `[flags, untrustedEvents]` |
+| `0` | ping | `T` | **telemetry** `[flags, untrustedEvents, probeResult, seal, salt, seq, ledger]`, only in answer to `q` |
 | `R` | report `[sid]`, its reason `[sid, 0, 1 Bot \| 2 Hack \| 3 Autoheal \| 4 Abuse]`, or staff `[sid, 1 shadow \| 2 ban]` | `A` | admin command |
-| `V` | watch live stats `[sid]` | | |
+| `V` | profile and live stats `[sid]` (answered with `p` and `F`) | `I` | anonymous mode `[0 \| 1]` (once per 31 s) |
 
-**Server → client packets (38):**
+**Server → client packets (42):**
 
 | Id | Meaning | Id | Meaning |
 |---|---|---|---|
-| `io-init` | handshake | `A` | `{teams}` |
+| `io-init` | handshake | `A` | `{teams, animals}` (the animal list now comes from the server) |
 | `B` | disconnect reason (`kicked`, `server is full`, `Server is restarting - pick another`…) | `C` | your sid |
-| `D` | player data (13 fields incl. aura, boss mode, clan) | `E` | player left |
-| `a` | positions `[sid,x,y,dir·100]`, changed attributes `[sid,build,weapon,variant,team,leader,hat,tail,icon,z]`, hidden sids | `G` | leaderboard (entries, roles, dead, 🦀, clan tags, tribes) |
+| `D` | player data (17 fields incl. aura, boss mode, clan, morph, dive, invisible, disguised) | `E` | player left |
+| `a` | positions `[sid,x,y,dir·100]`, changed attributes `[sid,build,weapon,variant,team,leader,hat,tail,icon,z]` (icon 1 skull, 2–4 crowns, 5–7 crowns with skull), hidden sids | `G` | leaderboard (entries, roles, dead, 🦀, clan tags, tribes, crowns) |
 | `H` | new objects | `I` | animals `[sid,type,x,y,dir·100,hp,name,state]` + hidden |
 | `J` | animal attack animation | `K` | swing animation |
 | `L` | object wiggle | `M` | turret shot |
@@ -358,20 +445,22 @@ was verified against the new client's own code with 14,900 automated checks.
 | `R` | objects removed | `S` | item count |
 | `T` | XP / age | `U` | upgrade picks |
 | `V` | item / weapon list | `X` | new projectile |
-| `Y` | projectile ended | `Z` | restart countdown |
+| `Y` | projectile ended | `Z` | restart countdown (over 60 = minutes / hours, `-1` cancels) |
 | `g` | tribe created | `1` | tribe deleted |
 | `2` | join request | `3` | your tribe |
 | `4` | tribe members | `5` | store update |
 | `6` | chat / server notice | `7` | minimap |
 | `8` | damage text | `9` | map ping |
 | `0` | pong | `W` | boss telegraph `[kind,x,y,r,ms,x2,y2]` |
-| `F` | live stats (staff watching a guest also get the guest's session id) | | |
+| `F` | live stats (staff watching a guest also get the guest's session id) | `p` | profile `[sid, json]` |
+| `q` | integrity probes `[salt, [[kind, path, hash]…]]` | `r` | "Game updated - reloading in m:ss" `[seconds]` |
+| `m` | dive `[sid, state, ms]` | | |
 
 When the server stops (Ctrl+C), it sends the `Z` countdown and then `B` *"Server is
 restarting - pick another"*, which makes the client look for another server.
 
 ### Anti-cheat
-**In the client** (official code, runs exactly as on moomoo.io; unchanged in v1.9.1):
+**In the client** (official code, runs exactly as on moomoo.io):
 - `window.WebSocket` is locked (not writable).
 - F12, Ctrl+Shift+I/J/C and Ctrl+U are blocked.
 - A `debugger` trap runs every second.
@@ -379,25 +468,47 @@ restarting - pick another"*, which makes the client look for another server.
   `GM_*` / `unsafeWindow`.
 - WebSocket send, canvas, WebGL and `requestAnimationFrame` are checked for being native.
 - Script-dispatched (untrusted) clicks are refused and counted.
-- The results go to the server in packet **`T`** (5 s after joining, then every 60 s; the
-  timer now restarts with each connection).
-  Flags: `1` userscript manager, `2` socket hooked, `4` render hooked, `8` debugger paused.
+- **New in API 1.31:** the client no longer sends `T` on a timer. The server sends
+  **integrity probes** (`q`, at most 30 per round) and the client answers with `T`: its
+  flags, untrusted-event count, a bitmask of the probes that matched, its seal and the
+  round's salt. Probe kinds: `1` own property names of an object, `2` "name=value" of its
+  plain properties, `3` localStorage keys, `4` elements as `tag#id`, `5` a constructor
+  swapped for a wrapper, `6` symbol descriptions, `7` a function that isn't native code.
+  Kinds 1–4 and 6 compare salted hashes with a fresh salt every round, so a script can't see
+  what's being looked for. This server asks 5 s after spawning and then every 60 s; the
+  probe list (generic hooks and userscript globals, with room for your own) is in
+  `anticheat/config.js`.
+- Flags: `1` userscript manager, `2` socket hooked, `4` render hooked, `8` debugger paused,
+  and (added in `index-6642cae8`) `16` socket-integrity (WebSocket / `send` not a native
+  function with the right name, or its constructor swapped) and `32` socket object carrying
+  own properties.
+- **Frame ledger** (added in `index-6642cae8`): the client keeps a rolling FNV-1a hash of
+  every `c2s` body it sends (started at the FNV offset) and reports it, with its send
+  sequence number, as the last two fields of `T`. The server keeps the same hash of the
+  frames it decodes, so a forged, replayed or dropped frame makes the two diverge
+  (`ledger.mismatchAction` in `config.js`).
 
 **On the server** (`server/src/anticheat/`, everything configurable in `config.js`):
 
 | Check | Default action |
 |---|---|
 | Bad HMAC tag, replayed or out-of-order `seq`, unknown packet id, malformed frame | close 4001 |
-| Wrong `?b=` build | close 4002 |
+| Wrong `?b=` build, or `?u=` isn't the bundle served now | close 4002 |
+| Modified bundle or guarded function (seal, mode 2) | close 4001 on the first frame |
 | Foreign `Origin` | close 4004 |
 | Missing, reused or expired join ticket, or a ticket for a different server | close 4001 |
 | Guest on a members server | close 4003 |
-| Telemetry `T` missing for 50 s, or stopped for 105 s | kick |
-| `T` flag 2 (socket hooked) | kick |
-| `T` flags 1 / 4 / 8, or 20+ untrusted events | flag (logged, shown on the staff panel) |
+| No answer to a probe round within 45 s | kick |
+| `T` without a probe round, or with the wrong salt | invalid (strike) |
+| A probe matched (hooked function, wrapper, userscript global…) | per probe, default flag |
+| Seal hash in `T` doesn't match (seal mode 1) | flag |
+| `T` flag 2 (socket hooked) or 16 (socket integrity) | kick |
+| `T` flags 1 / 4 / 8 / 32, or 20+ untrusted events | flag (logged, shown on the staff panel) |
+| `T` frame ledger / seq doesn't match the server's view of the c2s stream | flag |
+| After any kick | rejoin lock: 60 s (anti-cheat) / 2 min (staff) |
 | Per-packet rate limits (tuned to real client send rates) and argument validation | drop the packet + strike (40 strikes = kick) |
 | Shame! (auto-heal detection), straight from the original game logic | 30 s Shame! hat |
-| Bans (IP + device + account), shadow-bans, reports with reasons | `server/data/bans.json`, `moderation.json`, `reports.jsonl` |
+| Bans (IP + device + account, for good or timed), shadow-bans, reports with reasons | `server/data/bans.json`, `moderation.json`, `reports.jsonl` |
 
 ### Game logic (`server/src/moomoo/`)
 The Player, animal, object and projectile classes are ported **function for function** from
@@ -425,13 +536,15 @@ They're configured at the top of `server/src/index.js`.
 | Area | Endpoints |
 |---|---|
 | Auth | `/api/auth/*` (any code / password, signed JWTs) |
-| Servers & join | `/servers`, `/join` (single-use tickets for the server asked for, device id) |
-| Account | `/account` (incl. settings), `/account/prefs`, `/name` (permanent names, game name filter), `/name-check`, `/account/socials` (handle rules) |
+| Servers & join | `/servers` (with `restartAt`), `/join` (single-use tickets for the server asked for, device id; errors `captcha`, `banned {until}`, `locked {seconds}`; guests that just played may rejoin without the captcha after a restart) |
+| Account | `/account` (incl. settings), `/account/prefs`, `/account/look` (look editor), `/name` (permanent names, game name filter), `/name-check`, `/account/socials` (handle rules) |
+| Page stream | `/page/ticket`, `/page/stream` (server-sent events: `hello`, `bundle`, `notice`, `count`, `event`, `friend`, `clan-on`, `chat`, `invite`), `/page/friends` (`api/pageStream.js`) |
+| Chat | `/chat/whisper`, `/chat/clan`, `/chat/history`, `/invite`, `/clan/online` (`api/chat.js`, kept in `server/data/chat.json`) |
 | Friends | `/names-for`, `/friends/allow` (moomoo side), `/social/friends/*` and `/social/ws` (FRVR social stand-in, `api/social.js`) |
 | Profiles & boards | `/profile`, `/top` |
-| Clans | `/clan`, `/clan-check`, `/clan/*` (incl. `/clan/requests`) |
+| Clans | `/clan`, `/clan-check`, `/clan/*` (incl. `/clan/requests`, `/clan/uninvite`) |
 | Discord | `/discord/link` |
-| Staff | `/mod/player`, `/mod/verdict`, `/mod/kick`, `/mod/role`, `/mod/clan` (accounts by name, guests by session id) |
+| Staff | `/mod/player`, `/mod/verdict` (incl. timed bans), `/mod/kick`, `/mod/role`, `/mod/clan`, `/mod/messages` (what someone said) (accounts by name, guests by session id) |
 | Share links | `/player/<name>`, `/clan/<name>` (outside `/api`) |
 | Misc | `/client-log` |
 
@@ -451,22 +564,29 @@ starts, and existing sign-ins keep working. Data lives in `server/data/` (git-ig
    its packet lists with `server/src/protocol/constants.js`, and diff it against the archived
    bundle for new API calls.
 
+The server picks up a rebuilt bundle by itself: the `?u=` check and the seal always use the
+file in `dist/official/assets/`. `update` in the console then tells open pages to reload.
+
 ## Missing assets
 The client requests these images, which this project doesn't have yet. Save them from
 moomoo.io (`https://moomoo.io/<path>`) into `client/public/<path>`:
 
 ```
-img/hats/hat_59.png      img/hats/hat_60.png      img/hats/hat_61.png
 img/weapons/bow_1_d.png
+img/icons/crown_gold.png        img/icons/crown_silver.png        img/icons/crown_bronze.png
+img/icons/skull_crown_gold.png  img/icons/skull_crown_silver.png  img/icons/skull_crown_bronze.png
 ```
-Until then those hats (Scout Hat, Frost Helm, Crab Shell) and the diamond bow are invisible
-(the game still works). The icon font is also loaded from Google Fonts, because moomoo.io's own
+Until then the diamond bow and the weekly crowns are invisible (the game still works). A
+saved page only contains the images that were on screen, so the crowns need someone in this
+week's top three to be visible when you save. The touch joystick (`assets/index-d71d2980.js`)
+isn't in the saved files either, so phones and tablets get no on-screen sticks. The icon font is also loaded from Google Fonts, because moomoo.io's own
 copy (`css/fonts/material-icons.woff2`) isn't in the saved files.
 
 ## Settings and tips
 | Variable / command | Effect |
 |---|---|
 | `PORT=8080`, `HOST=127.0.0.1` | where the server listens (`HOST=0.0.0.0` exposes it to your network) |
+| `DATA_DIR=path` | keep accounts, bans and the protocol build somewhere other than `server/data/` (e.g. a second copy for testing) |
 | `OWNER_EMAIL=you@example.com` | makes that account an admin at startup |
 | `DEBUG_PACKETS=1` | logs every decoded client packet |
 | `npm run start:new-build` | rolls a new protocol build (simulates a moomoo.io deploy) |
@@ -481,20 +601,23 @@ copy (`css/fonts/material-icons.woff2`) isn't in the saved files.
 - Friends only exist between accounts on this server. Presence and invites go through this
   server instead of FRVR's.
 - There's no Discord bot; the console's `discord` command hands out the link codes.
-- Guests on a VPN aren't blocked (moomoo.io says *"VPNs and proxies can't join as a guest"*).
+- Guests on a VPN or hosting network aren't blocked (moomoo.io says *"VPNs, proxies and
+  server networks can't join as a guest"*).
+- The staff page moved to a separate bundle on moomoo.io that isn't in the saved files; the
+  in-game staff tools and the console cover the same ground.
 - Ads, analytics and the real captcha are stubbed out.
 - `client/` holds the old webpack clone client (old protocol). It's kept for reference only;
   build it with `npm run build:legacy`.
 
 ## Project layout
 ```
-client-official/   official client sources (+ archive of the previous build) + shim.js
+client-official/   official client sources (+ archive of earlier builds) + shim.js, page-parts.css
 tools/             build-official-client.mjs, console.mjs
 server/src/
   index.js         HTTP / WebSocket entry, servers, admin route, share links
-  protocol/        constants, crypto, build module generator, session
+  protocol/        constants, crypto, build module + seal generator, served bundle, session
   anticheat/       config + checks + moderation store
-  api/             accounts store, REST routes, FRVR social (friends) stand-in
+  api/             accounts store, REST routes, FRVR social (friends) stand-in, page stream, chat
   admin/           console commands
   network/         connection gate + packet handlers
   moomoo/          game (server.js) + ported modules + name filter

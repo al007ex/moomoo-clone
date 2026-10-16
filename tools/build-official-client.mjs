@@ -138,13 +138,19 @@ function findElements(html, test) {
 
 const hasId = (id) => (_tag, attrs) => new RegExp(`\\bid="${id}"`).test(attrs);
 
+// Matching elements that aren't inside another match.
+function outermost(html, test) {
+    const ranges = findElements(html, test).sort((a, b) => a[0] - b[0]);
+    const outer = [];
+    for (const range of ranges) {
+        if (!outer.length || range[0] >= outer[outer.length - 1][1]) outer.push(range);
+    }
+    return outer;
+}
+
 function removeAll(html, test) {
-    const ranges = findElements(html, test).sort((a, b) => b[0] - a[0]);
-    let lastStart = Infinity;
-    for (const [start, end] of ranges) {
-        if (end > lastStart) continue; // nested inside something already removed
+    for (const [start, end] of outermost(html, test).reverse()) {
         html = html.slice(0, start) + html.slice(end);
-        lastStart = start;
     }
     return html;
 }
@@ -163,6 +169,106 @@ function setStyle(html, id, style) {
     });
 }
 
+// ---------------------------------------------------------------- page parts
+// The game looks these elements up at load and stops with a TypeError when one is missing,
+// so a page saved from an older version than the bundle can't run it. Each part is added
+// only when the page doesn't have it yet (a page saved from the same version as the bundle
+// is left alone); the markup follows how the bundle uses them. Re-saving the page from
+// moomoo.io replaces all of this with the real thing.
+const row = (id, label, attrs = "") => `<div class="settingRadio"${attrs}><input id="${id}" type="checkbox"> ${label}</div>`;
+const chevron = '<i class="material-icons">&#xE5CC;</i>';
+const close = (id) => `<div id="${id}" class="cardClose" title="Close"><i class="material-icons">&#xE5CD;</i></div>`;
+
+function elementHtml(html, id) {
+    const [el] = findElements(html, hasId(id));
+    return el ? { html: html.slice(el[0], el[1]), start: el[0], end: el[1], inner: el[3] } : null;
+}
+
+function insertAfter(html, id, markup) {
+    const el = elementHtml(html, id);
+    if (!el) throw new Error(`page parts: no #${id} to insert after`);
+    return html.slice(0, el.end) + markup + html.slice(el.end);
+}
+
+function appendTo(html, id, markup) {
+    const el = elementHtml(html, id);
+    if (!el || el.inner === undefined) throw new Error(`page parts: no #${id} to append to`);
+    return html.slice(0, el.inner) + markup + html.slice(el.inner);
+}
+
+// cut an element out of the page and return [page, its markup]
+function takeElement(html, id) {
+    const el = elementHtml(html, id);
+    return el ? [html.slice(0, el.start) + html.slice(el.end), el.html] : [html, ""];
+}
+
+function afterSettingRow(html, inputId, markup) {
+    const re = new RegExp(`(<div class="settingRadio"><input id="${inputId}"[^>]*>[^<]*</div>)`);
+    if (!re.test(html)) throw new Error(`page parts: no settings row for #${inputId}`);
+    return html.replace(re, `$1${markup}`);
+}
+
+function addPageParts(html) {
+    const has = (id) => new RegExp(`\\bid="${id}"`).test(html);
+    const added = [];
+    const add = (id, apply) => {
+        if (has(id)) return;
+        html = apply(html);
+        added.push(id);
+    };
+
+    // in-game clicks-per-second counter, next to FPS; its setting under Show FPS
+    add("cpsDisplay", (h) => insertAfter(h, "fpsDisplay", ' <span id="cpsDisplay" hidden="">-- CPS</span>'));
+    add("showCps", (h) => afterSettingRow(h, "showFps", row("showCps", "Show CPS")));
+    // touch only: aim along the movement stick when not aiming
+    add("aimFollows", (h) => afterSettingRow(h, "cameraLock", row("aimFollows", "Aim Follows Movement", ' id="aimFollowsRow" style="display:none"')));
+
+    // Settings > Social / Shop / Keys / Look open one popup with the matching part
+    if (!has("settingsPopup")) {
+        let prefs, keys;
+        [html, prefs] = takeElement(html, "accountPrefs");
+        [html, keys] = takeElement(html, "keybindSection");
+        keys = keys.replace(/<div class="menuHeader">Keys<\/div>/, "");
+        const links = '<div id="settingsLinks">'
+            + `<a class="settingsLink" data-popup="social">Social${chevron}</a>`
+            + `<a class="settingsLink" data-popup="shop">Shop${chevron}</a>`
+            + `<a class="settingsLink" data-popup="keys">Keys${chevron}</a>`
+            + `<a id="settingsLookLink">Look${chevron}</a>`
+            + `<a id="settingsProfileLink">Profile${chevron}</a>`
+            + "</div>";
+        html = html.replace(/(<a id="textureLink")/, `${links}$1`);
+        const popup = '<div id="settingsPopup" class="menuCard" style="display:none">'
+            + '<div class="menuHeader" id="settingsPopupTitle"></div><div class="viewBody">'
+            + '<div class="popupPart" data-part="social"><div id="socialSignedOut" class="menuText" style="display:none"></div>'
+            + prefs
+            + row("prefToastWhispers", "Whisper Pop-ups")
+            + row("prefToastClan", "Clan Chat Pop-ups")
+            + row("prefAnon", "Anonymous Mode")
+            + row("prefAnonSelf", "Show My Name To Me", ' id="prefAnonSelfRow" style="display:none"')
+            + '<div id="prefAnonNote" class="menuText" style="display:none"></div></div>'
+            + '<div class="popupPart" data-part="shop">' + row("shopCombined", "Hats And Accessories Together") + '<div id="shopEditor"></div></div>'
+            + '<div class="popupPart" data-part="keys">' + keys + "</div>"
+            + '<div class="popupPart" data-part="look"><div id="lookEditor"></div></div>'
+            + "</div>" + close("settingsPopupClose") + "</div>";
+        html = insertAfter(html, "gameSettings", popup);
+        added.push("settingsPopup");
+    }
+
+    // whisper conversation with a friend / clanmate
+    add("whisperCard", (h) => insertAfter(h, "gameSettings",
+        '<div id="whisperCard" class="menuCard" style="display:none"><div class="menuHeader"><span id="whisperName"></span></div>'
+        + '<div id="whisperBody"></div>' + close("whisperClose") + "</div>"));
+    // whisper / clan chat pop-ups while playing
+    add("chatToasts", (h) => appendTo(h, "gameUI", '<div id="chatToasts"></div>'));
+    // "a new version is out" and the site notice, on the menu
+    add("updateNotice", (h) => insertAfter(h, "menuNotice", '<div id="updateNotice" hidden="">Game updated - <a href="/">reload</a> to play the new version</div>'));
+    add("noticeDisplay", (h) => insertAfter(h, "menuCardHolder", '<div id="noticeDisplay" hidden=""></div>'));
+    // leaderboard: players / clans
+    add("topKinds", (h) => insertAfter(h, "topTabs", '<div id="topKinds" class="segTabs"></div>'));
+
+    return { html, added };
+}
+
 function buildHtml(page, files) {
     let html = page.replace(/<!-- saved from url=[^>]*-->\s*/, "");
 
@@ -174,13 +280,28 @@ function buildHtml(page, files) {
         html = removeAll(html, hasId(id));
     }
     html = removeAll(html, (tag, attrs) => tag === "audio" && /audio-output/.test(attrs));
+
+    // UI that mods and userscripts running in the browser leave in a saved page: MooMoo.js
+    // (mmj-*: config overlay and button, the game menu's "Mods" tab and panel), script menus
+    // (mmjes-*), a hat-picker userscript (mml-*: its gui / card / hat grid) and a userscript
+    // chat overlay (.chat-container, .scroll-button)
+    const injected = (attrs) => /\bid="mm[jl][-\w]*"/.test(attrs) || /\bclass="(?:[^"]*\s)?(?:mm[jl]-[\w-]*|chat-container|scroll-button)(?:\s[^"]*)?"/.test(attrs);
+    const strays = outermost(html, (_tag, attrs) => injected(attrs)).length;
+    html = removeAll(html, (_tag, attrs) => injected(attrs));
+    html = html.replace(/<style>\s*\.chat-container\b[\s\S]*?<\/style>/g, "");
+    if (strays) console.log(`  page.html: removed ${strays} elements added by mods / userscripts`);
+
     html = html.replace(/<link\b[^>]*rel="(?:preconnect|preload|modulepreload|stylesheet)"[^>]*>/gi, "");
     html = html.replace(/<link\b[^>]*href="[^"]*(?:material-icons|hammersmith-one|main)\.css"[^>]*>/gi, "");
 
     // containers the game fills at runtime
-    for (const id of ["actionBar", "turnstileWidget", "leaderboardData", "upgradeHolder", "storeHolder", "allianceHolder", "allianceManager", "adminHolder", "itemInfoHolder", "noticationDisplay", "regionSelect", "serverSelect", "keybindHolder", "topBoard", "topTabs", "friendList", "friendRequests", "profileStats", "profilePeriods", "profileSocials", "profileActions", "clanBody", "reportHolder", "gameSettingsBody", "topSpot"]) {
+    for (const id of ["actionBar", "turnstileWidget", "leaderboardData", "upgradeHolder", "storeHolder", "allianceHolder", "allianceManager", "adminHolder", "itemInfoHolder", "noticationDisplay", "regionSelect", "serverSelect", "keybindHolder", "topBoard", "topTabs", "friendList", "friendRequests", "profileStats", "profilePeriods", "profileSocials", "profileActions", "clanBody", "reportHolder", "gameSettingsBody", "topSpot", "topKinds", "shopEditor", "lookEditor", "whisperBody", "chatToasts"]) {
         html = emptyElement(html, id);
     }
+
+    // elements this bundle needs that the saved page is too old to have
+    const parts = addPageParts(html);
+    html = parts.html;
 
     // restore the pre-load state of elements the game toggles
     html = setStyle(html, "mainMenu", "");
@@ -191,6 +312,8 @@ function buildHtml(page, files) {
     html = setStyle(html, "touch-controls-fullscreen", "");
     html = setStyle(html, "gameUI", "display:none");
     html = setStyle(html, "topSpot", "display:none");
+    html = setStyle(html, "settingsPopup", "display:none");
+    html = setStyle(html, "whisperCard", "display:none");
 
     // signed-out menu: the game switches these as soon as it knows who is signed in, but a
     // page saved while signed in would otherwise flash the account row first
@@ -207,7 +330,7 @@ function buildHtml(page, files) {
     html = html.replace(/href="https:\/\/moomoo\.io\/img\/favicon\.png\?v=2"/, 'href="/img/favicon.png"');
 
     const head = [
-        '<script type="importmap">{"imports":{"moomoo-protocol":"__PROTOCOL_MODULE__"}}</script>',
+        '<script type="importmap">{"imports":{"moomoo-protocol":"__PROTOCOL_MODULE__","moomoo-seal":"__SEAL_MODULE__"}}</script>',
         '<link rel="stylesheet" href="/assets/main.css">',
         '<link rel="stylesheet" href="/css/material-icons.css">',
         '<link rel="stylesheet" href="/css/hammersmith-one.css">',
@@ -222,10 +345,10 @@ function buildHtml(page, files) {
     ].join("");
     html = html.replace(/(<body[^>]*>)/, `$1${body}`);
 
-    if (!html.includes("__PROTOCOL_MODULE__") || !html.includes("/assets/shim.js")) {
+    if (!html.includes("__PROTOCOL_MODULE__") || !html.includes("__SEAL_MODULE__") || !html.includes("/assets/shim.js")) {
         throw new Error("could not inject the import map / shim into page.html");
     }
-    return html;
+    return { html, added: parts.added };
 }
 
 // ---------------------------------------------------------------- build
@@ -243,13 +366,24 @@ function main() {
     const bundle = fs.readFileSync(path.join(SRC, files.index), "utf8");
     fs.writeFileSync(path.join(ASSETS, files.index), patchBundle(bundle));
     fs.copyFileSync(path.join(SRC, files.vendor), path.join(ASSETS, files.vendor));
-    fs.copyFileSync(path.join(SRC, "main.css"), path.join(ASSETS, "main.css"));
+    // main.css saved before this bundle doesn't style its newer parts (settings popup, chat,
+    // look and shop editors...): append client-official/page-parts.css until it's re-saved
+    let css = fs.readFileSync(path.join(SRC, "main.css"), "utf8");
+    if (!css.includes("#settingsPopup")) {
+        css += "\n/* page-parts.css: styles for parts this main.css predates */\n" + fs.readFileSync(path.join(ROOT, "client-official/page-parts.css"), "utf8");
+        console.log("  main.css predates the bundle: appended client-official/page-parts.css");
+    }
+    fs.writeFileSync(path.join(ASSETS, "main.css"), css);
     fs.copyFileSync(path.join(SRC, "howler.core.min.js"), path.join(ASSETS, "howler.core.min.js"));
     fs.copyFileSync(path.join(ROOT, "client-official/shim.js"), path.join(ASSETS, "shim.js"));
 
     const page = fs.readFileSync(path.join(SRC, "page.html"), "utf8");
-    const html = buildHtml(page, files);
+    const { html, added } = buildHtml(page, files);
     fs.writeFileSync(path.join(OUT, "index.html"), html);
+    if (added.length) {
+        console.log(`  page.html predates the bundle: added ${added.join(", ")}`);
+        console.log("  (save moomoo.io again as \"Webpage, Complete\" into client-official/source to use the real ones)");
+    }
     console.log(`  index.html: ${(page.length / 1024).toFixed(0)} KB -> ${(html.length / 1024).toFixed(0)} KB`);
     console.log(`done -> ${path.relative(ROOT, OUT)}`);
 }

@@ -1,0 +1,106 @@
+/* PAGE PARTS
+   Styles for the parts of the page that newer bundles use and an older saved main.css
+   doesn't have (settings popup, whispers and clan chat, chat pop-ups, look and shop
+   editors...). tools/build-official-client.mjs appends this to dist/official/assets/main.css
+   only when client-official/source/main.css predates them; save the page from moomoo.io
+   again to use the real styles. Written to match the rest of main.css. */
+
+/* settings: links to the popup parts */
+#settingsLinks { margin:4px 0 10px }
+#settingsLinks a { display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:18px;color:#5a5a5a;cursor:pointer;border-top:1px solid #ececec }
+#settingsLinks a:last-child { border-bottom:1px solid #ececec }
+#settingsLinks a:hover { color:#292929 }
+#settingsLinks a .material-icons { color:#a8a8a8 }
+
+/* settings popup + whisper card: centered cards over the menu / game */
+#settingsPopup,#whisperCard { position:fixed;z-index:14;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;max-width:calc(100vw - 40px);max-height:calc(100% - 40px);box-sizing:border-box;overflow-y:auto;margin:0;text-align:left;white-space:normal;box-shadow:0 7px #c4c4c4,0 0 0 100vmax #00000059 }
+#settingsPopup .menuHeader,#whisperCard .menuHeader { margin:0 36px 8px 0 }
+#settingsPopup .viewBody { max-height:calc(100vh - 140px) }
+#settingsPopup #keybindSection .menuText { font-size:15px }
+#prefAnonNote { font-size:14px;margin:-4px 0 10px }
+#prefAnonNote.warn,.warn { color:#d9534f }
+#socialSignedOut { font-size:15px }
+
+/* chat log (whispers, clan chat) */
+.chatLog { height:240px;max-height:calc(100vh - 220px);overflow-y:auto;padding:6px 8px;border-radius:8px;background-color:#f4f4f4;font-size:15px;color:#4a4a4a;scrollbar-width:thin;scrollbar-color:#c4c4c4 transparent }
+.chatLine { padding:2px 0;word-wrap:break-word }
+.chatLine.own .chatWho { color:#6cc24a }
+.chatLine.system { color:#a8a8a8;font-style:italic }
+.chatWho { color:#a56dc8 }
+.chatLog + .clanInputRow .profileSocialInput { flex:1 1 auto;width:auto }
+.chatStatus { min-height:18px;margin-top:4px;font-size:14px;color:#d9534f }
+
+/* chat pop-ups while playing */
+#chatToasts { position:absolute;left:20px;top:50%;transform:translateY(-50%);z-index:6;display:flex;flex-direction:column;gap:6px;max-width:min(340px,calc(100vw - 40px));pointer-events:none }
+.chatToast { display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;background-color:#282a2eeb;color:#fff;font-size:15px;pointer-events:all;animation:chatToastIn .15s ease-out }
+.chatToast.clan { border-left:3px solid #b8860b }
+.chatToast.whisper { border-left:3px solid #a56dc8 }
+.chatToast.note { border-left:3px solid #6eb3ef }
+.chatToast.own { opacity:.75 }
+.chatToastBody { flex:1 1 auto;min-width:0;word-wrap:break-word }
+.chatToastWho { color:#ffd34d;margin-right:4px }
+.chatToastText { color:#fff }
+.chatToastReply { flex:0 0 auto;color:#7ee559;cursor:pointer }
+@keyframes chatToastIn { from { opacity:0;transform:translateX(-8px) } }
+
+/* clan card: chat / members tabs */
+.clanTabs { margin-top:6px }
+.clanPane { margin-top:6px }
+.clanActions { flex-wrap:wrap }
+
+/* in-game counters, notices */
+#cpsDisplay { display:inline-flex;align-items:flex-end;gap:5px;padding:3px 9px;border-radius:8px;background-color:#00000040 }
+#cpsDisplay[hidden],#updateNotice[hidden],#noticeDisplay[hidden] { display:none }
+#updateNotice { margin-top:12px;padding:8px 10px;border-radius:8px;font-size:15px;text-align:center;color:#245a12;background-color:#e2f7d8 }
+#updateNotice a { color:#3d8a22;text-decoration:underline }
+#noticeDisplay { max-width:420px;margin:12px auto 0;padding:8px 12px;border-radius:8px;font-size:15px;text-align:center;color:#fff;background-color:#1e2024d9 }
+
+/* leaderboard: players / clans */
+#topKinds { margin-top:4px }
+.crowned { color:#ffd34d }
+
+/* action bar with more items than fit on one row */
+#actionBar.packed .actionBarItem { width:var(--bar-slot);height:var(--bar-slot);margin-left:2px;margin-right:2px;background-size:100% 100% }
+
+/* shop editor (Settings > Shop) */
+.shopBar { display:flex;gap:12px;margin:6px 0 }
+.shopBar .menuLink { font-size:15px;cursor:pointer }
+.shopRow { display:flex;align-items:center;gap:8px;padding:4px 6px;margin:2px 0;border-radius:6px;background-color:#f4f4f4;font-size:16px;color:#4a4a4a;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y }
+.shopRow img { width:32px;height:32px;flex:0 0 auto }
+.shopRow.off { opacity:.5 }
+.shopRow.gap { visibility:hidden }
+.shopGhost { position:fixed;z-index:30;pointer-events:none;box-shadow:0 6px 16px #00000040;cursor:grabbing }
+.shopGrip { color:#a8a8a8;cursor:grab;touch-action:none }
+.shopName { flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.shopKind { font-size:13px;color:#a8a8a8 }
+.shopEye { color:#a8a8a8;cursor:pointer }
+.shopDivide { margin:10px 0 4px;font-size:14px;color:#a8a8a8 }
+.storeEmpty { color:#ffffffa6;cursor:default }
+
+/* look editor (Settings > Look) */
+.lookPreview { display:flex;align-items:center;gap:12px;margin-bottom:8px }
+.lookFigure { flex:0 0 96px;width:96px;height:96px }
+.lookFigure svg { width:100%;height:100% }
+.lookInfo { flex:1 1 auto;min-width:0 }
+.lookName { font-size:20px;color:#292929;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lookClan { color:#b8860b }
+.lookStat { display:block;font-size:14px;color:#a8a8a8 }
+.lookStat b { margin-left:4px;color:#5a5a5a;font-weight:normal }
+.lookNote,.lookStatus { font-size:14px;color:#a8a8a8;margin:4px 0 }
+.lookPick { margin-top:6px }
+.lookSlots { display:flex;gap:6px }
+.lookSlot { flex:1 1 0;display:flex;align-items:center;justify-content:space-between;padding:4px 6px;border-radius:6px;background-color:#f4f4f4;cursor:pointer }
+.lookFace img,.lookIcon img { width:32px;height:32px }
+.lookChevron { color:#a8a8a8 }
+.lookList { display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:220px;overflow-y:auto }
+.lookItem { position:relative;display:flex;flex-direction:column;align-items:center;width:64px;padding:4px;border-radius:6px;background-color:#f4f4f4;font-size:12px;color:#5a5a5a;text-align:center;cursor:pointer }
+.lookItem img { width:40px;height:40px }
+.lookTick { position:absolute;top:2px;right:2px;font-size:16px;color:#6cc24a }
+.lookVariants { display:flex;gap:4px;margin-top:4px }
+.lookVariant img { width:24px;height:24px }
+.lookButtons { display:flex;gap:8px;margin-top:10px }
+.profileLookEdit { cursor:pointer }
+.profileOnline { font-size:14px;color:#6cc24a }
+
+/* staff: what someone said */
+.said,.staffSaid { font-size:14px;color:#5a5a5a;word-wrap:break-word }
