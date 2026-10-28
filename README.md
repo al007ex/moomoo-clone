@@ -1,7 +1,7 @@
 # MooMoo.io Private Server
 
 A local MooMoo.io server that runs the **current official client** (v1.9.4, bundle
-`index-6642cae8.js`, API version 1.31), speaking the real packet protocol and anti-tamper
+`index-993d072d.js`, API version 1.31), speaking the real packet protocol and anti-tamper
 system (including the new code seal and integrity probes), with a local stand-in for every
 online service the client expects (accounts, friends, whispers and clan chat, servers,
 clans, profiles, Discord linking, captcha, ads).
@@ -39,9 +39,13 @@ npm run console -- tp me falls
 
 
 ### New in v1.9.4 **[client UI / local backend]**
-Everything below arrived with v1.9.4 and works here. moomoo later re-deployed v1.9.4 as
-`index-6642cae8.js`: same packets, tables, seal and probe kinds, but with **three new
-anti-tamper pieces**, all replicated here (see *Anticheat*):
+Everything below arrived with v1.9.4 and works here. moomoo then re-deployed v1.9.4 as
+`index-6642cae8.js`, which added **three new anti-tamper pieces** (all replicated here — see
+*Anticheat*), then re-deployed it as `index-332036b9.js` (which added probe kinds `8` and `9`,
+see *Anticheat*), and most recently as `index-993d072d.js` (the bundle served now) with no
+anti-cheat or protocol change at all — only control-flow-flattening obfuscation on the frame
+mask, a new "close the popup on spawn" UI call, and re-randomised string obfuscation. The
+three pieces `index-6642cae8` introduced:
 - the `T` telemetry frame carries two more fields — the client's current send sequence and
   a **frame ledger** (a rolling FNV-1a hash of every client→server body it has sent);
 - two new tamper **flag bits** — `16` (WebSocket / `send` not native-named, or its
@@ -334,7 +338,8 @@ WebSocket ws://host/s/<server>?token=tk:..&b=..&u=.. -> gate -> io-init -> keyed
 ### Official client (`client-official/`, `tools/build-official-client.mjs`)
 `client-official/source/` holds the files saved from moomoo.io, unmodified. Earlier versions
 (`index-228e9652.js` v1.9.0, `index-04fd22e2.js` v1.9.1, `index-45e2f6ff.js` the first v1.9.4
-build) are kept in `client-official/archive/`.
+build, `index-6642cae8.js` the v1.9.4 build that added the ledger / flags 16+32, and
+`index-332036b9.js` the one that added probe kinds 8+9) are kept in `client-official/archive/`.
 `npm run build` creates `dist/official/` by:
 
 1. **Patching the bundle.** moomoo's minifier renames things on every build, so each patch is
@@ -364,7 +369,7 @@ build) are kept in `client-official/archive/`.
    whisper card, chat pop-ups, CPS counter, update / site notices, leaderboard kinds…) and
    appends `client-official/page-parts.css` to `main.css`. Their markup follows how the
    bundle uses them, but it's a stand-in until the page is saved again. The current
-   `page.html` and `main.css` were saved with v1.9.4 (`index-6642cae8.js`), so nothing is added.
+   `page.html` and `main.css` were saved with v1.9.4 (`index-993d072d.js`), so nothing is added.
 3. **Adding `shim.js`**, a local FRVR SDK (bootstrapper, tracker, ads, profile, **auth** with
    `getFRVRID` and `authenticatedFetch`, and **social**), an instant-pass Turnstile, and ad /
    consent no-ops. The social part copies the SDK: REST calls go to `/api/social`, and the
@@ -375,7 +380,7 @@ build) are kept in `client-official/archive/`.
 
 ### Protocol (`server/src/protocol/`)
 Everything here mirrors the client function named in brackets (names from
-`index-6642cae8.js`; they change on every build). API 1.31 changed the protocol: packet ids
+`index-993d072d.js`; they change on every build). API 1.31 changed the protocol: packet ids
 go up to 127, a code seal is bound into the key, and the server now drives the telemetry. It
 was verified against the new client's own transport code with 21,742 automated checks, and
 end to end (gate, seal, probes, packets, chat, clans, moderation) with headless clients.
@@ -384,7 +389,7 @@ end to end (gate, seal, probes, packets, chat, clans, moderation) with headless 
   per-deploy module does. This server generates its own: a random id, salt and ARX key mixer.
   It's kept in `server/data/protocol-build.json`, and `npm run start:new-build` rolls it.
 - **URL** `ws://host/s/<server>?token=tk:<ticket>&b=<BUILD_ID>&u=<bundle name>`; `u` must
-  be the bundle this server serves (`index-6642cae8`).
+  be the bundle this server serves (`index-993d072d`).
 - **Handshake** (the only plain frame): `["io-init", [socketId, seed, keyHex, 1, 1, sealMode]]`
   - `key = mixKey(hex(keyHex), seed)`
   - **Seal** [Sd]: the page's import map has a second module, `moomoo-seal`, whose file name
@@ -473,11 +478,13 @@ restarting - pick another"*, which makes the client look for another server.
   flags, untrusted-event count, a bitmask of the probes that matched, its seal and the
   round's salt. Probe kinds: `1` own property names of an object, `2` "name=value" of its
   plain properties, `3` localStorage keys, `4` elements as `tag#id`, `5` a constructor
-  swapped for a wrapper, `6` symbol descriptions, `7` a function that isn't native code.
-  Kinds 1–4 and 6 compare salted hashes with a fresh salt every round, so a script can't see
-  what's being looked for. This server asks 5 s after spawning and then every 60 s; the
-  probe list (generic hooks and userscript globals, with room for your own) is in
-  `anticheat/config.js`.
+  swapped for a wrapper, `6` symbol descriptions, `7` a function that isn't native code, and
+  (added in `index-332036b9`) `8` elements as `tag.class` and `9` a `CustomEvent` the client
+  dispatches — it matches if a listener resolves it (so the server can detect a script that
+  hooks a named event). Kinds 1–4, 6 and 8 compare salted hashes with a fresh salt every
+  round, so a script can't see what's being looked for; kind 9's event name travels in clear.
+  This server asks 5 s after spawning and then every 60 s; the probe list (generic hooks and
+  userscript globals, with room for your own) is in `anticheat/config.js`.
 - Flags: `1` userscript manager, `2` socket hooked, `4` render hooked, `8` debugger paused,
   and (added in `index-6642cae8`) `16` socket-integrity (WebSocket / `send` not a native
   function with the right name, or its constructor swapped) and `32` socket object carrying
