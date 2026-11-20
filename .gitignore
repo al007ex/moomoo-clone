@@ -151,3 +151,8 @@ server/data/
 
 # Build output (official client + generated protocol module)
 dist/
+
+
+# Official game client files: save them locally (see README), never commit
+client-official/source/
+client-official/archive/
